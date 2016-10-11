@@ -1,0 +1,136 @@
+---
+title: "Using JAGS"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+This is a note on running JAGS using the Dail-Madsen model as an example. First of all, import the `rjags` library:
+
+```{r, message=FALSE}
+library(rjags)
+```
+
+Create some dummy data:
+
+```{r}
+K <- 10                      # number of time steps
+lambda <- 10                 # rate of new arrivals
+delta <- 0.5                 # survival probability
+rho <- 0.8                   # detection probability
+
+m <- rpois(K, lambda)        # new arrivals
+n <- rep(NA, K)              # abundance
+z <- rep(NA, K - 1)          # survivors
+n[1] <- m[1]
+for (k in 2:K) {
+  z[k - 1] <- rbinom(1, n[k - 1], delta)
+  n[k] <- m[k] + z[k - 1]
+  
+}
+y <- rbinom(K, n, rho)       # observed counts
+```
+
+There are two ways to define a model: in a separate file or using an R text connection. To define the model in a separate file, create a new file called `dail_madsen.bug`.
+
+```{r, eval=FALSE}
+model {
+  # Initialize the model for k = 1
+  m[1] ~ dpois(lambda)       # number of new arrivals
+  n[1] <- m[1]               # abundance
+  y[1] ~ dbin(rho, n[1])     # number of observed individuals
+  
+  # Define the model for k > 1
+  for (k in 2:K) {
+    z[k - 1] ~ dbin(delta, n[k - 1])
+    m[k] ~ dpois(lambda)
+    n[k] <- m[k] + z[k - 1]
+    y[k] ~ dbin(rho, n[k])
+  }
+}
+```
+
+Alternatively, to use text connection:
+
+```{r}
+model_str <- "
+  model {
+    # Initialize the model for k = 1
+    m[1] ~ dpois(lambda)       # number of new arrivals
+    n[1] <- m[1]               # abundance
+    y[1] ~ dbin(rho, n[1])     # number of observed individuals
+    
+    # Define the model for k > 1
+    for (k in 2:K) {
+      z[k - 1] ~ dbin(delta, n[k - 1])
+      m[k] ~ dpois(lambda)
+      n[k] <- m[k] + z[k - 1]
+      y[k] ~ dbin(rho, n[k])
+    }
+  }
+"
+model_conn <- textConnection(model_str)
+```
+
+It is optional to specify initial values. If unspecified, JAGS will draw randomly from the distribution given in the model definition. However, in this example, if we don't initialize `m`, JAGS might sample some values of `n`, such that `n[k] < y[k]`, which will cause JAGS to throw an error (`Node inconsistent with parents`). To initialize `m` with observed values:
+
+```{r}
+m0 <- y
+```
+
+Now, we are ready to compile the model. `jags.model` will return a JAGS model object.
+
+```{r, results='hide'}
+model <- jags.model(model_conn,
+                    data = list('y' = y, 'K' = K, 'lambda' = lambda,
+                                'delta' = delta, 'rho' = rho),
+                    inits = list('m' = m0),
+                    n.chains = 2,
+                    n.adapt = 1000)
+```
+
+Arguments:
+
+- **file** is either a filename string (`'dail_madsen.bug'`) or text connection object (`model_conn`)
+- **data** is a named list of observed variables and known parameters
+- **inits** is an (optional) named list of initial values for the sampler. This may not contain values for non-random variables (such as `n` in this example).
+- **n.chains** is the number of Markov chains
+- **n.adapt** is the number of iterations to run in adaptive mode. During the adaptive mode, the sampler uses the entire history of samples to maximize its efficiency. Samples generated during the adaptive iterations should not be used to obtain the posterior distribution because it is not a Markov chain.
+
+JAGS does not record samples unless the monitor is turned on, so it is useful to run the sampler without a monitor during the burn-in period. To run the sampler for 1000 iterations *without* the monitor turned on:
+
+```{r, eval=FALSE}
+update(model, 1000)
+```
+
+However, it is difficult to know ahead of time how many unmonitored iterations to run. It is often easier to monitor all samples, plot some summary statistics to figure out the appropriate burn-in period, then discard samples from those iterations. To run the sampler with the monitor turned on:
+
+```{r}
+n_iter <- 10000
+samples <- coda.samples(model, c('n', 'm', 'z'), n.iter = n_iter, thin = 20)
+```
+
+Arguments:
+
+- **model** is a JAGS model object
+- **variable.names** is a character vector of variable names to monitor
+- **n.iter** is the number of iterations to run the sampler
+- **thin** is the thinning interval for the monitor (i.e., only monitor every kth iteration of the sampler)
+
+`coda.samples` returns an `mcmc.list` object. To turn samples from the first chain into a dataframe and print sampled values from the first five iterations:
+
+```{r, eval=FALSE}
+samples_df <- data.frame(samples[[1]])
+print(head(samples_df, 5))
+```
+
+```{r, echo=FALSE}
+samples_df <- data.frame(samples[[1]])
+knitr::kable(head(samples_df, 5))
+```
+
+## References
+1. [RJAGS Documentation](https://cran.r-project.org/web/packages/rjags/rjags.pdf)
+2. [JAGS User Manual](http://www.uvm.edu/~bbeckage/Teaching/DataAnalysis/Manuals/manual.jags.pdf)

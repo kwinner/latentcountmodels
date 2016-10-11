@@ -1,0 +1,101 @@
+---
+title: "Dail-Madsen model"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Run JAGS and obtain samples:
+```{r, message=FALSE, results='hide'}
+library(rjags)
+
+# Libraries for plotting
+library(dplyr)
+library(tidyr)
+library(lazyeval)
+library(ggplot2)
+
+# Define data
+K <- 10
+n_iter <- 10000
+lambda <- 10                 # rate of new arrivals
+delta <- 0.5                 # survival probability
+rho <- 0.8                   # detection probability
+y <- c(10, 11, 7, 15, 13, 17, 13, 13, 18, 15)
+
+# Initialize values
+m0 <- y
+
+# Run JAGS
+model <- jags.model('../code/dail_madsen.bug',
+                   data = list('y' = y, 'K' = K, 'lambda' = lambda,
+                               'delta' = delta, 'rho' = rho),
+                   inits = list('m' = m0), # 'z' = z0
+                   n.chains = 1,
+                   n.adapt = 1000)
+
+samples <- coda.samples(model, c('n', 'm', 'z'), n.iter = n_iter, thin = 20)
+```
+
+Plot the cumulative mean vs iteration for each variable `n`, `m` and `z` at each time step `k`:
+
+```{r}
+# Turn mcmc object into a dataframe
+samples_df <- data.frame(samples[[1]], iter = 1:nrow(samples[[1]]))
+
+# Remove periods from column names
+colnames(samples_df) <- gsub('\\.', '', colnames(samples_df))
+
+# Preprocess the data frame for ggplot
+samples_df <- samples_df %>%
+  gather(var_k, value, -iter) %>%
+  separate(var_k, into = c('var', 'k'), sep = 1) %>%
+  group_by(var, k) %>%
+  mutate(cum_mean = cumsum(value) / iter)
+samples_df$k <- factor(samples_df$k, levels = 1:K)
+
+# Plot each variable
+for (var in c('n', 'm', 'z')) {
+  samples_var <- samples_df %>%
+    filter_(interp(~ var == v, v = var))
+  plt <- ggplot(samples_var, aes(iter, cum_mean, colour = k)) +
+    geom_line() +
+    theme_bw() +
+    ggtitle(paste('Mean vs iteration of', var))
+  print(plt)
+}
+```
+
+Discard samples from iteration $\leq$ 100 and display the new mean and standard deviation of each variable and time step:
+
+```{r}
+samples_df_new <- samples_df %>% filter(iter > 100)
+summary <- samples_df_new %>% group_by(var, k) %>%
+  summarise(mean = mean(value), sd = sd(value))
+```
+
+```{r, echo = FALSE}
+knitr::kable(summary)
+```
+
+Plot the distribution of `n` at each time step:
+
+```{r}
+samples_n <- samples_df_new %>%
+  filter(var == 'n')
+for (k in 1:K) {
+  samples_nk <- samples_n %>%
+    filter_(interp(~ k == t_step, t_step = k))
+  x_range <- min(samples_nk$value):max(samples_nk$value)
+  plt <- ggplot(samples_nk, aes(value)) +
+    geom_bar() +
+    geom_vline(aes(xintercept = mean(value)),
+               color = 'red', linetype = 'dashed') +
+    scale_x_continuous(breaks = x_range) +
+    theme_bw() +
+    ggtitle(paste('Distribution of n', k, sep = '_'))
+  print(plt)
+}
+```
