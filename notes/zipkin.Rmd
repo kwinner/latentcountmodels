@@ -7,6 +7,35 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+Define the model:
+```{r}
+model_str <- "
+  model {
+    # Initialize the model for k = 1
+    m[1] ~ dpois(gamma * n[2, 1])         # number of new births
+    t[1] ~ dbin(phi, z[1, 1])             # number of juveniles -> adults
+    for (i in 1:2) {                      # i = 1 for juveniles, 2 for adults
+      n[i, 1] ~ dpois(lambda[i])          # abundance
+      y[i, 1] ~ dbin(rho[i], n[i, 1])     # number of observed individuals
+      z[i, 1] ~ dbin(delta[i], n[i, 1])   # number of survivors
+    }
+  
+    # Define the model for k > 1
+    for (k in 2:K) {
+      m[k] ~ dpois(gamma * n[2, k])
+      t[k] ~ dbin(phi, z[1, k])
+      n[1, k] <- m[k - 1] + z[1, k - 1] - t[k - 1]
+      n[2, k] <- z[2, k - 1] + t[k - 1]
+      for (i in 1:2) {
+        y[i, k] ~ dbin(rho[i], n[i, k])
+        z[i, k] ~ dbin(delta[i], n[i, k])
+      }
+    }
+  }
+"
+model_conn <- textConnection(model_str)
+```
+
 Run JAGS and obtain samples:
 ```{r, message=FALSE, results='hide'}
 library(rjags)
@@ -25,8 +54,8 @@ gamma <- 0.1                 # birth rate
 phi <- 0.3                   # juvenile -> adult transition probability
 
 K <- 10
-n <- matrix(rep(NA, K * 2), 2)
-z <- matrix(rep(NA, K * 2), 2)
+n <- matrix(rep(NA, K * 2), nrow = 2)
+z <- matrix(rep(NA, K * 2), nrow = 2)
 m <- rep(NA, K)
 t <- rep(NA, K)
 for (k in 1:K) {
@@ -40,17 +69,17 @@ for (k in 1:K) {
   m[k] <- matrix(rpois(1, gamma * n[2, k]))
   t[k] <- matrix(rbinom(1, z[1, k], phi))
 }
-y <- matrix(rbinom(K * 2, n, rho), 2)       # observed counts
+y <- matrix(rbinom(K * 2, n, rho), 2)
 
 # Initialize values
 z0 <- y
 
 # Run JAGS
-model <- jags.model('../code/zipkin.bug',
+model <- jags.model(model_conn,
                     data = list('y' = y, 'K' = k, 'lambda' = lambda,
                                 'delta' = delta, 'rho' = rho,
                                 'gamma' = gamma, 'phi' = phi),
-                    inits = list('z' = z0), # 'm' = m0
+                    inits = list('z' = z0),
                     n.chains = 1,
                     n.adapt = 1000)
 
@@ -62,7 +91,7 @@ Plot the cumulative mean vs iteration of `n` at each life stage and time step `k
 ```{r}
 # Preprocess for ggplot
 samples_df <- data.frame(samples[[1]], iter = 1:nrow(samples[[1]]))
-colnames(samples_df) <- gsub('\\.', '', colnames(samples_df)) # clean column names
+colnames(samples_df) <- gsub('\\.', '', colnames(samples_df))
 samples_df <- samples_df %>%
   gather(var_k, value, -iter) %>%
   separate(var_k, into = c('var', 'stage', 'k'), sep = 1:2) %>%
