@@ -1,0 +1,159 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{amsthm}
+
+\title{PGF operations for the Zipkin model}
+
+\begin{document}
+\maketitle
+
+\section{Observation}
+
+Consider one time step. Define random variables:
+\begin{itemize}
+\item $N_i =$ true abundance of stage $i$ individuals
+\item $Y_i =$ number of detected stage $i$ individuals
+\item $p_i =$ detection probability of stage $i$ individuals
+\end{itemize}
+
+\subsection{Unnormalized conditional PGF of N, Y = y}
+Let $\mathbf{y} = (y_1, y_2)$ be a vector of observations at one time step, then:
+$$F_{\mathbf{N}, \mathbf{Y} = \mathbf{y}}(\mathbf{s}) = \frac{1}{y_1!y_2!} (s_1p_1)^{y_1} (s_2p_2)^{y_2} \bigg [\frac{\partial^{y_1+y_2}}{\partial u_1^{y_1} \partial u_2^{y_2}} F_{\mathbf{N}}(\mathbf{u}) \bigg]_{u_i = s_i(1-p_i)}$$
+
+\begin{proof}
+\begin{align*}
+F_{\mathbf{N}, \mathbf{Y} = \mathbf{y}}(\mathbf{s})
+&= \frac{1}{y_1!y_2!} \bigg[\frac{\partial^{y_1+y_2}}{\partial t_1^{y_1} \partial t_2^{y_2}} F_{\mathbf{N}, \mathbf{Y}}(\mathbf{s}, \mathbf{t}) \bigg]_{\mathbf{t} = \mathbf{0}} \\
+&= \frac{1}{y_1!y_2!} \bigg[\frac{\partial^{y_1+y_2}}{\partial t_1^{y_1} \partial t_2^{y_2}} F_{\mathbf{N}}(s_1(1+p_1t_1-p_1), s_2(1+p_2t_2-p_2)) \bigg]_{\mathbf{t} = \mathbf{0}} \\
+&= \frac{1}{y_1!y_2!} \bigg[ \bigg[ (s_1p_1)^{y_1} (s_2p_2)^{y_2} \frac{\partial^{y_1+y_2}}{\partial u_1^{y_1} \partial u_2^{y_2}} F_{\mathbf{N}}(u_1, u_2) \bigg]_{u_i = s_i(1+p_it_i-p_i)} \bigg]_{\mathbf{t} = \mathbf{0}} \\
+&= \frac{1}{y_1!y_2!} (s_1p_1)^{y_1} (s_2p_2)^{y_2} \bigg[ \frac{\partial^{y_1+y_2}}{\partial u_1^{y_1} \partial u_2^{y_2}} F_{\mathbf{N}}(u_1, u_2) \bigg]_{u_i = s_i(1-p_i)}
+\end{align*}
+\end{proof}
+
+\subsection{Invariance of the functional form}
+Suppose $F_\mathbf{N}(\mathbf{u}) = f(\mathbf{u}) e^{\mathbf{a}^T \mathbf{u} + a_0}$, where $f(\mathbf{u})$ is a bivariate polynomial of degree $d$. Then, after observing evidence, the PGF maintains the same form $F_{\mathbf{N}, \mathbf{Y} = \mathbf{y}}(\mathbf{s}) = g(\mathbf{s}) e^{\mathbf{b}^T \mathbf{s} + b_0}$, where $g(\mathbf{s})$ is a bivariate polynomial of degree $d + y_1 + y_2$.
+
+\begin{proof}
+
+\begin{align*}
+F_{\mathbf{N}, \mathbf{Y} = \mathbf{y}}(\mathbf{s})
+&= \frac{1}{y_1!y_2!} (s_1p_1)^{y_1} (s_2p_2)^{y_2} \bigg[ \frac{\partial^{y_1+y_2}}{\partial u_1^{y_1} \partial u_2^{y_2}} F_{\mathbf{N}}(u_1, u_2) \bigg]_{u_i = s_i(1-p_i)} \\
+&= \frac{1}{y_1!y_2!} (s_1p_1)^{y_1} (s_2p_2)^{y_2} \bigg[ \frac{\partial^{y_1+y_2}}{\partial u_1^{y_1} \partial u_2^{y_2}} f(\mathbf{u}) e^{\mathbf{a}^T \mathbf{u} + a_0} \bigg]_{u_i = s_i(1-p_i)} \\
+&= \frac{1}{y_1!y_2!} (s_1p_1)^{y_1} (s_2p_2)^{y_2} \bigg[ e^{\mathbf{a}^T \mathbf{u} + a_0} \sum_{l=0}^{y_1} {y_1 \choose l} a_1^{y_1 - l} \sum_{m=0}^{y_2} {y_2 \choose m} a_2^{y_2 - m} \\
+& \quad \frac{\partial^{l+m}}{\partial u_1^{l} \partial u_2^{m}} f(u_1, u_2) \bigg]_{u_i = s_i(1-p_i)} \\
+&= \frac{1}{y_1! y_2!} (s_1 p_1)^{y_1} (s_2 p_2)^{y_2} e^{a_1 s_1 (1-p_1) + a_2 s_2 (1-p_2) + a_0} \sum_{l=0}^{y_1} \frac{y_1!}{l! (y_1 - l)!} a_1^{y_1} a_1^{- l} \\
+& \quad \sum_{m=0}^{y_2} \frac{y_2!}{m! (y_2 - m)!} a_2^{y_2} a_2^{- m} f_{u_1^l u_2^m}(s_1(1-p_1), s_2(1-p_2))  \\
+&= e^{a_1(1-p_1)s_1 + a_2(1-p_2)s_2 + a_0} \sum_{l=0}^{y_1} \sum_{m=0}^{y_2} \frac{(a_1p_1)^{y_1}}{l! (y_1 - l)! a_1^{ l}} \frac{(a_2p_2)^{y_2}}{m!(y_2 - m)! a_2^{m}} \\
+& \quad s_1^{y_1} s_2^{y_2} f_{u_1^l u_2^m}(s_1(1-p_1), s_2(1-p_2))
+\end{align*}
+
+The first term has the form $e^{\mathbf{b}^T \mathbf{s} + b_0}$, where $\mathbf{b} = (a_1(1-p_1), a_2(1-p_2))$ and $b_0 = a_0$. Since the mixed partial derivative of a bivariate polynomial of degree $d$ is also a bivariate polynomial of degree at most $d$, and the scalar $\frac{(a_1p_1)^{y_1}}{l! (y_1 - l)! a_1^{ l}} \frac{(a_2p_2)^{y_2}}{m!(y_2 - m)! a_2^{m}}$ can be combined with the coefficient of each monomial of $f_{u_1^l u_2^m}(s_1(1-p_1), s_2(1-p_2))$, the term inside the summation is a bivariate polynomial of degree at most $d + y_1 + y_2$. Furthermore, since the sum of polynomials is another polynomial of the same degree as its highest-degree term, the entire summation term must be a bivariate polynomial of degree $d + y_1 + y_2$.
+
+\end{proof}
+
+\section{Transition}
+\subsection{PGF of a multinomial rv}
+If $\mathbf{Z}|N \sim Multinomial(N, \mathbf{p})$, then $F_{\mathbf{Z}|N}(\mathbf{t}) = (\sum_k t_k p_k)^N$.
+
+\begin{proof}
+\begin{align*}
+F_{\mathbf{Z}|N}(\mathbf{t}) &= E_{\mathbf{Z}|N}(\prod_k t_k^{Z_k}|N) \\
+&= \sum_\mathbf{z} \prod_k t_k^{z_k} p(\mathbf{z}|n) \\
+&= \sum_\mathbf{z} \prod_k t_k^{z_k} \frac{n!}{\prod_k z_k!} \prod_k p_k^{z_k} \\
+&= \sum_\mathbf{z} \frac{n!}{\prod_k z_k!} \prod_k (t_k p_k)^{z_k} \\
+&= (\sum_k t_k p_k)^n \text{, by the multinomial theorem}
+\end{align*}
+\end{proof}
+
+\subsection{Joint PGF over $\{Z_{ij}\}$}
+If $\mathbf{Z}_1|N_1 \sim Multinomial(N_1, \mathbf{p}_1)$ and $\mathbf{Z}_2|N_2 \sim Multinomial(N_2, \mathbf{p}_2)$, then $F_{\mathbf{Z}_1, \mathbf{Z}_2}(\mathbf{t}_1, \mathbf{t}_2) = F_{\mathbf{N}_1, \mathbf{N}_2}(\sum_j  t_{1j} p_{1j}, \sum_j t_{2j} p_{2j})$.
+
+\begin{proof}
+First, find $F_{\mathbf{Z}_1, \mathbf{Z}_2|N_1, N_2}(\mathbf{t}_1, \mathbf{t}_2)$:
+\begin{align*}
+F_{\mathbf{Z}_1, \mathbf{Z}_2|N_1, N_2}(\mathbf{t}_1, \mathbf{t}_2)
+&= \sum_{\mathbf{z}_1, \mathbf{z}_2} \prod_{ij} t_{ij}^{z_{ij}} p(\mathbf{z}_1, \mathbf{z}_2|n_1, n_2) \\
+&= \sum_{\mathbf{z}_1, \mathbf{z}_2} \prod_{ij} t_{ij}^{z_{ij}} p(\mathbf{z}_1|n_1) p(\mathbf{z}_2|n_2) \\
+&= \sum_{\mathbf{z}_1} \prod_{j} t_{1j}^{z_{1j}} p(\mathbf{z}_1|n_1) \sum_{\mathbf{z}_2} \prod_{j} t_{2j}^{z_{2j}} p(\mathbf{z}_2|n_2) \\
+&= (\sum_j t_{1j} p_{1j})^{n_1} (\sum_j t_{2j} p_{2j})^{n_2}
+\end{align*}
+
+Find the joint PGF over $\mathbf{Z}_1, \mathbf{Z}_2, N_1, N_2$:
+\begin{align*}
+F_{N_1, N_2, \mathbf{Z}_1, \mathbf{Z}_2}(s_1, s_2, \mathbf{t}_1, \mathbf{t}_2)
+&= \sum_{n_1, n_2, \mathbf{z}_1, \mathbf{z}_2} \prod_{i} s_i^{n_i} \prod_j t_{ij}^{z_{ij}} p(n_1, n_2, \mathbf{z}_1, \mathbf{z}_2) \\
+&= \sum_{n_1, n_2, \mathbf{z}_1, \mathbf{z}_2} \prod_{i} s_i^{n_i} \prod_j t_{ij}^{z_{ij}} p(\mathbf{z}_1, \mathbf{z}_2|n_1, n_2) p(n_1, n_2) \\
+&= \sum_{n_1, n_2} \prod_{i} s_i^{n_i} p(n_1, n_2) \sum_{\mathbf{z}_1, \mathbf{z}_2} \prod_{ij} t_{ij}^{z_{ij}} p(\mathbf{z}_1, \mathbf{z}_2|n_1, n_2) \\
+&= \sum_{n_1, n_2} \prod_{i} s_i^{n_i} p(n_1, n_2) (\sum_j t_{1j} p_{1j})^{n_1} (\sum_j t_{2j} p_{2j})^{n_2} \\
+&= \sum_{n_1, n_2} \prod_{i} (s_i\sum_j t_{ij} p_{ij})^{n_i} p(n_1, n_2) \\
+&= F_{N_1, N_2}(s_1 \sum_j t_{1j} p_{1j}, s_2 \sum_j t_{2j} p_{2j})
+\end{align*}
+
+Finally, marginalize to obtain:
+\begin{align*}
+F_{\mathbf{Z}_1, \mathbf{Z}_2}(\mathbf{t}_1, \mathbf{t}_2)
+&= F_{N_1, N_2, \mathbf{Z}_1, \mathbf{Z}_2}(1, 1, \mathbf{t}_1, \mathbf{t}_2) \\
+&= F_{N_1, N_2}(\sum_j t_{1j} p_{1j}, \sum_j t_{2j} p_{2j})
+\end{align*}
+
+\end{proof}
+
+\subsection{Joint PGF over $M_1, M_2$}
+If $m_1 = z_{11} + z_{21}$ and $m_2 = z_{12} + z_{22}$, then $F_{M_1, M_2}(u_1, u_2) = F_{N_1, N_2}(\sum_j u_j p_{1j}, \sum_j u_j p_{2j})$
+
+\begin{proof}
+Since $m_j = z_{1j} + z_{2j}$:
+\begin{align*}
+F_{M_j|Z_{1j}, Z_{2j}}(u_j) &= \sum_{m_j} u_j^{m_j} p(m_j|z_{1j}, z_{2j}) \\
+&= u_j^{z_{1j} + z_{2j}}
+\end{align*}
+
+Find the conditional PGF:
+\begin{align*}
+F_{M_1, M_2 | \mathbf{Z}_1, \mathbf{Z}_2}(u_1, u_2)
+&= \sum_{m_1, m_2} \prod_{j} u_{j}^{m_{j}} p(m_1, m_2|\mathbf{z}_1, \mathbf{z}_2) \\
+&= \sum_{m_1, m_2} \prod_{j} u_{j}^{m_{j}} p(m_1|z_{11}, z{21}) p(m_2|z_{12}, z_{22}) \\
+&= \sum_{m_1} u_1^{m_1} p(m_1|z_{11}, z{21}) \sum_{m_2} u_2^{m_2} p(m_2|z_{12}, z_{22}) \\
+&= \prod_j u_j^{z_{1j} + z_{2j}}
+\end{align*}
+
+Then the joint PGF:
+\begin{align*}
+F_{\mathbf{Z}_1, \mathbf{Z}_2, M_1, M_2}(\mathbf{t}_1, \mathbf{t}_2, u_1, u_2)
+&= \sum_{\mathbf{z}_1, \mathbf{z}_2, m_1, m_2} \prod_i u_i^{m_i} \prod_j t_{ij}^{z_{ij}} p(\mathbf{z}_1, \mathbf{z}_2, m_1, m_2) \\
+&= \sum_{\mathbf{z}_1, \mathbf{z}_2, m_1, m_2} \prod_i u_i^{m_i} \prod_j t_{ij}^{z_{ij}} p(m_1, m_2|\mathbf{z}_1, \mathbf{z}_2) p(\mathbf{z}_1, \mathbf{z}_2) \\
+&= \sum_{\mathbf{z}_1, \mathbf{z}_2} \prod_{ij} t_{ij}^{z_{ij}} p(\mathbf{z}_1, \mathbf{z}_2) \sum_{m_1, m_2} \prod_i u_i^{m_i} p(m_1, m_2|\mathbf{z}_1, \mathbf{z}_2) \\
+&= \sum_{\mathbf{z}_1, \mathbf{z}_2} \prod_{ij} t_{ij}^{z_{ij}} p(\mathbf{z}_1, \mathbf{z}_2) \prod_j u_j^{z_{1j} + z_{2j}} \\
+&= \sum_{\mathbf{z}_1, \mathbf{z}_2} \prod_{ij} (u_j t_{ij})^{z_{ij}} p(\mathbf{z}_1, \mathbf{z}_2) \\
+&= F_{\mathbf{Z}_1, \mathbf{Z}_2}(u_1 t_{11}, u_2 t_{12}, u_1 t_{21}, u_2 t_{22}) \\
+&= F_{N_1, N_2}(u_1 t_{11} p{11} + u_2 t_{12} p_{12}, u_1 t_{21} p{21} + u_2 t_{22} p_{22}) \\
+\end{align*}
+
+So the marginal PGF over $M_1, M_2$ is:
+\begin{align*}
+F_{M_1, M_2}(u_1, u_2) &= F_{1, 1, M_1, M_2}(\mathbf{t}_1, \mathbf{t}_2, u_1, u_2) \\
+&= F_{N_1, N_2}(u_1 p{11} + u_2 p_{12}, u_1 p{21} + u_2 p_{22})
+\end{align*}
+
+Therefore, $F_{\mathbf{M}}(\mathbf{u}) = F_{\mathbf{N}}(\mathbf{Pu})$.
+
+\end{proof}
+
+\subsection{Invariance of the functional form}
+Suppose $F_{\mathbf{N}, \mathbf{Y}(\mathbf{u}) = \mathbf{y}}(\mathbf{s}) = f(\mathbf{u}) e^{\mathbf{a}^T \mathbf{u} + a_0}$, where $f(\mathbf{u})$ is a bivariate polynomial of degree $d$. Then, after the transition operation, the PGF still has the same form $F_{\mathbf{N}}(\mathbf{s}) = g(\mathbf{s}) e^{\mathbf{b}^T \mathbf{s} + b_0}$, where $g(\mathbf{s})$ is also a bivariate polynomial of degree $d$.
+
+\begin{proof}
+\begin{align*}
+F_{\mathbf{N}}(\mathbf{s}) &=  F_{\mathbf{N}, \mathbf{Y}}(\mathbf{\Delta} \mathbf{s}) \\
+&= f(\mathbf{\Delta} \mathbf{s}) e^{\mathbf{a}^T \mathbf{\mathbf{\Delta} \mathbf{s}} + a_0} \\
+&= g(\mathbf{s}) e^{(\mathbf{a}^T \mathbf{\Delta}) \mathbf{s} + a_0}
+\end{align*}
+
+Let $h(\mathbf{s}) = \mathbf{\Delta} \mathbf{s}$, then the first term is the composition of a bivariate polynomial of degree $d$ and a linear transformation of a vector, $g(\mathbf{s}) = f o h(\mathbf{s})$, which is another bivariate polynomial of degree $d$ by ???. The second term has the form $e^{\mathbf{b}^T \mathbf{s} + b_0}$, where $\mathbf{b}^T = \mathbf{a}^T \mathbf{\Delta}$ and $b_0 = a_0$.
+
+\end{proof}
+
+\section{Reproduction}
+
+\end{document}
