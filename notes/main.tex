@@ -1,0 +1,98 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{amsthm}
+
+\title{Multinomial thinning on PGF}
+
+\begin{document}
+\maketitle
+
+\section{PGF of a multinomial rv}
+If $\mathbf{Z}|N \sim Multinomial(N, \mathbf{p})$, then $F_{\mathbf{Z}|N}(\mathbf{t}) = (\sum_k t_k p_k)^N$.
+
+\begin{proof}
+\begin{align*}
+F_{\mathbf{Z}|N}(\mathbf{t}) &= E_{\mathbf{Z}|N}(\prod_k t_k^{Z_k}|N) \\
+&= \sum_\mathbf{z} \prod_k t_k^{z_k} p(\mathbf{z}|n) \\
+&= \sum_\mathbf{z} \prod_k t_k^{z_k} \frac{n!}{\prod_k z_k!} \prod_k p_k^{z_k} \\
+&= \sum_\mathbf{z} \frac{n!}{\prod_k z_k!} \prod_k (t_k p_k)^{z_k} \\
+&= (\sum_k t_k p_k)^n \text{, by the multinomial theorem}
+\end{align*}
+\end{proof}
+
+\section{Joint PGF over $\{Z_{ij}\}$}
+If $\mathbf{Z}_1|N_1 \sim Multinomial(N_1, \mathbf{p}_1)$ and $\mathbf{Z}_2|N_2 \sim Multinomial(N_2, \mathbf{p}_2)$, then $F_{\mathbf{Z}_1, \mathbf{Z}_2}(\mathbf{t}_1, \mathbf{t}_2) = F_{\mathbf{N}_1, \mathbf{N}_2}(\sum_j  t_{1j} p_{1j}, \sum_j t_{2j} p_{2j})$.
+
+\begin{proof}
+First, find $F_{\mathbf{Z}_1, \mathbf{Z}_2|N_1, N_2}(\mathbf{t}_1, \mathbf{t}_2)$:
+\begin{align*}
+F_{\mathbf{Z}_1, \mathbf{Z}_2|N_1, N_2}(\mathbf{t}_1, \mathbf{t}_2)
+&= \sum_{\mathbf{z}_1, \mathbf{z}_2} \prod_{ij} t_{ij}^{z_{ij}} p(\mathbf{z}_1, \mathbf{z}_2|n_1, n_2) \\
+&= \sum_{\mathbf{z}_1, \mathbf{z}_2} \prod_{ij} t_{ij}^{z_{ij}} p(\mathbf{z}_1|n_1) p(\mathbf{z}_2|n_2) \\
+&= \sum_{\mathbf{z}_1} \prod_{j} t_{1j}^{z_{1j}} p(\mathbf{z}_1|n_1) \sum_{\mathbf{z}_2} \prod_{j} t_{2j}^{z_{2j}} p(\mathbf{z}_2|n_2) \\
+&= (\sum_j t_{1j} p_{1j})^{n_1} (\sum_j t_{2j} p_{2j})^{n_2}
+\end{align*}
+
+Find the joint PGF over $\mathbf{Z}_1, \mathbf{Z}_2, N_1, N_2$:
+\begin{align*}
+F_{N_1, N_2, \mathbf{Z}_1, \mathbf{Z}_2}(s_1, s_2, \mathbf{t}_1, \mathbf{t}_2)
+&= \sum_{n_1, n_2, \mathbf{z}_1, \mathbf{z}_2} \prod_{i} s_i^{n_i} \prod_j t_{ij}^{z_{ij}} p(n_1, n_2, \mathbf{z}_1, \mathbf{z}_2) \\
+&= \sum_{n_1, n_2, \mathbf{z}_1, \mathbf{z}_2} \prod_{i} s_i^{n_i} \prod_j t_{ij}^{z_{ij}} p(\mathbf{z}_1, \mathbf{z}_2|n_1, n_2) p(n_1, n_2) \\
+&= \sum_{n_1, n_2} \prod_{i} s_i^{n_i} p(n_1, n_2) \sum_{\mathbf{z}_1, \mathbf{z}_2} \prod_{ij} t_{ij}^{z_{ij}} p(\mathbf{z}_1, \mathbf{z}_2|n_1, n_2) \\
+&= \sum_{n_1, n_2} \prod_{i} s_i^{n_i} p(n_1, n_2) (\sum_j t_{1j} p_{1j})^{n_1} (\sum_j t_{2j} p_{2j})^{n_2} \\
+&= \sum_{n_1, n_2} \prod_{i} (s_i\sum_j t_{ij} p_{ij})^{n_i} p(n_1, n_2) \\
+&= F_{N_1, N_2}(s_1 \sum_j t_{1j} p_{1j}, s_2 \sum_j t_{2j} p_{2j})
+\end{align*}
+
+Finally, marginalize to obtain:
+\begin{align*}
+F_{\mathbf{Z}_1, \mathbf{Z}_2}(\mathbf{t}_1, \mathbf{t}_2)
+&= F_{N_1, N_2, \mathbf{Z}_1, \mathbf{Z}_2}(1, 1, \mathbf{t}_1, \mathbf{t}_2) \\
+&= F_{N_1, N_2}(\sum_j t_{1j} p_{1j}, \sum_j t_{2j} p_{2j})
+\end{align*}
+
+\end{proof}
+
+\section{Joint PGF over $M_1, M_2$}
+If $m_1 = z_{11} + z_{21}$ and $m_2 = z_{12} + z_{22}$, then $F_{M_1, M_2}(u_1, u_2) = F_{N_1, N_2}(\sum_j u_j p_{1j}, \sum_j u_j p_{2j})$
+
+\begin{proof}
+Since $m_j = z_{1j} + z_{2j}$:
+\begin{align*}
+F_{M_j|Z_{1j}, Z_{2j}}(u_j) &= \sum_{m_j} u_j^{m_j} p(m_j|z_{1j}, z_{2j}) \\
+&= u_j^{z_{1j} + z_{2j}}
+\end{align*}
+
+Find the conditional PGF:
+\begin{align*}
+F_{M_1, M_2 | \mathbf{Z}_1, \mathbf{Z}_2}(u_1, u_2)
+&= \sum_{m_1, m_2} \prod_{j} u_{j}^{m_{j}} p(m_1, m_2|\mathbf{z}_1, \mathbf{z}_2) \\
+&= \sum_{m_1, m_2} \prod_{j} u_{j}^{m_{j}} p(m_1|z_{11}, z{21}) p(m_2|z_{12}, z_{22}) \\
+&= \sum_{m_1} u_1^{m_1} p(m_1|z_{11}, z{21}) \sum_{m_2} u_2^{m_2} p(m_2|z_{12}, z_{22}) \\
+&= \prod_j u_j^{z_{1j} + z_{2j}}
+\end{align*}
+
+Then the joint PGF:
+\begin{align*}
+F_{\mathbf{Z}_1, \mathbf{Z}_2, M_1, M_2}(\mathbf{t}_1, \mathbf{t}_2, u_1, u_2)
+&= \sum_{\mathbf{z}_1, \mathbf{z}_2, m_1, m_2} \prod_i u_i^{m_i} \prod_j t_{ij}^{z_{ij}} p(\mathbf{z}_1, \mathbf{z}_2, m_1, m_2) \\
+&= \sum_{\mathbf{z}_1, \mathbf{z}_2, m_1, m_2} \prod_i u_i^{m_i} \prod_j t_{ij}^{z_{ij}} p(m_1, m_2|\mathbf{z}_1, \mathbf{z}_2) p(\mathbf{z}_1, \mathbf{z}_2) \\
+&= \sum_{\mathbf{z}_1, \mathbf{z}_2} \prod_{ij} t_{ij}^{z_{ij}} p(\mathbf{z}_1, \mathbf{z}_2) \sum_{m_1, m_2} \prod_i u_i^{m_i} p(m_1, m_2|\mathbf{z}_1, \mathbf{z}_2) \\
+&= \sum_{\mathbf{z}_1, \mathbf{z}_2} \prod_{ij} t_{ij}^{z_{ij}} p(\mathbf{z}_1, \mathbf{z}_2) \prod_j u_j^{z_{1j} + z_{2j}} \\
+&= \sum_{\mathbf{z}_1, \mathbf{z}_2} \prod_{ij} (u_j t_{ij})^{z_{ij}} p(\mathbf{z}_1, \mathbf{z}_2) \\
+&= F_{\mathbf{Z}_1, \mathbf{Z}_2}(u_1 t_{11}, u_2 t_{12}, u_1 t_{21}, u_2 t_{22}) \\
+&= F_{N_1, N_2}(u_1 t_{11} p{11} + u_2 t_{12} p_{12}, u_1 t_{21} p{21} + u_2 t_{22} p_{22}) \\
+\end{align*}
+
+So the marginal PGF over $M_1, M_2$ is:
+\begin{align*}
+F_{M_1, M_2}(u_1, u_2) &= F_{1, 1, M_1, M_2}(\mathbf{t}_1, \mathbf{t}_2, u_1, u_2) \\
+&= F_{N_1, N_2}(u_1 p{11} + u_2 p_{12}, u_1 p{21} + u_2 p_{22})
+\end{align*}
+
+Therefore, $F_{\mathbf{M}}(\mathbf{u}) = F_{\mathbf{N}}(\mathbf{Pu})$.
+
+\end{proof}
+
+\end{document}

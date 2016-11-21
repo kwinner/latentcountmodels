@@ -1,0 +1,23 @@
+model {
+	# Define the priors
+	lambda ~ dunif(0, 1000)			        # average number of new arrivals
+	rho ~ dunif(0, 1)						# detection probability
+	delta ~ dunif(0, 1)					    # survival probability
+
+	# Initialize the model for k = 1
+	for (i in 1:S) {
+		m[i, 1] ~ dpois(lambda)             # number of new arrivals
+		n[i, 1] <- m[i, 1]					# abundance
+		y[i, 1] ~ dbin(rho, n[i, 1])		# number of observed individuals
+	}
+
+	# Define the model for k > 1
+	for (i in 1:S) {
+		for (k in 2:K) {
+			z[i, k - 1] ~ dbin(delta, n[i, k - 1])
+			m[i, k] ~ dpois(lambda)
+			n[i, k] <- m[i, k] + z[i, k - 1]
+			y[i, k] ~ dbin(rho, n[i, k])
+		}
+	}
+}
