@@ -2,6 +2,7 @@
 \usepackage[utf8]{inputenc}
 \usepackage{amsmath}
 \usepackage{amsthm}
+\usepackage{amsfonts}
 
 \title{PGF operations for the Zipkin model}
 
@@ -9,12 +10,11 @@
 \maketitle
 
 \section{Observation}
-
-Consider one time step. Define random variables:
+Consider one time step. Define:
 \begin{itemize}
-\item $N_i =$ true abundance of stage $i$ individuals
-\item $Y_i =$ number of detected stage $i$ individuals
-\item $p_i =$ detection probability of stage $i$ individuals
+\item $N_i$: true abundance of stage $i$ individuals
+\item $Y_i$: observed abundance of stage $i$ individuals
+\item $P_i$: detection probability of stage $i$ individuals
 \end{itemize}
 
 \subsection{Unnormalized conditional PGF of N, Y = y}
@@ -44,16 +44,24 @@ F_{\mathbf{N}, \mathbf{Y} = \mathbf{y}}(\mathbf{s})
 & \quad \frac{\partial^{l+m}}{\partial u_1^{l} \partial u_2^{m}} f(u_1, u_2) \bigg]_{u_i = s_i(1-p_i)} \\
 &= \frac{1}{y_1! y_2!} (s_1 p_1)^{y_1} (s_2 p_2)^{y_2} e^{a_1 s_1 (1-p_1) + a_2 s_2 (1-p_2) + a_0} \sum_{l=0}^{y_1} \frac{y_1!}{l! (y_1 - l)!} a_1^{y_1} a_1^{- l} \\
 & \quad \sum_{m=0}^{y_2} \frac{y_2!}{m! (y_2 - m)!} a_2^{y_2} a_2^{- m} f_{u_1^l u_2^m}(s_1(1-p_1), s_2(1-p_2))  \\
-&= e^{a_1(1-p_1)s_1 + a_2(1-p_2)s_2 + a_0} \sum_{l=0}^{y_1} \sum_{m=0}^{y_2} \frac{(a_1p_1)^{y_1}}{l! (y_1 - l)! a_1^{ l}} \frac{(a_2p_2)^{y_2}}{m!(y_2 - m)! a_2^{m}} \\
+&= e^{a_1(1-p_1)s_1 + a_2(1-p_2)s_2 + a_0} \sum_{l=0}^{y_1} \sum_{m=0}^{y_2} \frac{(a_1p_1)^{y_1} (a_2p_2)^{y_2}}{l! m! (y_1 - l)! (y_2 - m)! a_1^{l} a_2^{m}} \\
 & \quad s_1^{y_1} s_2^{y_2} f_{u_1^l u_2^m}(s_1(1-p_1), s_2(1-p_2))
 \end{align*}
 
-The first term has the form $e^{\mathbf{b}^T \mathbf{s} + b_0}$, where $\mathbf{b} = (a_1(1-p_1), a_2(1-p_2))$ and $b_0 = a_0$. Since the mixed partial derivative of a bivariate polynomial of degree $d$ is also a bivariate polynomial of degree at most $d$, and the scalar $\frac{(a_1p_1)^{y_1}}{l! (y_1 - l)! a_1^{ l}} \frac{(a_2p_2)^{y_2}}{m!(y_2 - m)! a_2^{m}}$ can be combined with the coefficient of each monomial of $f_{u_1^l u_2^m}(s_1(1-p_1), s_2(1-p_2))$, the term inside the summation is a bivariate polynomial of degree at most $d + y_1 + y_2$. Furthermore, since the sum of polynomials is another polynomial of the same degree as its highest-degree term, the entire summation term must be a bivariate polynomial of degree $d + y_1 + y_2$.
+The first term has the form $e^{\mathbf{b}^T \mathbf{s} + b_0}$, where $\mathbf{b} = (a_1(1-p_1), a_2(1-p_2))$ and $b_0 = a_0$. Since the mixed partial derivative of a bivariate polynomial of degree $d$ is also a bivariate polynomial of degree at most $d$, and the scalar $\frac{(a_1p_1)^{y_1} (a_2p_2)^{y_2}}{l! m! (y_1 - l)! (y_2 - m)! a_1^{l} a_2^{m}}$ can be combined with the coefficient of each monomial of $f_{u_1^l u_2^m}(s_1(1-p_1), s_2(1-p_2))$, the term inside the summation is a bivariate polynomial of degree at most $d + y_1 + y_2$. Furthermore, since the sum of polynomials is another polynomial of the same degree as its highest-degree term, the entire summation term must be a bivariate polynomial of degree $d + y_1 + y_2$.
 
 \end{proof}
 
 \section{Transition}
-\subsection{PGF of a multinomial rv}
+Define:
+\begin{itemize}
+\item $N_i$: true abundance of stage $i$ individuals at the previous time step
+\item $Z_{ij}$: number of stage $i$ individuals that transition to stage $j$
+\item $P_{ij}$: transition probability from $i$ to $j$
+\item $M_i = Z_{1i} + Z_{2i}$: abundance of stage $i$ individuals at the current time step after the transition operation
+\end{itemize}
+
+\subsection{PGF of a multinomial random variable}
 If $\mathbf{Z}|N \sim Multinomial(N, \mathbf{p})$, then $F_{\mathbf{Z}|N}(\mathbf{t}) = (\sum_k t_k p_k)^N$.
 
 \begin{proof}
@@ -140,17 +148,44 @@ Therefore, $F_{\mathbf{M}}(\mathbf{u}) = F_{\mathbf{N}}(\mathbf{Pu})$.
 
 \end{proof}
 
+\subsection{Composition of a multivariate polynomial and a linear transformation} \label{composition}
+If $f(\mathbf{u})$ is a polynomial of $n$ variables of degree $d$ and $g(\mathbf{s})$ is a linear transformation $g: \mathbb{R}^m \mapsto \mathbb{R}^n$, then the composition $f \circ g(\mathbf{s})$ is a polynomial of $m$ variables of degree $d$.
+
+\begin{proof}
+Suppose $f(\mathbf{u}) = \sum_{k_1=0}^{d_1} \ldots \sum_{k_n=0}^{d_n} c_{\mathbf{k}} u_1^{k_1} \ldots u_n^{k_n}$, where $d = d_1 + \ldots + d_n$. Furthermore, suppose $g(\mathbf{s}) = \mathbf{As} + \mathbf{b}$, where $\mathbf{A} \in \mathbb{R}^{m \times n}$, $\mathbf{s} \in \mathbb{R}^m$, and $\mathbf{b} \in \mathbb{R}^n$. Then the composition of $f$ and $g$:
+
+\begin{align*}
+f \circ g(\mathbf{s}) &= f(g(\mathbf{s})) \\
+&= \sum_{k_1=0}^{d_1} \ldots \sum_{k_n=0}^{d_n} c_{\mathbf{k}} (A_{11}s_1 + \ldots + A_{1m}s_m + b_1)^{k_1} \ldots (A_{n1}s_1 + \ldots + A_{nm}s_m + b_n)^{k_n} \\
+&= \sum_{\mathbf{k}} c_{\mathbf{k}} \sum_{\mathbf{l}_1: \sum_j l_{1j} = k_1} \frac{k_1!}{l_{11}! \ldots l_{1m}! l_{1m+1}!} (A_{11}s_1)^{l_{11}} \ldots (A_{1m}s_m)^{l_{1m}} b_1^{l_{1m+1}} \ldots \\
+& \quad \sum_{\mathbf{l}_n: \sum_j l_{1j} = k_n} \frac{k_n!}{l_{n1}! \ldots l_{nm}! l_{nm+1}!} (A_{n1}s_1)^{l_{n1}} \ldots (A_{nm}s_m)^{l_{nm}} b_n^{l_{nm+1}} \\
+&= \sum_{\mathbf{k}} c_{\mathbf{k}} \sum_{\mathbf{l}_1: \sum_j l_{1j} = k_1} \frac{k_1!}{l_{11}! \ldots l_{1m}! l_{1m+1}!} A_{11}^{l_{11}} \ldots A_{1m}^{l_{1m}} b_1^{l_{1m+1}} \ldots \\
+& \quad \sum_{\mathbf{l}_n: \sum_j l_{1j} = k_n} \frac{k_n!}{l_{n1}! \ldots l_{nm}! l_{nm+1}!} A_{n1}^{l_{n1}} \ldots A_{nm}^{l_{nm}} b_n^{l_{nm+1}} s_1^{\sum_i l_{i1}} \ldots s_m^{\sum_i l_{im}} \\
+\end{align*}
+
+which is a polynomial of $m$ variables. The degree of this polynomial is:
+\begin{align*}
+\sum_i \max(l_{i1}) + \ldots + \sum_i \max(l_{im})
+&= \sum_j \max(l_{1j}) + \ldots + \sum_j \max(l_{nj}) \\
+&= d_1 + \ldots + d_n \\
+&= d
+\end{align*}
+
+Therefore, $f \circ g(\mathbf{s})$ is a polynomial of $m$ variables of degree $d$.
+
+\end{proof}
+
 \subsection{Invariance of the functional form}
-Suppose $F_{\mathbf{N}, \mathbf{Y}(\mathbf{u}) = \mathbf{y}}(\mathbf{s}) = f(\mathbf{u}) e^{\mathbf{a}^T \mathbf{u} + a_0}$, where $f(\mathbf{u})$ is a bivariate polynomial of degree $d$. Then, after the transition operation, the PGF still has the same form $F_{\mathbf{N}}(\mathbf{s}) = g(\mathbf{s}) e^{\mathbf{b}^T \mathbf{s} + b_0}$, where $g(\mathbf{s})$ is also a bivariate polynomial of degree $d$.
+Suppose $F_{\mathbf{N}}(\mathbf{u}) = f(\mathbf{u}) e^{\mathbf{a}^T \mathbf{u} + a_0}$, where $f(\mathbf{u})$ is a bivariate polynomial of degree $d$. Then, after the transition operation, the PGF still has the same form $F_{\mathbf{M}}(\mathbf{s}) = g(\mathbf{s}) e^{\mathbf{b}^T \mathbf{s} + b_0}$, where $g(\mathbf{s})$ is also a bivariate polynomial of degree $d$.
 
 \begin{proof}
 \begin{align*}
-F_{\mathbf{N}}(\mathbf{s}) &=  F_{\mathbf{N}, \mathbf{Y}}(\mathbf{\Delta} \mathbf{s}) \\
-&= f(\mathbf{\Delta} \mathbf{s}) e^{\mathbf{a}^T \mathbf{\mathbf{\Delta} \mathbf{s}} + a_0} \\
-&= g(\mathbf{s}) e^{(\mathbf{a}^T \mathbf{\Delta}) \mathbf{s} + a_0}
+F_{\mathbf{M}}(\mathbf{s}) &=  F_{\mathbf{N}}(\mathbf{P} \mathbf{s}) \\
+&= f(\mathbf{P} \mathbf{s}) e^{\mathbf{a}^T (\mathbf{\mathbf{P} \mathbf{s}}) + a_0} \\
+&= g(\mathbf{s}) e^{(\mathbf{a}^T \mathbf{P}) \mathbf{s} + a_0}
 \end{align*}
 
-Let $h(\mathbf{s}) = \mathbf{\Delta} \mathbf{s}$, then the first term is the composition of a bivariate polynomial of degree $d$ and a linear transformation of a vector, $g(\mathbf{s}) = f o h(\mathbf{s})$, which is another bivariate polynomial of degree $d$ by ???. The second term has the form $e^{\mathbf{b}^T \mathbf{s} + b_0}$, where $\mathbf{b}^T = \mathbf{a}^T \mathbf{\Delta}$ and $b_0 = a_0$.
+The first term, $g(\mathbf{s}) = f \circ h(\mathbf{s})$, is a composition of a bivariate polynomial of degree $d$ and a linear transformation $h(\mathbf{s}) = \mathbf{P} \mathbf{s}$, which is another bivariate polynomial of degree $d$ by section \ref{composition}. The second term has the form $e^{\mathbf{b}^T \mathbf{s} + b_0}$, where $\mathbf{b}^T = \mathbf{a}^T \mathbf{P}$ and $b_0 = a_0$.
 
 \end{proof}
 
