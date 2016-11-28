@@ -183,8 +183,24 @@ params <- c('lambda', 'delta', 'rho')
 true_params <- c(lambda, delta, rho)
 names(true_params) <- params
 
+# PGF estimates
+pgf_params <- c(9.566, 0.48, 0.8858)
+names(pgf_params) <- params
+
+compare_params <- data.frame(param = names(true_params), value = true_params, type = 'true')
+compare_params <- rbind(compare_params, data.frame(param = names(pgf_params), value = pgf_params, type = 'pgf'))
+
 # Load samples
-samples_df <- read.csv('../data/param_est/samples_iter10m_thin1k.csv')
+samples_df <- read.csv('../data/param_est/converge/samples_conv_iter1m_thin100_wo_burnin.csv',
+                       stringsAsFactors = FALSE)
+
+# Scatter plot of rho vs lambda
+wide_df <- samples_df %>%
+  select(-cum_mean, -cum_mode) %>%
+  spread(param, value)
+ggplot(wide_df, aes(lambda, rho)) +
+  geom_point() +
+  ggtitle('Scatter plot of rho vs lambda')
 
 # Preprocess df for ggplot
 est_df <- samples_df %>% na.omit() %>%
@@ -199,11 +215,19 @@ for (param in params) {
     mutate(diff = abs(estimate - true_params[param]))
   den_param <- den_df %>%
     filter_(interp(~ param == p, p = param))
+  compare_param <- compare_params %>% filter_(interp(~ param == p, p = param))
   
   # Plot mean and mode vs running time
   est_plt <- ggplot(est_param,
                     aes(time, estimate, colour = estimator, linetype = as.factor(chain))) +
     geom_line() +
+    #geom_hline(aes(yintercept = pgf_params[param]),
+    #           color = 'red', linetype = 'dashed') +
+    geom_hline(data = compare_param, 
+               aes(yintercept=value, 
+                   linetype='dashed',
+                   colour = type),
+               show_guide = TRUE) +
     theme_bw() +
     xlab('time in hours') +
     ggtitle(paste('Estimate vs running time of', param))
@@ -226,10 +250,14 @@ for (param in params) {
     theme_bw() +
     ggtitle(paste('Density of', param))
   print(d_plt)
+  
+  #tmp <- mcmc.list(mcmc((den_param %>% filter(chain == 1))$value),
+  #                 mcmc((den_param %>% filter(chain == 2))$value))
+  #print(HPDinterval(tmp, 0.95))
 }
 
 summary <- samples_df %>%
-  filter(iter == max(iter)) %>%
+  filter(iter == max(iter), param != 'lambda_rho') %>%
   select(chain, param, cum_mean, cum_mode) %>%
   mutate(error_mean = abs(cum_mean - true_params[param]),
          error_mode = abs(cum_mode - true_params[param]))
