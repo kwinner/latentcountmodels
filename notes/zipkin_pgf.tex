@@ -208,6 +208,29 @@ The first term, $g(\mathbf{s}) = f \circ h(\mathbf{s})$, is a composition of a b
 \end{proof}
 
 \section{Reproduction}
+Univariate case.
+\[ X_i =
+\begin{cases} 
+    0 & \text{dies} \\
+    1 & \text{survives} \\
+    2 & \text{survives with 1 offspring}
+\end{cases}
+\]
+
+Let $P(X_i = x_i) = p_{x_i}$ and $R = \sum_i^N X_i $. The PGF of $X_i$ is given by $F_{X_i}(v) = p_0 + p_1v + p_2v^2$, therefore:
+$$F_R(v) = F_N(F_{X_i}(v)) = F_N(p_0 + p_1v + p_2v^2)$$.
+
+\subsection{Invariance of the functional form}
+All PGFs will have the form $e^{f_1(s)}f_2(s)$, where $f_1(s)$ is a polynomial of degree at most $2^K$ and $f_2(s)$ is a polynomial of degree at most $2^K \sum_k y_k$.
+
+\subsubsection{Observation}
+Suppose $F_N(u) = e^{f_1(u)}f_2(u)$, where $f_i(u)$ is a polynomial of degree $d_i$. Then $F_{N, Y=y}(s) = e^{g_1(s)}g_2(s)$, where $g_1(s)$ is a polynomial of degree $d_1$ and $g_2(s)$ is a polynomial of degree $yd_1+d_2$.
+
+\subsubsection{Reproduction}
+Suppose $F_N(u) = e^{f_1(u)}f_2(u)$, where $f_i(u)$ is a polynomial of degree $d_i$. Let $R$ be the abundance after the reproduction operation. Then $F_R(s) = e^{g_1(s)}g_2(s)$, where $g_i(s)$ is a polynomial of degree $2d_i$.
+
+\subsubsection{Arrival}
+Suppose $F_R(u) = e^{f_1(u)}f_2(u)$, where $f_i(u)$ is a polynomial of degree $d_i$. Let $N$ be the abundance after new arrival. Then $F_N(s) = e^{g_1(s)}g_2(s)$, where $g_i(s)$ is a polynomial of degree $d_i$.
 
 \medskip
  
