@@ -1,3 +1,7 @@
 plots/
 data/
 .DS_Store
+.Rhistory
+*.aux
+*.log
+*.synctex.gz

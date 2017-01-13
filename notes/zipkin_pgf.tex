@@ -1,0 +1,240 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage{amsfonts}
+
+\title{PGF operations for the Zipkin model}
+
+\begin{document}
+\maketitle
+
+\section{Observation}
+Consider one time step. Define:
+\begin{itemize}
+\item $N_i$: true abundance of stage $i$ individuals
+\item $Y_i$: observed abundance of stage $i$ individuals
+\item $P_i$: detection probability of stage $i$ individuals
+\item $D$: total number of stages
+\end{itemize}
+
+\subsection{Multivariate evidence}
+Let $\mathbf{y} = (y_1, y_2, \ldots, y_D)$ be a vector of observations at one time step, then:
+$$
+F_{\mathbf{N}, \mathbf{Y} = \mathbf{y}}(\mathbf{s})
+= \frac{1}{\prod_d y_d!} \bigg[\frac{\partial^{y_1+\ldots+y_D}}{\partial t_1^{y_1} \ldots \partial t_D^{y_D}} F_{\mathbf{N}, \mathbf{Y}}(\mathbf{s}, \mathbf{t}) \bigg]_{\mathbf{t} = \mathbf{0}}
+$$
+
+\begin{proof}
+\begin{align*}
+&\frac{1}{\prod_d y_d!} \bigg[\frac{\partial^{y_1+\ldots+y_D}}{\partial t_1^{y_1} \ldots \partial t_D^{y_D}} F_{\mathbf{N}, \mathbf{Y}}(\mathbf{s}, \mathbf{t}) \bigg]_{\mathbf{t} = \mathbf{0}} \\
+& \quad = \frac{1}{\prod_d y_d!} \bigg[\frac{\partial^{y_1+\ldots+y_D}}{\partial t_1^{y_1} \ldots \partial t_D^{y_D}} \sum_{\mathbf{n}, \mathbf{y}'} \prod_d s_d^{n_d} t_d^{y_d} p(\mathbf{n}, \mathbf{y}') \bigg]_{\mathbf{t} = \mathbf{0}} \\
+& \quad = \frac{1}{\prod_d y_d!} \sum_{\mathbf{n}} \prod_d s_d^{n_d} \sum_{\mathbf{y}'} p(\mathbf{n}, \mathbf{y}') \bigg[\frac{\partial^{y_1+\ldots+y_D}}{\partial t_1^{y_1} \ldots \partial t_D^{y_D}} \prod_d t_d^{y_d} \bigg]_{\mathbf{t} = \mathbf{0}} \\
+& \quad = \frac{1}{\prod_d y_d!} \sum_{\mathbf{n}} \prod_d s_d^{n_d} p(\mathbf{n}, \mathbf{y}) \prod_d y_d! \\
+& \quad = F_{\mathbf{N}, \mathbf{Y} = \mathbf{y}}(\mathbf{s})
+\end{align*}
+\end{proof}
+
+\subsection{Thin then observe multiple variables}
+Let $\mathbf{y} = (y_1, y_2, \ldots, y_D)$ be a vector of observations at one time step, then:
+$$F_{\mathbf{N}, \mathbf{Y} = \mathbf{y}}(\mathbf{s}) = \frac{1}{\prod_d y_d!} \prod_d (s_dp_d)^{y_d} \bigg [\frac{\partial^{y_1+\ldots+y_D}}{\partial u_1^{y_1} \ldots \partial u_D^{y_D}} F_{\mathbf{N}}(\mathbf{u}) \bigg]_{u_i = s_i(1-p_i)}$$
+
+\begin{proof}
+\begin{align*}
+F_{\mathbf{N}, \mathbf{Y} = \mathbf{y}}(\mathbf{s})
+&= \frac{1}{\prod_d y_d!} \bigg[\frac{\partial^{y_1+\ldots+y_D}}{\partial t_1^{y_1} \ldots \partial t_D^{y_D}} F_{\mathbf{N}, \mathbf{Y}}(\mathbf{s}, \mathbf{t}) \bigg]_{\mathbf{t} = \mathbf{0}} \\
+&= \frac{1}{\prod_d y_d!} \bigg[\frac{\partial^{y_1+\ldots+y_D}}{\partial t_1^{y_1} \ldots \partial t_D^{y_D}} F_{\mathbf{N}}(s_1(1+p_1t_1-p_1), \ldots, s_D(1+p_Dt_D-p_D)) \bigg]_{\mathbf{t} = \mathbf{0}} \\
+&= \frac{1}{\prod_d y_d!} \bigg[ \bigg[ \prod_d (s_dp_d)^{y_d} \frac{\partial^{y_1+\ldots+y_D}}{\partial u_1^{y_1} \ldots \partial u_D^{y_D}} F_{\mathbf{N}}(\mathbf{u}) \bigg]_{u_i = s_i(1+p_it_i-p_i)} \bigg]_{\mathbf{t} = \mathbf{0}} \\
+&= \frac{1}{\prod_d y_d!} \prod_d (s_dp_d)^{y_d} \bigg[ \frac{\partial^{y_1+\ldots+y_D}}{\partial u_1^{y_1} \ldots \partial u_D^{y_D}} F_{\mathbf{N}}(\mathbf{u}) \bigg]_{u_i = s_i(1-p_i)}
+\end{align*}
+\end{proof}
+
+\subsection{Invariance of the functional form}
+Suppose $F_\mathbf{N}(\mathbf{u}) = f(\mathbf{u}) e^{\mathbf{a}^T \mathbf{u} + a_0}$, where $f(\mathbf{u})$ is a polynomial of $n$ variables of degree $d$. Then, after observing evidence, the PGF maintains the same form $F_{\mathbf{N}, \mathbf{Y} = \mathbf{y}}(\mathbf{s}) = g(\mathbf{s}) e^{\mathbf{b}^T \mathbf{s} + b_0}$, where $g(\mathbf{s})$ is a polynomial of $n$ variables of degree $d + y_1 + \ldots + y_D$.
+
+\begin{proof}
+
+\begin{align*}
+F_{\mathbf{N}, \mathbf{Y} = \mathbf{y}}(\mathbf{s})
+&= \frac{1}{\prod_d y_d!} \prod_d (s_dp_d)^{y_d} \bigg[ \frac{\partial^{y_1+\ldots+y_D}}{\partial u_1^{y_1} \ldots \partial u_D^{y_D}} F_{\mathbf{N}}(\mathbf{u}) \bigg]_{u_i = s_i(1-p_i)} \\
+&= \frac{1}{\prod_d y_d!} \prod_d (s_dp_d)^{y_d} \bigg[ \frac{\partial^{y_1+\ldots+y_D}}{\partial u_1^{y_1} \ldots \partial u_D^{y_D}} f(\mathbf{u}) e^{\mathbf{a}^T \mathbf{u} + a_0} \bigg]_{u_i = s_i(1-p_i)} \\
+&= \frac{1}{\prod_d y_d!} \prod_d (s_dp_d)^{y_d} \bigg[ e^{\mathbf{a}^T \mathbf{u} + a_0} \sum_{l_1=0}^{y_1} \ldots \sum_{l_D=0}^{y_D} \prod_d {y_d \choose l_d} a_d^{y_d - l_d} \\
+& \quad \frac{\partial^{l_1+\ldots+l_D}}{\partial u_1^{l_1} \ldots \partial u_D^{l_D}} f(\mathbf{u}) \bigg]_{u_i = s_i(1-p_i)} \\
+&= \frac{1}{\prod_d y_d!} \prod_d (s_dp_d)^{y_d} e^{a_1 s_1 (1-p_1) + \ldots + a_D s_D (1-p_D) + a_0} \\
+& \quad \sum_{\mathbf{l}} \prod_d \frac{y_d!}{l_d! (y_d - l_d)!} a_d^{y_d - l_d} \bigg[ \frac{\partial^{l_1+\ldots+l_D}}{\partial u_1^{l_1} \ldots \partial u_D^{l_D}} f(\mathbf{u}) \bigg]_{u_i = s_i(1-p_i)} \\
+&= e^{\mathbf{b}^T \mathbf{s} + b_0} \sum_{\mathbf{l}} \prod_d \frac{(a_dp_d)^{y_d}}{l_d! (y_d - l_d)! a_d^{l_d}} s_d^{y_d} \bigg[ \frac{\partial^{l_1+\ldots+l_D}}{\partial u_1^{l_1} \ldots \partial u_D^{l_D}} f(\mathbf{u}) \bigg]_{u_i = s_i(1-p_i)} 
+\end{align*}
+where $\mathbf{b} = [a_d(1-p_d)]_{d=1}^D$ and $b_0 = a_0$.
+
+Line 3 uses the product rule for mixed partial derivatives \cite{hardy2006combinatorics}. Since the mixed partial derivative of a polynomial of $n$ variables of degree $d$ is also a polynomial of $n$ variables of degree at most $d$, and the scalar $\prod_d \frac{(a_dp_d)^{y_d}}{l_d! (y_d - l_d)! a_d^{l_d}}$ can be combined with the coefficient of each monomial of the mixed partial derivative, the term inside the summation is a polynomial of $n$ variables of degree at most $d + \sum_i y_i$. Furthermore, since the sum of polynomials is another polynomial of the same degree as its highest-degree term, the entire summation term must be a polynomial of $n$ variables of degree $d + \sum_i y_i$.
+
+\end{proof}
+
+\section{Transition}
+Define:
+\begin{itemize}
+\item $N_i$: true abundance of stage $i$ individuals at the previous time step
+\item $Z_{ij}$: number of stage $i$ individuals that transition to stage $j$
+\item $P_{ij}$: transition probability from $i$ to $j$
+\item $M_i = Z_{1i} + Z_{2i}$: abundance of stage $i$ individuals at the current time step after the transition operation
+\end{itemize}
+
+\subsection{PGF of a multinomial random variable}
+If $\mathbf{Z}|N \sim Multinomial(N, \mathbf{p})$, then $F_{\mathbf{Z}|N}(\mathbf{t}) = (\sum_k t_k p_k)^N$.
+
+\begin{proof}
+\begin{align*}
+F_{\mathbf{Z}|N}(\mathbf{t}) &= E_{\mathbf{Z}|N}(\prod_k t_k^{Z_k}|N) \\
+&= \sum_\mathbf{z} \prod_k t_k^{z_k} p(\mathbf{z}|n) \\
+&= \sum_\mathbf{z} \prod_k t_k^{z_k} \frac{n!}{\prod_k z_k!} \prod_k p_k^{z_k} \\
+&= \sum_\mathbf{z} \frac{n!}{\prod_k z_k!} \prod_k (t_k p_k)^{z_k} \\
+&= (\sum_k t_k p_k)^n \text{, by the multinomial theorem}
+\end{align*}
+\end{proof}
+
+\subsection{Joint PGF over $\{Z_{ij}\}$}
+If $\mathbf{Z}_1|N_1 \sim Multinomial(N_1, \mathbf{p}_1)$ and $\mathbf{Z}_2|N_2 \sim Multinomial(N_2, \mathbf{p}_2)$, then $F_{\mathbf{Z}_1, \mathbf{Z}_2}(\mathbf{t}_1, \mathbf{t}_2) = F_{\mathbf{N}_1, \mathbf{N}_2}(\sum_j  t_{1j} p_{1j}, \sum_j t_{2j} p_{2j})$.
+
+\begin{proof}
+First, find $F_{\mathbf{Z}_1, \mathbf{Z}_2|N_1, N_2}(\mathbf{t}_1, \mathbf{t}_2)$:
+\begin{align*}
+F_{\mathbf{Z}_1, \mathbf{Z}_2|N_1, N_2}(\mathbf{t}_1, \mathbf{t}_2)
+&= \sum_{\mathbf{z}_1, \mathbf{z}_2} \prod_{ij} t_{ij}^{z_{ij}} p(\mathbf{z}_1, \mathbf{z}_2|n_1, n_2) \\
+&= \sum_{\mathbf{z}_1, \mathbf{z}_2} \prod_{ij} t_{ij}^{z_{ij}} p(\mathbf{z}_1|n_1) p(\mathbf{z}_2|n_2) \\
+&= \sum_{\mathbf{z}_1} \prod_{j} t_{1j}^{z_{1j}} p(\mathbf{z}_1|n_1) \sum_{\mathbf{z}_2} \prod_{j} t_{2j}^{z_{2j}} p(\mathbf{z}_2|n_2) \\
+&= (\sum_j t_{1j} p_{1j})^{n_1} (\sum_j t_{2j} p_{2j})^{n_2}
+\end{align*}
+
+Find the joint PGF over $\mathbf{Z}_1, \mathbf{Z}_2, N_1, N_2$:
+\begin{align*}
+F_{N_1, N_2, \mathbf{Z}_1, \mathbf{Z}_2}(s_1, s_2, \mathbf{t}_1, \mathbf{t}_2)
+&= \sum_{n_1, n_2, \mathbf{z}_1, \mathbf{z}_2} \prod_{i} s_i^{n_i} \prod_j t_{ij}^{z_{ij}} p(n_1, n_2, \mathbf{z}_1, \mathbf{z}_2) \\
+&= \sum_{n_1, n_2, \mathbf{z}_1, \mathbf{z}_2} \prod_{i} s_i^{n_i} \prod_j t_{ij}^{z_{ij}} p(\mathbf{z}_1, \mathbf{z}_2|n_1, n_2) p(n_1, n_2) \\
+&= \sum_{n_1, n_2} \prod_{i} s_i^{n_i} p(n_1, n_2) \sum_{\mathbf{z}_1, \mathbf{z}_2} \prod_{ij} t_{ij}^{z_{ij}} p(\mathbf{z}_1, \mathbf{z}_2|n_1, n_2) \\
+&= \sum_{n_1, n_2} \prod_{i} s_i^{n_i} p(n_1, n_2) (\sum_j t_{1j} p_{1j})^{n_1} (\sum_j t_{2j} p_{2j})^{n_2} \\
+&= \sum_{n_1, n_2} \prod_{i} (s_i\sum_j t_{ij} p_{ij})^{n_i} p(n_1, n_2) \\
+&= F_{N_1, N_2}(s_1 \sum_j t_{1j} p_{1j}, s_2 \sum_j t_{2j} p_{2j})
+\end{align*}
+
+Finally, marginalize to obtain:
+\begin{align*}
+F_{\mathbf{Z}_1, \mathbf{Z}_2}(\mathbf{t}_1, \mathbf{t}_2)
+&= F_{N_1, N_2, \mathbf{Z}_1, \mathbf{Z}_2}(1, 1, \mathbf{t}_1, \mathbf{t}_2) \\
+&= F_{N_1, N_2}(\sum_j t_{1j} p_{1j}, \sum_j t_{2j} p_{2j})
+\end{align*}
+
+\end{proof}
+
+\subsection{Joint PGF over $M_1, M_2$}
+If $m_1 = z_{11} + z_{21}$ and $m_2 = z_{12} + z_{22}$, then $F_{M_1, M_2}(u_1, u_2) = F_{N_1, N_2}(\sum_j u_j p_{1j}, \sum_j u_j p_{2j})$
+
+\begin{proof}
+Since $m_j = z_{1j} + z_{2j}$:
+\begin{align*}
+F_{M_j|Z_{1j}, Z_{2j}}(u_j) &= \sum_{m_j} u_j^{m_j} p(m_j|z_{1j}, z_{2j}) \\
+&= u_j^{z_{1j} + z_{2j}}
+\end{align*}
+
+Find the conditional PGF:
+\begin{align*}
+F_{M_1, M_2 | \mathbf{Z}_1, \mathbf{Z}_2}(u_1, u_2)
+&= \sum_{m_1, m_2} \prod_{j} u_{j}^{m_{j}} p(m_1, m_2|\mathbf{z}_1, \mathbf{z}_2) \\
+&= \sum_{m_1, m_2} \prod_{j} u_{j}^{m_{j}} p(m_1|z_{11}, z{21}) p(m_2|z_{12}, z_{22}) \\
+&= \sum_{m_1} u_1^{m_1} p(m_1|z_{11}, z{21}) \sum_{m_2} u_2^{m_2} p(m_2|z_{12}, z_{22}) \\
+&= \prod_j u_j^{z_{1j} + z_{2j}}
+\end{align*}
+
+Then the joint PGF:
+\begin{align*}
+F_{\mathbf{Z}_1, \mathbf{Z}_2, M_1, M_2}(\mathbf{t}_1, \mathbf{t}_2, u_1, u_2)
+&= \sum_{\mathbf{z}_1, \mathbf{z}_2, m_1, m_2} \prod_i u_i^{m_i} \prod_j t_{ij}^{z_{ij}} p(\mathbf{z}_1, \mathbf{z}_2, m_1, m_2) \\
+&= \sum_{\mathbf{z}_1, \mathbf{z}_2, m_1, m_2} \prod_i u_i^{m_i} \prod_j t_{ij}^{z_{ij}} p(m_1, m_2|\mathbf{z}_1, \mathbf{z}_2) p(\mathbf{z}_1, \mathbf{z}_2) \\
+&= \sum_{\mathbf{z}_1, \mathbf{z}_2} \prod_{ij} t_{ij}^{z_{ij}} p(\mathbf{z}_1, \mathbf{z}_2) \sum_{m_1, m_2} \prod_i u_i^{m_i} p(m_1, m_2|\mathbf{z}_1, \mathbf{z}_2) \\
+&= \sum_{\mathbf{z}_1, \mathbf{z}_2} \prod_{ij} t_{ij}^{z_{ij}} p(\mathbf{z}_1, \mathbf{z}_2) \prod_j u_j^{z_{1j} + z_{2j}} \\
+&= \sum_{\mathbf{z}_1, \mathbf{z}_2} \prod_{ij} (u_j t_{ij})^{z_{ij}} p(\mathbf{z}_1, \mathbf{z}_2) \\
+&= F_{\mathbf{Z}_1, \mathbf{Z}_2}(u_1 t_{11}, u_2 t_{12}, u_1 t_{21}, u_2 t_{22}) \\
+&= F_{N_1, N_2}(u_1 t_{11} p{11} + u_2 t_{12} p_{12}, u_1 t_{21} p{21} + u_2 t_{22} p_{22}) \\
+\end{align*}
+
+So the marginal PGF over $M_1, M_2$ is:
+\begin{align*}
+F_{M_1, M_2}(u_1, u_2) &= F_{1, 1, M_1, M_2}(\mathbf{t}_1, \mathbf{t}_2, u_1, u_2) \\
+&= F_{N_1, N_2}(u_1 p{11} + u_2 p_{12}, u_1 p{21} + u_2 p_{22})
+\end{align*}
+
+Therefore, $F_{\mathbf{M}}(\mathbf{u}) = F_{\mathbf{N}}(\mathbf{Pu})$.
+
+\end{proof}
+
+\subsection{Composition of a multivariate polynomial and a linear transformation} \label{composition}
+If $f(\mathbf{u})$ is a polynomial of $n$ variables of degree $d$ and $g(\mathbf{s})$ is a linear transformation $g: \mathbb{R}^m \mapsto \mathbb{R}^n$, then the composition $f \circ g(\mathbf{s})$ is a polynomial of $m$ variables of degree $d$.
+
+\begin{proof}
+Suppose $f(\mathbf{u}) = \sum_{k_1=0}^{d_1} \ldots \sum_{k_n=0}^{d_n} c_{\mathbf{k}} u_1^{k_1} \ldots u_n^{k_n}$, where $d = d_1 + \ldots + d_n$. Furthermore, suppose $g(\mathbf{s}) = \mathbf{As} + \mathbf{b}$, where $\mathbf{A} \in \mathbb{R}^{m \times n}$, $\mathbf{s} \in \mathbb{R}^m$, and $\mathbf{b} \in \mathbb{R}^n$. Then the composition of $f$ and $g$:
+
+\begin{align*}
+f \circ g(\mathbf{s}) &= f(g(\mathbf{s})) \\
+&= \sum_{k_1=0}^{d_1} \ldots \sum_{k_n=0}^{d_n} c_{\mathbf{k}} (A_{11}s_1 + \ldots + A_{1m}s_m + b_1)^{k_1} \ldots (A_{n1}s_1 + \ldots + A_{nm}s_m + b_n)^{k_n} \\
+&= \sum_{\mathbf{k}} c_{\mathbf{k}} \sum_{\mathbf{l}_1: \sum_j l_{1j} = k_1} \frac{k_1!}{l_{11}! \ldots l_{1m}! l_{1m+1}!} (A_{11}s_1)^{l_{11}} \ldots (A_{1m}s_m)^{l_{1m}} b_1^{l_{1m+1}} \ldots \\
+& \quad \sum_{\mathbf{l}_n: \sum_j l_{1j} = k_n} \frac{k_n!}{l_{n1}! \ldots l_{nm}! l_{nm+1}!} (A_{n1}s_1)^{l_{n1}} \ldots (A_{nm}s_m)^{l_{nm}} b_n^{l_{nm+1}} \\
+&= \sum_{\mathbf{k}} c_{\mathbf{k}} \sum_{\mathbf{l}_1: \sum_j l_{1j} = k_1} \frac{k_1!}{l_{11}! \ldots l_{1m}! l_{1m+1}!} A_{11}^{l_{11}} \ldots A_{1m}^{l_{1m}} b_1^{l_{1m+1}} \ldots \\
+& \quad \sum_{\mathbf{l}_n: \sum_j l_{1j} = k_n} \frac{k_n!}{l_{n1}! \ldots l_{nm}! l_{nm+1}!} A_{n1}^{l_{n1}} \ldots A_{nm}^{l_{nm}} b_n^{l_{nm+1}} s_1^{\sum_i l_{i1}} \ldots s_m^{\sum_i l_{im}} \\
+\end{align*}
+
+which is a polynomial of $m$ variables. The degree of this polynomial is:
+\begin{align*}
+\sum_i \max(l_{i1}) + \ldots + \sum_i \max(l_{im})
+&= \sum_j \max(l_{1j}) + \ldots + \sum_j \max(l_{nj}) \\
+&= d_1 + \ldots + d_n \\
+&= d
+\end{align*}
+
+Therefore, $f \circ g(\mathbf{s})$ is a polynomial of $m$ variables of degree $d$.
+
+\end{proof}
+
+\subsection{Invariance of the functional form}
+Suppose $F_{\mathbf{N}}(\mathbf{u}) = f(\mathbf{u}) e^{\mathbf{a}^T \mathbf{u} + a_0}$, where $f(\mathbf{u})$ is a bivariate polynomial of degree $d$. Then, after the transition operation, the PGF still has the same form $F_{\mathbf{M}}(\mathbf{s}) = g(\mathbf{s}) e^{\mathbf{b}^T \mathbf{s} + b_0}$, where $g(\mathbf{s})$ is also a bivariate polynomial of degree $d$.
+
+\begin{proof}
+\begin{align*}
+F_{\mathbf{M}}(\mathbf{s}) &=  F_{\mathbf{N}}(\mathbf{P} \mathbf{s}) \\
+&= f(\mathbf{P} \mathbf{s}) e^{\mathbf{a}^T (\mathbf{\mathbf{P} \mathbf{s}}) + a_0} \\
+&= g(\mathbf{s}) e^{(\mathbf{a}^T \mathbf{P}) \mathbf{s} + a_0}
+\end{align*}
+
+The first term, $g(\mathbf{s}) = f \circ h(\mathbf{s})$, is a composition of a bivariate polynomial of degree $d$ and a linear transformation $h(\mathbf{s}) = \mathbf{P} \mathbf{s}$, which is another bivariate polynomial of degree $d$ by section \ref{composition}. The second term has the form $e^{\mathbf{b}^T \mathbf{s} + b_0}$, where $\mathbf{b}^T = \mathbf{a}^T \mathbf{P}$ and $b_0 = a_0$.
+
+\end{proof}
+
+\section{Reproduction}
+Univariate case.
+\[ X_i =
+\begin{cases} 
+    0 & \text{dies} \\
+    1 & \text{survives} \\
+    2 & \text{survives with 1 offspring}
+\end{cases}
+\]
+
+Let $P(X_i = x_i) = p_{x_i}$ and $R = \sum_i^N X_i $. The PGF of $X_i$ is given by $F_{X_i}(v) = p_0 + p_1v + p_2v^2$, therefore:
+$$F_R(v) = F_N(F_{X_i}(v)) = F_N(p_0 + p_1v + p_2v^2)$$.
+
+\subsection{Invariance of the functional form}
+All PGFs will have the form $e^{f_1(s)}f_2(s)$, where $f_1(s)$ is a polynomial of degree at most $2^K$ and $f_2(s)$ is a polynomial of degree at most $2^K \sum_k y_k$.
+
+\subsubsection{Observation}
+Suppose $F_N(u) = e^{f_1(u)}f_2(u)$, where $f_i(u)$ is a polynomial of degree $d_i$. Then $F_{N, Y=y}(s) = e^{g_1(s)}g_2(s)$, where $g_1(s)$ is a polynomial of degree $d_1$ and $g_2(s)$ is a polynomial of degree $yd_1+d_2$.
+
+\subsubsection{Reproduction}
+Suppose $F_N(u) = e^{f_1(u)}f_2(u)$, where $f_i(u)$ is a polynomial of degree $d_i$. Let $R$ be the abundance after the reproduction operation. Then $F_R(s) = e^{g_1(s)}g_2(s)$, where $g_i(s)$ is a polynomial of degree $2d_i$.
+
+\subsubsection{Arrival}
+Suppose $F_R(u) = e^{f_1(u)}f_2(u)$, where $f_i(u)$ is a polynomial of degree $d_i$. Let $N$ be the abundance after new arrival. Then $F_N(s) = e^{g_1(s)}g_2(s)$, where $g_i(s)$ is a polynomial of degree $d_i$.
+
+\medskip
+ 
+\bibliographystyle{unsrt}
+\bibliography{zipkin_pgf}
+
+\end{document}

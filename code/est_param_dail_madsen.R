@@ -4,36 +4,27 @@ library(tidyr)
 library(lazyeval)
 library(ggplot2)
 
-K <- 10
-n_sites <- 10
-params <- c('lambda', 'delta', 'rho')
+K <- 50
+n_sites <- 20
 
-# Create simulation data
+# True parameters
 lambda <- 10                 # rate of new arrivals
 delta <- 0.5                 # survival probability
 rho <- 0.8                   # detection probability
-
-true_params <- c(lambda, delta, rho)
+params <- c('lambda', 'delta', 'rho', 'lambda_rho')
+true_params <- c(lambda, delta, rho, lambda*rho)
 names(true_params) <- params
 
-m <- matrix(rpois(n_sites * K, lambda), nrow = n_sites)
-n <- matrix(rep(NA, n_sites * K), nrow = n_sites)
-z <- matrix(rep(NA, n_sites * (K-1)), nrow = n_sites)
-
-n[, 1] <- m[, 1]
-for (k in 2:K) {
-  z[, k - 1] <- rbinom(n_sites, n[k - 1], delta)
-  n[, k] <- m[, k] + z[, k - 1]
-}
-y <- matrix(rbinom(n_sites * K, n, rho), nrow = n_sites)
+# Load data
+y <- as.matrix(read.csv('../data/param_est/y.csv', header = FALSE))
 
 # Initial values
-#z0 <- y[1:K-1]
 m0 <- y
 
 # Run JAGS
+n_chains <- 1
 n_iter <- 10000000
-n_chains <- 2
+n_thin <- 1000
 model <- jags.model('dail_madsen_unk_param.bug',
                     data = list('y' = y, 'K' = K, 'S' = n_sites),
                     inits = list('m' = m0), # 'z' = z0
@@ -41,11 +32,12 @@ model <- jags.model('dail_madsen_unk_param.bug',
                     n.adapt = 0)
 
 t <- system.time(
-  samples <- coda.samples(model, params, n.iter = n_iter, thin = 1000)
+  samples <- coda.samples(model, params, n.iter = n_iter, thin = n_thin)
 )
 
-# Estimate running time for each iteration by dividing t evenly
+# Estimate running time (in minutes) for each iteration by dividing t evenly
 t_vector <- cumsum(rep(t[3] / nrow(samples[[1]]), nrow(samples[[1]]))) / 60
+write(t_vector, '../data/param_est/run_time.txt')
 
 # Save raw samples from each chain
 for (i in 1:n_chains) {
@@ -57,7 +49,8 @@ for (i in 1:n_chains) {
 samples_df <- data.frame()
 for (i in 1:n_chains) {
   tmp <- data.frame(samples[[i]], iter = 1:nrow(samples[[i]]),
-                           time = t_vector, chain = i) %>%
+                    time = t_vector, chain = i) %>%
+    mutate(lambda_rho = lambda * rho) %>%
     gather(param, value, -iter, -time, -chain)
   samples_df <- rbind(samples_df, tmp)
 }
@@ -68,7 +61,7 @@ samples_df <- samples_df %>%
   mutate(cum_mean = cumsum(value) / (iter))
 
 # Plot mean vs iter to determine burin-in period
-plt_dir <- '../plots/param_est_iter10m_thin1k/'
+plt_dir <- '../plots/param_est_converge/'
 for (param in params) {
   samples_param <- samples_df %>%
     filter_(interp(~ param == p, p = param))
@@ -83,7 +76,7 @@ for (param in params) {
 }
 
 # Discard burn-in samples and recalculate cumulative mean
-discard_idx <- 250
+discard_idx <- 2500
 samples_df <- samples_df %>%
   filter(iter > discard_idx) %>%
   group_by(chain, param) %>%
@@ -109,7 +102,7 @@ for (chain in 1:n_chains) {
 }
 
 # Save samples_df to csv
-write.csv(samples_df, '../data/param_est/samples_iter10m_thin1k.csv', row.names = FALSE)
+write.csv(samples_df, '../data/param_est/samples_conv_iter1m_thin100_wo_burnin.csv', row.names = FALSE)
 
 # Preprocess samples_df for ggplot
 est_df <- samples_df %>% na.omit() %>%
