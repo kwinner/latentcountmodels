@@ -14,7 +14,7 @@ def pgf_forward(lmbda, rho, delta, y):
     b = 0
     f = np.poly1d(1)
 
-    for k in range(K):
+    for k in xrange(K):
         a, b = arrivals(a, b, lmbda[k])
         a, f = evidence(a, f, y[k], rho[k])
         if k < K - 1:
@@ -32,7 +32,7 @@ def evidence(a, f, y, rho):
     g = np.poly1d(0)
     df = f
 
-    for l in range(y + 1):
+    for l in xrange(y + 1):
         g = g + df / (np.power(a, l) * factorial(l) * factorial(y - l))
         df = np.polyder(df)
 
@@ -53,15 +53,15 @@ def likelihood(a, b, f):
 
 # Runtime test
 y = np.array([6,8,10,6,8,10,6,8,10])
-Lambda = np.array([16, 20, 24, 16, 20, 24, 16, 20, 24])
-Delta = np.array([0.6, 0.4, 0.6, 0.4, 0.6, 0.4, 0.6, 0.4])
-Rho = np.array([0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8])
+lmbda = np.array([16, 20, 24, 16, 20, 24, 16, 20, 24])
+delta = np.array([0.6, 0.4, 0.6, 0.4, 0.6, 0.4, 0.6, 0.4])
+rho = np.array([0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8])
 
 reps = 100
 t_start = time.clock()
-for i in range(reps):
-    pgf_forward(Lambda, Rho, Delta, y)
+for i in xrange(reps):
+    pgf_forward(lmbda, rho, delta, y)
 total_time = time.clock() - t_start
 
-print likelihood(*pgf_forward(Lambda, Rho, Delta, y))
+print likelihood(*pgf_forward(lmbda, rho, delta, y))
 print total_time / reps
