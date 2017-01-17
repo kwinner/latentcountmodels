@@ -5,3 +5,5 @@ data/
 *.aux
 *.log
 *.synctex.gz
+.idea/*
+*~
