@@ -12,6 +12,7 @@ Rho = numpy.array([0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8])
 #poisson arrival correctness
 arrival_pmf = stats.poisson
 arrival_pgf = lambda s, theta: poisson_pgf(s, theta)
+branch_fun  = truncatedfa.binomial_branching
 branch_pgf  = lambda s, theta: bernoulli_pgf(s, theta)
 observ_pgf  = None
 
@@ -32,8 +33,9 @@ Alpha_pgffa, Gamma_pgffa, Psi_pgffa = UTPPGFFA_phmm.UTP_PGFFA_phmm(y,
                                                                    d=3)
 Alpha_tfa, z_tfa = truncatedfa.truncated_forward(arrival_pmf,
                                                  Lambda.reshape((-1, 1)),
+                                                 branch_fun,
+                                                 Delta.reshape((-1, 1)),
                                                  Rho,
-                                                 Delta,
                                                  y,
                                                  n_max=100)
 
@@ -58,6 +60,7 @@ arrival_params = numpy.stack((r,p), axis=1)
 
 arrival_pmf = stats.nbinom
 arrival_pgf = lambda s, theta: negbin_pgf(s, theta)
+branch_fun  = truncatedfa.binomial_branching
 branch_pgf  = lambda s, theta: bernoulli_pgf(s, theta)
 observ_pgf  = None
 
@@ -73,8 +76,9 @@ Alpha_utppgffa, Gamma_utppgffa, Psi_utppgffa = UTPPGFFA.UTP_PGFFA(y,
                                                                   d=3)
 Alpha_tfa, z_tfa = truncatedfa.truncated_forward(arrival_pmf,
                                                  arrival_params,
+                                                 branch_fun,
+                                                 Delta.reshape((-1, 1)),
                                                  Rho,
-                                                 Delta,
                                                  y,
                                                  n_max=100)
 
@@ -89,6 +93,7 @@ print "Trunc likelihood:    {0}".format(likelihood_tfa)
 #logarithmic arrival correctness
 arrival_pmf = stats.logser
 arrival_pgf = lambda s, theta: logarithmic_pgf(s, theta)
+branch_fun  = truncatedfa.binomial_branching
 branch_pgf  = lambda s, theta: bernoulli_pgf(s, theta)
 observ_pgf  = None
 
@@ -106,8 +111,9 @@ Alpha_utppgffa, Gamma_utppgffa, Psi_utppgffa = UTPPGFFA.UTP_PGFFA(y,
                                                                   d=3)
 Alpha_tfa, z_tfa = truncatedfa.truncated_forward(arrival_pmf,
                                                  invLambda.reshape((-1, 1)),
+                                                 branch_fun,
+                                                 Delta.reshape((-1, 1)),
                                                  Rho,
-                                                 Delta,
                                                  y,
                                                  n_max=100)
 
@@ -122,6 +128,7 @@ print "Trunc likelihood:    {0}".format(likelihood_tfa)
 #geometric arrival correctness
 arrival_pmf = stats.geom
 arrival_pgf = lambda s, theta: geometric_pgf(s, theta)
+branch_fun  = truncatedfa.binomial_branching
 branch_pgf  = lambda s, theta: bernoulli_pgf(s, theta)
 observ_pgf  = None
 
@@ -139,8 +146,9 @@ Alpha_utppgffa, Gamma_utppgffa, Psi_utppgffa = UTPPGFFA.UTP_PGFFA(y,
                                                                   d=3)
 Alpha_tfa, z_tfa = truncatedfa.truncated_forward(arrival_pmf,
                                                  invLambda.reshape((-1, 1)),
+                                                 branch_fun,
+                                                 Delta.reshape((-1, 1)),
                                                  Rho,
-                                                 Delta,
                                                  y,
                                                  n_max=100)
 
