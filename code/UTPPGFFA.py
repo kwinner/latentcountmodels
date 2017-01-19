@@ -6,10 +6,7 @@ import scipy.misc
 import scipy.io
 from algopy import UTPM
 
-from util import *
-from distributions import *
 from UTPPGF_util import *
-from UTPPGFFA_phmm import *
 
 def UTP_Reverse(s_K, K, branch_pgf, observ_pgf, Theta):
     S = numpy.zeros(K);
@@ -17,7 +14,7 @@ def UTP_Reverse(s_K, K, branch_pgf, observ_pgf, Theta):
     U = numpy.zeros(K)
     V = numpy.zeros(K)
     for k in range(K - 1, -1, -1):
-        V[k] = S[k] * (1 - Rho[k]) #hardcoded for now, needs to be tied to observ_pgf still
+        V[k] = S[k] * (1 - Theta['observ'][k]) #hardcoded for now, needs to be tied to observ_pgf still
         U[k] = V[k]
         if k > 0:
             S[k - 1] = branch_pgf(U[k], Theta['branch'][k-1])
@@ -108,14 +105,3 @@ def UTP_PGFFA(y, Theta, arrival_pgf, branch_pgf, observ_pgf, d=1):
             Psi[k + 1] = Psi_UTP(U[k], Alpha[k], branch_pgf, Theta['branch'][k])
 
     return Alpha, Gamma, Psi
-
-from default_data import *
-
-arrival_pgf = lambda s, theta: poisson_pgf(s, theta)
-branch_pgf = lambda s, theta: bernoulli_pgf(s, theta)
-observ_pgf = None
-
-Theta = {'arrival': Lambda, 'branch': Delta, 'observ': Rho}
-
-Alphap, Gammap, Psip = UTP_PGFFA(y, Theta, arrival_pgf, branch_pgf, observ_pgf, 3)
-Alpha, Gamma, Psi = UTP_PGFFA_phmm(y, Lambda, Delta, Rho, d=3)

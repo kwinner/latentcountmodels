@@ -6,7 +6,7 @@ import scipy.misc
 import scipy.io
 from algopy import UTPM
 
-from util import *
+from UTPPGF_util import *
 
 
 def UTP_Reverse_phmm(s_K, K, Rho, Delta):
