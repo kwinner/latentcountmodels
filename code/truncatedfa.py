@@ -70,30 +70,31 @@ def likelihood(z, log=True):
     ll = np.sum(np.log(z))
     return ll if log else np.exp(ll)
 
-# Poisson arrival
-y = np.array([6,8,10,6,8,10,6,8,10])
-lmbda = np.array([16, 20, 24, 16, 20, 24, 16, 20, 24]).reshape((-1, 1))
-delta = np.array([0.6, 0.4, 0.6, 0.4, 0.6, 0.4, 0.6, 0.4])
-rho = np.array([0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8])
-n_max = 10
+if __name__ == "__main__":
+    # Poisson arrival
+    y = np.array([6,8,10,6,8,10,6,8,10])
+    lmbda = np.array([16, 20, 24, 16, 20, 24, 16, 20, 24]).reshape((-1, 1))
+    delta = np.array([0.6, 0.4, 0.6, 0.4, 0.6, 0.4, 0.6, 0.4])
+    rho = np.array([0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8])
+    n_max = 10
 
-alpha, z = truncated_forward(stats.poisson, lmbda, rho, delta, y, n_max)
-#print alpha
-print likelihood(z)
+    alpha, z = truncated_forward(stats.poisson, lmbda, rho, delta, y, n_max)
+    #print alpha
+    print likelihood(z)
 
-# NB arrival
-r = [16, 20, 24, 16, 20, 24, 16, 20, 24]
-p = [0.6, 0.4, 0.6, 0.4, 0.6, 0.4, 0.6, 0.4, 0.8]
-arrival_params = np.array([param for param in zip(r, p)])
+    # NB arrival
+    r = [16, 20, 24, 16, 20, 24, 16, 20, 24]
+    p = [0.6, 0.4, 0.6, 0.4, 0.6, 0.4, 0.6, 0.4, 0.8]
+    arrival_params = np.array([param for param in zip(r, p)])
 
-alpha, z = truncated_forward(stats.nbinom, arrival_params, rho, delta, y, n_max)
-#print alpha
-print likelihood(z)
+    alpha, z = truncated_forward(stats.nbinom, arrival_params, rho, delta, y, n_max)
+    #print alpha
+    print likelihood(z)
 
-# Runtime test
-reps = 100
-t_start = time.clock()
-for i in xrange(reps):
-    truncated_forward(stats.nbinom, arrival_params, rho, delta, y, n_max)
-total_time = time.clock() - t_start
-print total_time / reps
+    # Runtime test
+    reps = 100
+    t_start = time.clock()
+    for i in xrange(reps):
+        truncated_forward(stats.nbinom, arrival_params, rho, delta, y, n_max)
+    total_time = time.clock() - t_start
+    print total_time / reps
