@@ -34,16 +34,14 @@ def arrivals(a, b, lmbda):
 
 def evidence(a, f, y, rho):
     a_prime = a * (1 - rho)
+    
+    # Compute sum_{l=0}^y of f^(l)(s) / (l!(y-l)!) * a^(y-l)
     g = np.poly1d(0)
     df = f
-
     for l in xrange(y + 1):
-        #log_c = (y-l) * np.log(a) - np.sum(np.log(np.arange(1, l))) - np.sum(np.log(np.arange(1, y-l)))
+        #log_c = (y-l) * np.log(a) - np.sum(np.log(np.arange(1, l+1))) - np.sum(np.log(np.arange(1, y-l+1)))
         log_c = (y-l) * np.log(a) - np.log(factorial(l)) - np.log(factorial(y-l))
-        #g = g + df * np.exp(log_c)
-        #log_c = np.log(1 / (factorial(l) * factorial(y - l)) * a**(y-l))
         g = g + df * np.exp(log_c)
-        #g = g + df / (np.power(a, l) * factorial(l) * factorial(y - l))
         df = np.polyder(df)
 
     g = np.polyval(g, np.poly1d([1-rho, 0])) # g(s(1 - rho))
