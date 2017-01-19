@@ -1,6 +1,7 @@
 import time
 import numpy as np
-from scipy.misc import factorial
+from scipy.special import gammaln
+#from scipy.misc import factorial
 
 """
 NOTE: Breaks if y > 100
@@ -39,8 +40,8 @@ def evidence(a, f, y, rho):
     g = np.poly1d(0)
     df = f
     for l in xrange(y + 1):
-        #log_c = (y-l) * np.log(a) - np.sum(np.log(np.arange(1, l+1))) - np.sum(np.log(np.arange(1, y-l+1)))
-        log_c = (y-l) * np.log(a) - np.log(factorial(l)) - np.log(factorial(y-l))
+        log_c = (y-l) * np.log(a) - gammaln(l+1) - gammaln(y-l+1)
+        #log_c = (y-l) * np.log(a) - np.log(factorial(l)) - np.log(factorial(y-l))
         g = g + df * np.exp(log_c)
         df = np.polyder(df)
 
