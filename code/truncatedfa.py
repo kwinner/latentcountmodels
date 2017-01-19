@@ -3,9 +3,8 @@ import numpy as np
 from scipy import stats, signal
 
 """
-NOTE:
-- If p(y) is very unlikely, convolution might return negative probabilities, which
-  will be assigned values of zero instead
+NOTE: If p(n_k|n_k-1) is very unlikely, convolution will return negative
+probabilities, which will be assigned values of zero instead
 """
 
 def truncated_forward(arrival_dist, arrival_params, branching_fn,
@@ -55,7 +54,6 @@ def normalize(v):
 
 def trans_matrix(arrival_dist, arrival_params_k, branching_fn,
                  branching_params_k, n_max):
-    # arrival_dist, arrival_params_k, delta_k, n_max
     """
     Output: n_max x n_max matrix of transition probabilities
     """
@@ -67,6 +65,8 @@ def trans_matrix(arrival_dist, arrival_params_k, branching_fn,
     if np.any(neg_probs):
         print 'Warning: found negative transition probalities, assigning zeros'
         trans_k[np.where(neg_probs)] = 0
+
+    # True distn of Poisson arrival + Poisson branching, for comparison
     #n_k = np.arange(n_max).reshape((-1, 1))
     #trans_k = stats.poisson.pmf(np.arange(n_max), n_k * branching_params_k[0] + arrival_params_k[0])
     
