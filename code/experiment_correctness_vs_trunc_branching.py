@@ -1,5 +1,6 @@
 import UTPPGFFA_phmm
-import UTPPGFFA
+# import UTPPGFFA
+import UTPPGFFA3 as UTPPGFFA
 from distributions import *
 import truncatedfa
 from scipy import stats
