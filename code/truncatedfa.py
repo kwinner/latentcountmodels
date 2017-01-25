@@ -98,43 +98,44 @@ def binomial_branching(n_max, delta_k):
     n_k = np.arange(n_max).reshape((-1, 1))
     return stats.binom.pmf(np.arange(n_max), n_k, delta_k)
 
-# Poisson arrival, binomial branching
-y = np.array([6,8,10,6,8,10,6,8,10])
-lmbda = np.array([16, 20, 24, 16, 20, 24, 16, 20, 24]).reshape((-1, 1))
-delta = np.array([0.6, 0.4, 0.6, 0.4, 0.6, 0.4, 0.6, 0.4]).reshape((-1, 1))
-rho = np.array([0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8])
-n_max = 10
+if __name__ == "__main__":
+    # Poisson arrival, binomial branching
+    y = np.array([6,8,10,6,8,10,6,8,10])
+    lmbda = np.array([16, 20, 24, 16, 20, 24, 16, 20, 24]).reshape((-1, 1))
+    delta = np.array([0.6, 0.4, 0.6, 0.4, 0.6, 0.4, 0.6, 0.4]).reshape((-1, 1))
+    rho = np.array([0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8])
+    n_max = 10
 
-_, z = truncated_forward(stats.poisson, lmbda, binomial_branching,
-                         delta, rho, y, n_max)
-ll = likelihood(z)
-assert abs(ll - (-85.4080)) < 1e-5, 'Error too big'
-print ll
+    _, z = truncated_forward(stats.poisson, lmbda, binomial_branching,
+                             delta, rho, y, n_max)
+    ll = likelihood(z)
+    assert abs(ll - (-85.4080)) < 1e-5, 'Error too big'
+    print ll
 
-# NB arrival, binomial branching
-r = [16, 20, 24, 16, 20, 24, 16, 20, 24]
-p = [0.6, 0.4, 0.6, 0.4, 0.6, 0.4, 0.6, 0.4, 0.8]
-arrival_params = np.array([param for param in zip(r, p)])
+    # NB arrival, binomial branching
+    r = [16, 20, 24, 16, 20, 24, 16, 20, 24]
+    p = [0.6, 0.4, 0.6, 0.4, 0.6, 0.4, 0.6, 0.4, 0.8]
+    arrival_params = np.array([param for param in zip(r, p)])
 
-_, z = truncated_forward(stats.nbinom, arrival_params, binomial_branching,
-                         delta, rho, y, n_max)
-ll = likelihood(z)
-assert abs(ll - (-64.5405)) < 1e-5, 'Error too big'
-print ll
+    _, z = truncated_forward(stats.nbinom, arrival_params, binomial_branching,
+                             delta, rho, y, n_max)
+    ll = likelihood(z)
+    assert abs(ll - (-64.5405)) < 1e-5, 'Error too big'
+    print ll
 
-# Poisson arrival, poisson branching
-y = np.array([  5,  11,  16,  30,  44,  73, 104, 165, 230])
-n_max = 300
-_, z = truncated_forward(stats.poisson, lmbda, poisson_branching,
-                         delta, rho, y, n_max)
-print likelihood(z)
+    # Poisson arrival, poisson branching
+    y = np.array([  5,  11,  16,  30,  44,  73, 104, 165, 230])
+    n_max = 300
+    _, z = truncated_forward(stats.poisson, lmbda, poisson_branching,
+                             delta, rho, y, n_max)
+    print likelihood(z)
 
-"""
-# Runtime test
-reps = 100
-t_start = time.clock()
-for i in xrange(reps):
-    truncated_forward(stats.nbinom, arrival_params, rho, delta, y, n_max)
-total_time = time.clock() - t_start
-print total_time / reps
-"""
+    """
+    # Runtime test
+    reps = 100
+    t_start = time.clock()
+    for i in xrange(reps):
+        truncated_forward(stats.nbinom, arrival_params, rho, delta, y, n_max)
+    total_time = time.clock() - t_start
+    print total_time / reps
+    """

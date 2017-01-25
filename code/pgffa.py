@@ -64,26 +64,27 @@ def normalize(b, f):
 def likelihood(a, b, f):
     return np.polyval(f, 1) * np.exp(a + b)
 
-y = np.array([6,8,10,6,8,10,6,8,10])
-lmbda = np.array([16, 20, 24, 16, 20, 24, 16, 20, 24])
-delta = np.array([0.6, 0.4, 0.6, 0.4, 0.6, 0.4, 0.6, 0.4])
-rho = np.array([0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8])
-print likelihood(*pgf_forward(lmbda, rho, delta, y)), 2.30542691e-29
+if __name__ == "__main__":
+    y = np.array([6,8,10,6,8,10,6,8,10])
+    lmbda = np.array([16, 20, 24, 16, 20, 24, 16, 20, 24])
+    delta = np.array([0.6, 0.4, 0.6, 0.4, 0.6, 0.4, 0.6, 0.4])
+    rho = np.array([0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8])
+    print likelihood(*pgf_forward(lmbda, rho, delta, y)), 2.30542691e-29
 
-# N-mixture
-y = np.array([112, 128, 129, 124, 118, 123, 121, 125, 126])
-K = len(y)
-lmbda = [250] + [0] * (K - 1)
-delta = [1] * (K - 1)
-rho = [0.5] * K
-print likelihood(*pgf_forward(lmbda, rho, delta, y))
+    # N-mixture
+    y = np.array([112, 128, 129, 124, 118, 123, 121, 125, 126])
+    K = len(y)
+    lmbda = [250] + [0] * (K - 1)
+    delta = [1] * (K - 1)
+    rho = [0.5] * K
+    print likelihood(*pgf_forward(lmbda, rho, delta, y))
 
-"""
-# Runtime test
-reps = 100
-t_start = time.clock()
-for i in xrange(reps):
-    pgf_forward(lmbda, rho, delta, y)
-total_time = time.clock() - t_start
-print total_time / reps
-"""
+    """
+    # Runtime test
+    reps = 100
+    t_start = time.clock()
+    for i in xrange(reps):
+        pgf_forward(lmbda, rho, delta, y)
+    total_time = time.clock() - t_start
+    print total_time / reps
+    """
