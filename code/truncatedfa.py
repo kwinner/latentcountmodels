@@ -8,7 +8,7 @@ probabilities, which will be truncated to zero
 """
 
 def truncated_forward(arrival_dist, arrival_params, branching_fn,
-                      branching_params, rho, y, n_max=40):
+                      branching_params, rho, y, n_max=40, silent=True):
     """
     Input:
     - arrival_dist    : probability distribution object of new arrivals
@@ -44,7 +44,7 @@ def truncated_forward(arrival_dist, arrival_params, branching_fn,
 
     for k in xrange(1, K):
         #trans_k = trans_matrix(arrival_dist, arrival_params[k], delta[k - 1], n_max)
-        trans_k = trans_matrix(arrival_dist, arrival_params[k], branching_fn, branching_params[k - 1], n_max)
+        trans_k = trans_matrix(arrival_dist, arrival_params[k], branching_fn, branching_params[k - 1], n_max, silent)
         evidence_k = evidence_vector(rho[k], y[k], n_max)
         alpha_k, z_k = normalize(evidence_k * trans_k.T.dot(alpha_k))
         alpha[:, k] = alpha_k
@@ -58,7 +58,7 @@ def normalize(v):
     return alpha, z
 
 def trans_matrix(arrival_dist, arrival_params_k, branching_fn,
-                 branching_params_k, n_max):
+                 branching_params_k, n_max, silent):
     """
     Output: n_max x n_max matrix of transition probabilities
     """
@@ -67,8 +67,13 @@ def trans_matrix(arrival_dist, arrival_params_k, branching_fn,
     
     trans_k = signal.fftconvolve(arrival.reshape(1, -1), branching)[:, :n_max]
     neg_probs = trans_k < 0
+<<<<<<< Updated upstream
     if np.any(neg_probs):
         print 'Warning: truncating negative transition probabilities to zero'
+=======
+    if not silent and np.any(neg_probs):
+        print 'Warning: found negative transition probalities, assigning zeros'
+>>>>>>> Stashed changes
         trans_k[np.where(neg_probs)] = 0
 
     # True distn of Poisson arrival + Poisson branching, for comparison

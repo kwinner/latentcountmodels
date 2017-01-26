@@ -1,7 +1,6 @@
 # a collection of UTP-PGFFA methods specific to PHMM models
 
-import numpy
-import scipy
+import numpy as np
 import scipy.misc
 import scipy.io
 from algopy import UTPM
@@ -21,11 +20,11 @@ def UTP_Reverse(s_K, K, D, branch_pgf, observ_pgf, Theta):
     U_dU = [None] * K
 
     # initialize the first indeterminate to the initial value provided
-    S_dU[K - 1] = UTPM(numpy.zeros((D, 1)))
+    S_dU[K - 1] = UTPM(np.zeros((D, 1)))
     S_dU[K - 1].data[0,0] = s_K
     S_dU[K - 1].data[1,0] = 1
     # create copy of S_dU[K - 1] whose derivatives are taken wrt itself
-    S_dS[K - 1] = UTPM(numpy.zeros((D,1)))
+    S_dS[K - 1] = UTPM(np.zeros((D,1)))
     S_dS[K - 1].data[0,0] = S_dU[K - 1].data[0,0]
     S_dS[K - 1].data[1,0] = 1
 
@@ -34,7 +33,7 @@ def UTP_Reverse(s_K, K, D, branch_pgf, observ_pgf, Theta):
         U_dS[k] = S_dS[k] * (1 - Theta['observ'][k]) #hardcoded for now, needs to be tied to observ_pgf still
 
         # create copy of U_dS[k] whose derivatives are taken wrt itself
-        U_dU[k] = UTPM(numpy.zeros((D,1)))
+        U_dU[k] = UTPM(np.zeros((D,1)))
         U_dU[k].data[0,0] = U_dS[k].data[0,0]
         U_dU[k].data[1,0] = 1
 
@@ -43,7 +42,7 @@ def UTP_Reverse(s_K, K, D, branch_pgf, observ_pgf, Theta):
             S_dU[k - 1] = branch_pgf(U_dU[k], Theta['branch'][k-1])
 
             # create copy of S_dU[k] whose derivatives are taken wrt itself
-            S_dS[k - 1] = UTPM(numpy.zeros((D,1)))
+            S_dS[k - 1] = UTPM(np.zeros((D,1)))
             S_dS[k - 1].data[0,0] = S_dU[k - 1].data[0,0]
             S_dS[k - 1].data[1,0] = 1
 
@@ -63,7 +62,7 @@ def alpha_k_ds_k(alpha_j_ds_j, y_k, s_j_du_k, s_k_ds_k, u_k_ds_k, u_k_du_k, arri
     beta_k_du_k = alpha_j_du_k * arrival_pgf(u_k_du_k, theta_arrival_k)
 
     # take the derivative
-    gamma_k_du_k = UTPM(numpy.zeros((D - y_k, 1)))
+    gamma_k_du_k = UTPM(np.zeros((D - y_k, 1)))
     gamma_k_du_k.data[:,0] = UTP_deriv(beta_k_du_k.data[:,0], y_k) # UTP length is now D - y_k
 
     # correct for derivative wrt s_k
@@ -73,7 +72,7 @@ def alpha_k_ds_k(alpha_j_ds_j, y_k, s_j_du_k, s_k_ds_k, u_k_ds_k, u_k_du_k, arri
     s_k_ds_k.data = s_k_ds_k.data[:D - y_k]
 
     # compute the return value alpha_k_ds_k
-    return gamma_k_ds_k / scipy.misc.factorial(y_k) * numpy.power(s_k_ds_k * rho_k, y_k)
+    return gamma_k_ds_k / scipy.misc.factorial(y_k) * np.power(s_k_ds_k * rho_k, y_k)
 
 
 def alpha_0_ds_0(y_0, Y, s_0_ds_0, u_0_ds_0, u_0_du_0, arrival_pgf, theta_arrival_0, rho_0):
@@ -81,7 +80,7 @@ def alpha_0_ds_0(y_0, Y, s_0_ds_0, u_0_ds_0, u_0_du_0, arrival_pgf, theta_arriva
     beta_0_du_0 = arrival_pgf(u_0_du_0, theta_arrival_0)
 
     # take the derivative
-    gamma_0_du_0 = UTPM(numpy.zeros((Y - y_0, 1)))
+    gamma_0_du_0 = UTPM(np.zeros((Y - y_0, 1)))
     gamma_0_du_0.data[:,0] = UTP_deriv(beta_0_du_0.data[:,0], y_0)  # UTP length is now D - y_k
 
     # correct for derivative wrt s_k
@@ -91,7 +90,7 @@ def alpha_0_ds_0(y_0, Y, s_0_ds_0, u_0_ds_0, u_0_du_0, arrival_pgf, theta_arriva
     s_0_ds_0.data = s_0_ds_0.data[:Y - y_0]
 
     # compute the return value alpha_k_ds_k
-    return gamma_0_ds_0 / scipy.misc.factorial(y_0) * numpy.power(s_0_ds_0 * rho_0, y_0)
+    return gamma_0_ds_0 / scipy.misc.factorial(y_0) * np.power(s_0_ds_0 * rho_0, y_0)
 
 
 def UTP_PGFFA(y, Theta, arrival_pgf, branch_pgf, observ_pgf, d=1):
@@ -127,4 +126,4 @@ def UTP_PGFFA(y, Theta, arrival_pgf, branch_pgf, observ_pgf, d=1):
                                 Theta['arrival'][k],
                                 Theta['observ'][k])
 
-    return Alpha, None, None
+    return Alpha
