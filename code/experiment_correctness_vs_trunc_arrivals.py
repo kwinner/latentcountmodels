@@ -1,15 +1,14 @@
 import UTPPGFFA_phmm
-# import UTPPGFFA
-# import UTPPGFFA2 as UTPPGFFA
-import UTPPGFFA3 as UTPPGFFA
+import UTPPGFFA
 from distributions import *
 import truncatedfa
+import numpy as np
 from scipy import stats
 
-y = numpy.array([6,8,10,6,8,10,6,8,10])
-Lambda = numpy.array([16, 20, 24, 16, 20, 24, 16, 20, 24])
-Delta = numpy.array([0.6, 0.4, 0.6, 0.4, 0.6, 0.4, 0.6, 0.4])
-Rho = numpy.array([0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8])
+y = np.array([6,8,10,6,8,10,6,8,10])
+Lambda = np.array([16, 20, 24, 16, 20, 24, 16, 20, 24])
+Delta = np.array([0.6, 0.4, 0.6, 0.4, 0.6, 0.4, 0.6, 0.4])
+Rho = np.array([0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8])
 
 #poisson arrival correctness
 arrival_pmf = stats.poisson
@@ -22,12 +21,18 @@ Theta = {'arrival': Lambda,
          'branch':  Delta,
          'observ':  Rho}
 
-Alpha_utppgffa, Gamma_utppgffa, Psi_utppgffa = UTPPGFFA.UTP_PGFFA(y,
-                                                                  Theta,
-                                                                  arrival_pgf,
-                                                                  branch_pgf,
-                                                                  observ_pgf,
-                                                                  d=3)
+# Alpha_utppgffa, Gamma_utppgffa, Psi_utppgffa = UTPPGFFA.UTP_PGFFA(y,
+#                                                                   Theta,
+#                                                                   arrival_pgf,
+#                                                                   branch_pgf,
+#                                                                   observ_pgf,
+#                                                                   d=3)
+Alpha_utppgffa = UTPPGFFA.utppgffa(y,
+                                   Theta,
+                                   arrival_pgf,
+                                   branch_pgf,
+                                   observ_pgf,
+                                   d=3)
 Alpha_pgffa, Gamma_pgffa, Psi_pgffa = UTPPGFFA_phmm.UTP_PGFFA_phmm(y,
                                                                    Lambda,
                                                                    Delta,
@@ -51,11 +56,11 @@ print "PGFFA likelihood:    {0}".format(likelihood_pgffa)
 print "Trunc likelihood:    {0}".format(likelihood_tfa)
 
 #negbin arrival correctness
-# r = numpy.array([6,   8,   10,  6,   8,   10,  6,   8,   10])
-# p = numpy.array([0.4, 0.5, 0.6, 0.5, 0.4, 0.5, 0.6, 0.5, 0.4])
-r = numpy.array([16,  20,  24,  16,  20,  24,  16,  20,  24])
-p = numpy.array([0.6, 0.4, 0.6, 0.4, 0.6, 0.4, 0.6, 0.4, 0.8])
-arrival_params = numpy.stack((r,p), axis=1)
+# r = np.array([6,   8,   10,  6,   8,   10,  6,   8,   10])
+# p = np.array([0.4, 0.5, 0.6, 0.5, 0.4, 0.5, 0.6, 0.5, 0.4])
+r = np.array([16,  20,  24,  16,  20,  24,  16,  20,  24])
+p = np.array([0.6, 0.4, 0.6, 0.4, 0.6, 0.4, 0.6, 0.4, 0.8])
+arrival_params = np.stack((r,p), axis=1)
 
 # Delta = Delta
 # Rho = Rho
@@ -70,12 +75,18 @@ Theta = {'arrival': arrival_params,
          'branch':  Delta,
          'observ':  Rho}
 
-Alpha_utppgffa, Gamma_utppgffa, Psi_utppgffa = UTPPGFFA.UTP_PGFFA(y,
-                                                                  Theta,
-                                                                  arrival_pgf,
-                                                                  branch_pgf,
-                                                                  observ_pgf,
-                                                                  d=3)
+# Alpha_utppgffa, Gamma_utppgffa, Psi_utppgffa = UTPPGFFA.UTP_PGFFA(y,
+#                                                                   Theta,
+#                                                                   arrival_pgf,
+#                                                                   branch_pgf,
+#                                                                   observ_pgf,
+#                                                                   d=3)
+Alpha_utppgffa = UTPPGFFA.utppgffa(y,
+                                   Theta,
+                                   arrival_pgf,
+                                   branch_pgf,
+                                   observ_pgf,
+                                   d=3)
 Alpha_tfa, z_tfa = truncatedfa.truncated_forward(arrival_pmf,
                                                  arrival_params,
                                                  branch_fun,
@@ -105,12 +116,18 @@ Theta = {'arrival':invLambda,
          'branch':  Delta,
          'observ':  Rho}
 
-Alpha_utppgffa, Gamma_utppgffa, Psi_utppgffa = UTPPGFFA.UTP_PGFFA(y,
-                                                                  Theta,
-                                                                  arrival_pgf,
-                                                                  branch_pgf,
-                                                                  observ_pgf,
-                                                                  d=3)
+# Alpha_utppgffa, Gamma_utppgffa, Psi_utppgffa = UTPPGFFA.UTP_PGFFA(y,
+#                                                                   Theta,
+#                                                                   arrival_pgf,
+#                                                                   branch_pgf,
+#                                                                   observ_pgf,
+#                                                                   d=3)
+Alpha_utppgffa = UTPPGFFA.utppgffa(y,
+                                   Theta,
+                                   arrival_pgf,
+                                   branch_pgf,
+                                   observ_pgf,
+                                   d=3)
 Alpha_tfa, z_tfa = truncatedfa.truncated_forward(arrival_pmf,
                                                  invLambda.reshape((-1, 1)),
                                                  branch_fun,
@@ -140,12 +157,18 @@ Theta = {'arrival':invLambda,
          'branch':  Delta,
          'observ':  Rho}
 
-Alpha_utppgffa, Gamma_utppgffa, Psi_utppgffa = UTPPGFFA.UTP_PGFFA(y,
-                                                                  Theta,
-                                                                  arrival_pgf,
-                                                                  branch_pgf,
-                                                                  observ_pgf,
-                                                                  d=3)
+# Alpha_utppgffa, Gamma_utppgffa, Psi_utppgffa = UTPPGFFA.UTP_PGFFA(y,
+#                                                                   Theta,
+#                                                                   arrival_pgf,
+#                                                                   branch_pgf,
+#                                                                   observ_pgf,
+#                                                                   d=3)
+Alpha_utppgffa = UTPPGFFA.utppgffa(y,
+                                   Theta,
+                                   arrival_pgf,
+                                   branch_pgf,
+                                   observ_pgf,
+                                   d=3)
 Alpha_tfa, z_tfa = truncatedfa.truncated_forward(arrival_pmf,
                                                  invLambda.reshape((-1, 1)),
                                                  branch_fun,

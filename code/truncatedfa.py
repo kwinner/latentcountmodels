@@ -67,13 +67,8 @@ def trans_matrix(arrival_dist, arrival_params_k, branching_fn,
     
     trans_k = signal.fftconvolve(arrival.reshape(1, -1), branching)[:, :n_max]
     neg_probs = trans_k < 0
-<<<<<<< Updated upstream
-    if np.any(neg_probs):
-        print 'Warning: truncating negative transition probabilities to zero'
-=======
     if not silent and np.any(neg_probs):
-        print 'Warning: found negative transition probalities, assigning zeros'
->>>>>>> Stashed changes
+        print 'Warning: truncating negative transition probabilities to zero'
         trans_k[np.where(neg_probs)] = 0
 
     # True distn of Poisson arrival + Poisson branching, for comparison
