@@ -4,22 +4,27 @@ from scipy import stats, signal
 
 """
 NOTE: If p(n_k|n_k-1) is very unlikely, convolution will return negative
-probabilities, which will be assigned values of zero instead
+probabilities, which will be truncated to zero
 """
 
 def truncated_forward(arrival_dist, arrival_params, branching_fn,
-                      branching_params, rho, y, n_max=40):
+                      branching_params, rho, y, n_max=40, silent=True):
     """
     Input:
-    - arrival_dist   : probability distribution object of new arrivals
-                       (e.g. stats.poisson, stats.nbinom)
-    - arrival_params : matrix (K x n_params) of parameters of new arrivals
-                       (e.g. [[lambda_1], ..., [lambda_K]] for Poisson,
-                       [[r_1, p_1], ..., [r_K, p_K]] for NB)
-    - rho            : list (K) of detection probabilities
-    - delta          : list (K-1) of survival probabilities
-    - y              : list (K) of evidence
-    - n_max          : maximum abundance at each k (inclusive)
+    - arrival_dist    : probability distribution object of new arrivals
+                        (e.g. stats.poisson, stats.nbinom)
+    - arrival_params  : matrix (K x n_params) of parameters of new arrivals
+                        (e.g. [[lambda_1], ..., [lambda_K]] for Poisson,
+                        [[r_1, p_1], ..., [r_K, p_K]] for NB)
+    - branching_fn    : function that takes n_max as the first argument and
+                        branching_params as the remaining arguments, and returns a
+                        distribution matrix of the branching process
+    - branching_params: matrix (K x n_params) of arguments to branching_fn
+                        (e.g. [[gamma_1], ..., [gamma_K]] for Poisson,
+                        [[delta_1], ..., [delta_K]] for binomial)
+    - rho             : list (K) of detection probabilities
+    - y               : list (K) of evidence
+    - n_max           : maximum abundance at each k (inclusive)
 
     Output:
     - alpha : matrix (n_max x K) of forward messages
@@ -39,7 +44,7 @@ def truncated_forward(arrival_dist, arrival_params, branching_fn,
 
     for k in xrange(1, K):
         #trans_k = trans_matrix(arrival_dist, arrival_params[k], delta[k - 1], n_max)
-        trans_k = trans_matrix(arrival_dist, arrival_params[k], branching_fn, branching_params[k - 1], n_max)
+        trans_k = trans_matrix(arrival_dist, arrival_params[k], branching_fn, branching_params[k - 1], n_max, silent)
         evidence_k = evidence_vector(rho[k], y[k], n_max)
         alpha_k, z_k = normalize(evidence_k * trans_k.T.dot(alpha_k))
         alpha[:, k] = alpha_k
@@ -53,7 +58,7 @@ def normalize(v):
     return alpha, z
 
 def trans_matrix(arrival_dist, arrival_params_k, branching_fn,
-                 branching_params_k, n_max):
+                 branching_params_k, n_max, silent):
     """
     Output: n_max x n_max matrix of transition probabilities
     """
@@ -62,8 +67,13 @@ def trans_matrix(arrival_dist, arrival_params_k, branching_fn,
     
     trans_k = signal.fftconvolve(arrival.reshape(1, -1), branching)[:, :n_max]
     neg_probs = trans_k < 0
+<<<<<<< Updated upstream
     if np.any(neg_probs):
+        print 'Warning: truncating negative transition probabilities to zero'
+=======
+    if not silent and np.any(neg_probs):
         print 'Warning: found negative transition probalities, assigning zeros'
+>>>>>>> Stashed changes
         trans_k[np.where(neg_probs)] = 0
 
     # True distn of Poisson arrival + Poisson branching, for comparison

@@ -5,6 +5,7 @@ data/
 *.aux
 *.log
 *.synctex.gz
+*.pyc
 .idea/*
 code/.idea/*
 *~
