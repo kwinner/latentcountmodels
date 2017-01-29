@@ -1,6 +1,7 @@
 import numpy as np
 
-#pgfs not implemented in scipy, should be compatible with UTPM
+# pgfs not implemented in scipy, should be compatible with UTPM
+
 
 def poisson_pgf(s, theta):
     lmbda = theta
