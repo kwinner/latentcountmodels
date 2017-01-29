@@ -1,68 +1,59 @@
-import numpy
-import scipy
+import numpy as np
+import scipy as sp
 from algopy import UTPM
 
 # i!/(i-k)!
 def falling_factorial(k, i):
-    return scipy.special.poch(i - k + 1, k)
+    return sp.special.poch(i - k + 1, k)
 
 
-def UTP_deriv(x, k):
-    n = len(x)
-    fact = falling_factorial(k, numpy.arange(n))
-    x = x * fact
+def new_utp(x, d):
+    x_utp = UTPM(np.zeros((d, 1)))
+    x_utp.data[0,0] = x
+    if d > 1:
+        x_utp.data[1,0] = 1
+    return x_utp
+
+
+def utp_deriv(x, k):
+    dx = x.data.ravel()
+    n = len(dx)
+    fact = falling_factorial(k, np.arange(n))
+    dx = dx * fact
 
     # shift by k places
-    y = numpy.zeros(n - k)
-    y[:n - k] = x[k:]
-
+    dy = np.zeros(n - k)
+    dy[:n - k] = dx[k:]
+    y = UTPM( dy.reshape(n-k, 1))
     return y
 
 
-def UTPPGF_mean(F):
+def utppgf_mean(F):
     return F.data[1, 0]
 
 
-def UTPPGF_var(F):
-    return (2 * F.data[2, 0]) - numpy.power(F.data[1, 0], 2) + F.data[1, 0]
+def utppgf_var(F):
+    return (2 * F.data[2, 0]) - np.power(F.data[1, 0], 2) + F.data[1, 0]
 
 
-# compose two PGFs represented as UTPs
-# Function returns H = G(F(s)), truncated to be a UTP of degree d
-#  if d = 'F' or 'G', then the degree will match the size of the corresponding input
-#  if d = 'FG', then the max of the two will be used
-#  if d = None or d < 0, then the UTP will not be truncated
-# note: the actual value of G(F(-)) cannot be computed this way, and the actual value of G is used instead
-def UTPPGF_compose(G, F, d='G'):
-    # representation note: numpy.poly1d objects store coefficients in decreasing order
-    #                      algopy.UTPM  objects store coefficients in increasing order
-    #                      UTP.data[::-1] or np.array(poly1d)[::-1] reverses them using a view
-    if d == 'G':
-        d = G.data.shape[0]
-    elif d == 'F':
-        d = F.data.shape[0]
-    elif d == 'FG':
-        d = max(G.data.shape[0], F.data.shape[0])
+def utp_compose(G, F):
+    # require G and F to have same dimension, and always output something of same size
+    assert G.data.shape[0] == F.data.shape[0]
 
-    # extract the nonconstant terms as vectors
-    Gbar = numpy.squeeze(G.data.copy())
-    Gbar[0] = 0
-    Fbar = numpy.squeeze(F.data.copy())
-    Fbar[0] = 0
+    g = G.data.copy().squeeze(axis=(1,))
+    f = F.data.copy().squeeze(axis=(1,))
+    g_scalar = g[0]
+    g[0], f[0] = 0, 0
 
-    H = numpy.polyval(Gbar[::-1],
-                      numpy.poly1d(Fbar[::-1])) #F must be passed as a poly1d object or it is treated as a set of points to eval at
+    d = len(g)
 
-    # convert H back to a UTP
-    H = numpy.array(H)[::-1]
+    # Horner's method truncated to d
+    res = np.array([g[d - 1]])
+    for i in range(d - 2, -1, -1):
+        res = np.convolve(res, f)[:d]
+        res[0] += g[i]
 
-    # reinsert the actual value of G (hopefully storing G(F(-))...)
-    # H = numpy.insert(H, 0, G.data[0])
-    H[0] = G.data[0]
+    res[0] = g_scalar
 
-    if d == None or d < 0:
-        H = UTPM(H.reshape(-1, 1))
-    else:
-        H = UTPM(H.reshape(-1, 1)[0:d])
-
+    H = UTPM(res.reshape(-1, 1))
     return H
