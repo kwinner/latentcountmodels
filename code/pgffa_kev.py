@@ -41,13 +41,13 @@ def evidence(a, b, f, y, rho):
     a_prime = a * (1 - rho)
     b_prime = b
 
-
+    max_deriv = min(y + 1, len(f))
 
     # Compute sum_{l=0}^y of f^(l)(s) * a^(y-l) / (l!(y-l)!)
-    log_g = np.full((y + 1, len(f)), -np.inf)
+    log_g = np.full((max_deriv, len(f)), -np.inf)
     df = f
     
-    for l in xrange(min(y + 1, len(f))):
+    for l in xrange(max_deriv):
         # Normalize
         b_prime, df, max_df = normalize(b_prime, df)
         log_g[:l+1, :] = log_g[:l+1, :] - max_df
@@ -56,7 +56,7 @@ def evidence(a, b, f, y, rho):
         log_c = (y-l) * np.log(a) - gammaln(l+1) - gammaln(y-l+1)
         
         # f^(l)(s) * log_c
-        log_g[l, l:] = np.log(df) + log_c
+        log_g[l, :len(df)] = np.log(df) + log_c
 
         # f^(l+1)(s)
         if l < y: df = poly_der(df)
@@ -106,20 +106,20 @@ def likelihood(a, b, f, log=True):
 
 if __name__ == "__main__":
     
-    y = np.array([ 785, 1712, 1683, 1524, 1303, 1489, 1454, 1890])
-    lmbda = np.array([1000, 1500, 1320, 680, 880, 900, 1100, 1280])
-    delta = np.array([0.6, 0.4, 0.6, 0.4, 0.6, 0.4, 0.6])
-    rho = np.array([0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8])
-    a, b, f = pgf_forward(lmbda, rho, delta, y)
-    print likelihood(a, b, f, False), 1.96541052172e-17
-    """
+    # y = np.array([ 785, 1712, 1683, 1524, 1303, 1489, 1454, 1890])
+    # lmbda = np.array([1000, 1500, 1320, 680, 880, 900, 1100, 1280])
+    # delta = np.array([0.6, 0.4, 0.6, 0.4, 0.6, 0.4, 0.6])
+    # rho = np.array([0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8])
+    # a, b, f = pgf_forward(lmbda, rho, delta, y)
+    # print likelihood(a, b, f, False), 1.96541052172e-17
+
     y = np.array([6,8,10,6,8,10,6,8,10])
     lmbda = np.array([16, 20, 24, 16, 20, 24, 16, 20, 24])
     delta = np.array([0.6, 0.4, 0.6, 0.4, 0.6, 0.4, 0.6, 0.4])
     rho = np.array([0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8])
     a, b, f = pgf_forward(lmbda, rho, delta, y)
     print likelihood(a, b, f, False), 2.30542691e-29
-    
+    """"
     # N-mixture
     y = np.array([112, 128, 129, 124, 118, 123, 121, 125, 126])
     K = len(y)
