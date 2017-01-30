@@ -57,3 +57,41 @@ def utp_compose(G, F):
 
     H = UTPM(res.reshape(-1, 1))
     return H
+
+
+def compose_poly_horner_special(f, g):
+    K = len(f)
+    res = f[K - 1]
+    for i in range(K - 2, -1, -1):
+        res = np.append(res * g[0], 0) + np.append(f[i], res * g[1])
+
+    return res
+
+
+def compose_poly_horner(f, g):
+    K = len(f)
+    res = f[K - 1]
+    for i in range(K - 2, -1, -1):
+        res = np.convolve(res, g)
+        res[0] = res[0] + f[i]
+
+    return res
+
+
+def poly_der(f):
+    fprime = f[1:]  # discard constant term
+    fprime = fprime * np.arange(1, len(fprime)+1)
+
+    return fprime
+
+
+if __name__ == "__main__":
+    f = np.array([1, 2, 3])
+    g = np.array([5, 8, 16])
+    h = compose_poly_horner(f, g)
+    print h
+
+    f = np.array([5, 8, 16])
+    g = np.array([9, 11])
+    h = compose_poly_horner_special(f, g)
+    print h
