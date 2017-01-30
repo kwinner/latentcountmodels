@@ -61,6 +61,8 @@ def utp_compose(G, F):
 
 def compose_poly_horner_special(f, g):
     K = len(f)
+    if K == 1:  # special case if f is constant
+        return f
     res = f[K - 1]
     for i in range(K - 2, -1, -1):
         res = np.append(res * g[0], 0) + np.append(f[i], res * g[1])
@@ -70,11 +72,12 @@ def compose_poly_horner_special(f, g):
 
 def compose_poly_horner(f, g):
     K = len(f)
+    if K == 1:  # special case if f is constant
+        return f
     res = f[K - 1]
     for i in range(K - 2, -1, -1):
         res = np.convolve(res, g)
         res[0] = res[0] + f[i]
-
     return res
 
 
