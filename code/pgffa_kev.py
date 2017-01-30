@@ -68,7 +68,7 @@ def evidence(a, b, f, y, rho):
     b_prime, log_g, _ = normalize(b_prime, log_g, log=True)
 
     # g(s(1 - rho))
-    h = np.arange(1, len(f)+1) * np.log(1-rho)
+    h = np.arange(0, len(f)) * np.log(1-rho)
     log_g = log_g + h
 
     g = np.exp(log_g)                         # scale back to non-log space
@@ -106,19 +106,19 @@ def likelihood(a, b, f, log=True):
 
 if __name__ == "__main__":
     
-    # y = np.array([ 785, 1712, 1683, 1524, 1303, 1489, 1454, 1890])
-    # lmbda = np.array([1000, 1500, 1320, 680, 880, 900, 1100, 1280])
-    # delta = np.array([0.6, 0.4, 0.6, 0.4, 0.6, 0.4, 0.6])
-    # rho = np.array([0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8])
-    # a, b, f = pgf_forward(lmbda, rho, delta, y)
-    # print likelihood(a, b, f, False), 1.96541052172e-17
-
-    y = np.array([6,8,10,6,8,10,6,8,10])
-    lmbda = np.array([16, 20, 24, 16, 20, 24, 16, 20, 24])
-    delta = np.array([0.6, 0.4, 0.6, 0.4, 0.6, 0.4, 0.6, 0.4])
-    rho = np.array([0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8])
+    y = np.array([ 785, 1712, 1683, 1524, 1303, 1489, 1454, 1890])
+    lmbda = np.array([1000, 1500, 1320, 680, 880, 900, 1100, 1280])
+    delta = np.array([0.6, 0.4, 0.6, 0.4, 0.6, 0.4, 0.6])
+    rho = np.array([0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8])
     a, b, f = pgf_forward(lmbda, rho, delta, y)
-    print likelihood(a, b, f, False), 2.30542691e-29
+    print likelihood(a, b, f, False), 1.96541052172e-17
+
+    # y = np.array([6,8,10,6,8,10,6,8,10])
+    # lmbda = np.array([16, 20, 24, 16, 20, 24, 16, 20, 24])
+    # delta = np.array([0.6, 0.4, 0.6, 0.4, 0.6, 0.4, 0.6, 0.4])
+    # rho = np.array([0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8])
+    # a, b, f = pgf_forward(lmbda, rho, delta, y)
+    # print likelihood(a, b, f, False), 2.30542691e-29
     """"
     # N-mixture
     y = np.array([112, 128, 129, 124, 118, 123, 121, 125, 126])
@@ -128,7 +128,7 @@ if __name__ == "__main__":
     rho = [0.5] * K
     a, b, f = pgf_forward(lmbda, rho, delta, y)
     print likelihood(a, b, f, False), 1.11963529571e-13
-    
+
     # Runtime test
     reps = 10
     t_start = time.clock()

@@ -109,14 +109,14 @@ if __name__ == "__main__":
     rho = np.array([0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8])
     a, b, f = pgf_forward(lmbda, rho, delta, y)
     print likelihood(a, b, f, False), 1.96541052172e-17
-    """
-    y = np.array([6,8,10,6,8,10,6,8,10])
-    lmbda = np.array([16, 20, 24, 16, 20, 24, 16, 20, 24])
-    delta = np.array([0.6, 0.4, 0.6, 0.4, 0.6, 0.4, 0.6, 0.4])
-    rho = np.array([0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8])
-    a, b, f = pgf_forward(lmbda, rho, delta, y)
-    print likelihood(a, b, f, False), 2.30542691e-29
-    
+
+    # y = np.array([6,8,10,6,8,10,6,8,10])
+    # lmbda = np.array([16, 20, 24, 16, 20, 24, 16, 20, 24])
+    # delta = np.array([0.6, 0.4, 0.6, 0.4, 0.6, 0.4, 0.6, 0.4])
+    # rho = np.array([0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8])
+    # a, b, f = pgf_forward(lmbda, rho, delta, y)
+    # print likelihood(a, b, f, False), 2.30542691e-29
+    """""
     # N-mixture
     y = np.array([112, 128, 129, 124, 118, 123, 121, 125, 126])
     K = len(y)
