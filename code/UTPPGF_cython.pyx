@@ -24,20 +24,12 @@ cpdef double[::1] utp_compose_vec(double[::1] G, double[::1] F):
     # temporarily zero out first element of G and F
     # this lets us do the convolution "in place" as it were
     # the entries are restored before the function exits
-    #g_scalar = G[0]
-    #f_scalar = F[0]
-
     G[0] = 0
     F[0] = 0
-
-    #d = G.shape[0]
-
-    #out = np.array(d)
 
     # Horner's method truncated to d
     out[0] = G[d - 1]
     for i in range(d - 2, -1, -1):
-        #out = np.convolve(out, F, 'same')
         out = np.convolve(out, F)[:d]
         out[0] += G[i]
 
