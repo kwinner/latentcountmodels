@@ -303,7 +303,7 @@ if __name__ == "__main__":
     # runtime_utppgffa, runtime_pgffa, runtime_trunc_final, runtime_trunc_total, n_max, y = runtime_hmm_zonn(silent=False)
     # runtime_nmix()
 
-    runtime_experiment_zonn()
+    runtime_experiment_zonn(silent=False)
 
     # def runtime_profile():
     #     for i in range(0,100):

@@ -1,5 +1,6 @@
 plots/
 data/
+code/build/
 .DS_Store
 .Rhistory
 *.aux
@@ -11,3 +12,6 @@ code/.idea/*
 *~
 
 code/*.pyc
+code/*.cpp
+code/*.so
+*.stats
