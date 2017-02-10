@@ -2,6 +2,7 @@ import os
 import pwd
 import time
 import cProfile
+import pickle
 
 import numpy as np
 from scipy import stats, integrate
@@ -100,35 +101,35 @@ def runtime_hmm(
         runtime_utppgffa[iter] = time.clock() - t_start
         if not silent: print "UTPPGFFA: %0.4f" % runtime_utppgffa[iter]
 
-        # # likelihood from PGFFA
-        # t_start = time.clock()
-        # a, b, f = pgffa.pgf_forward(Lambda,
-        #                                 Rho,
-        #                                 Delta,
-        #                                 y[iter, :])
-        # runtime_pgffa[iter] = time.clock() - t_start
-        # if not silent: print "PGFFA: %0.4f" % runtime_pgffa[iter]
+        # likelihood from PGFFA
+        t_start = time.clock()
+        a, b, f = pgffa.pgf_forward(Lambda,
+                                        Rho,
+                                        Delta,
+                                        y[iter, :])
+        runtime_pgffa[iter] = time.clock() - t_start
+        if not silent: print "PGFFA: %0.4f" % runtime_pgffa[iter]
 
-        # # likelihood from truncated forward algorithm
-        # n_max[iter] = max(y[iter, :])
-        # t_start = time.clock()
-        # likelihood_trunc = float('inf')
-        # while abs(likelihood_trunc - likelihood_utppgffa) >= epsilon and n_max[iter] < N_LIMIT:
-        #     n_max[iter] += 1
-        #     t_loop = time.clock()
-        #     Alpha_trunc, z = truncatedfa.truncated_forward(arrival_pmf,
-        #                                                    Lambda_trunc,
-        #                                                    branch_fun,
-        #                                                    Delta_trunc,
-        #                                                    Rho,
-        #                                                    y[iter, :],
-        #                                                    n_max=n_max[iter])
-        #     likelihood_trunc = truncatedfa.likelihood(z, log=False)
-        #     runtime_trunc_final[iter] = time.clock() - t_loop
-        # runtime_trunc_total[iter] = time.clock() - t_start
-        # if not silent: print "Trunc: %0.4f last run @%d, %0.4f total" % (runtime_trunc_final[iter], n_max[iter], runtime_trunc_total[iter])
+        # likelihood from truncated forward algorithm
+        n_max[iter] = max(y[iter, :])
+        t_start = time.clock()
+        likelihood_trunc = float('inf')
+        while abs(likelihood_trunc - likelihood_utppgffa) >= epsilon and n_max[iter] < N_LIMIT:
+            n_max[iter] += 1
+            t_loop = time.clock()
+            Alpha_trunc, z = truncatedfa.truncated_forward(arrival_pmf,
+                                                           Lambda_trunc,
+                                                           branch_fun,
+                                                           Delta_trunc,
+                                                           Rho,
+                                                           y[iter, :],
+                                                           n_max=n_max[iter])
+            likelihood_trunc = truncatedfa.likelihood(z, log=False)
+            runtime_trunc_final[iter] = time.clock() - t_loop
+        runtime_trunc_total[iter] = time.clock() - t_start
+        if not silent: print "Trunc: %0.4f last run @%d, %0.4f total" % (runtime_trunc_final[iter], n_max[iter], runtime_trunc_total[iter])
 
-    return runtime_utppgffa, runtime_pgffa, runtime_trunc_final, runtime_trunc_total, n_max, y
+    return runtime_utppgffa, runtime_pgffa, runtime_trunc_final, runtime_trunc_total, n_max, y, N
 
 
 def runtime_nmix(
@@ -224,25 +225,46 @@ def runtime_hmm_shannon_wrapper(
         K_val,
         resultdir
         ):
-    runtime_utppgffa, runtime_pgffa, runtime_trunc_final, runtime_trunc_total, n_max, y = runtime_hmm(Lambda,Delta,Rho,epsilon,n_reps,N_LIMIT,silent,arrival,branch,observ)
+    runtime_utppgffa, runtime_pgffa, runtime_trunc_final, runtime_trunc_total, n_max, y, N = runtime_hmm(Lambda,Delta,Rho,epsilon,n_reps,N_LIMIT,silent,arrival,branch,observ)
 
-    # compute average runtimes
-    record = np.array([
-        N_val,
-        rho_val,
-        K_val,
-        np.mean(runtime_utppgffa),
-        np.mean(runtime_pgffa),
-        np.mean(runtime_trunc_final)
-    ])
+    pickle_method = 'dict'
+    if pickle_method == 'array':
+        #compute average runtimes
+        record = np.array([
+            N_val,
+            rho_val,
+            K_val,
+            np.mean(runtime_utppgffa),
+            np.mean(runtime_pgffa),
+            np.mean(runtime_trunc_final),
+            np.mean(y),
+            np.mean(N)
+        ])
 
-    filename = "N%dR%0.2fK%d" % (N_val, rho_val, K_val)
-    np.save(os.path.join(resultdir, filename), record)
+        # print record[3:]
+
+        filename = "N%dR%0.2fK%d" % (N_val, rho_val, K_val)
+        np.save(os.path.join(resultdir, filename), record)
+    elif pickle_method == 'dict':
+        record = {
+            "N_val": N_val,
+            "rho_val": rho_val,
+            "K_val": K_val,
+            "runtime_utppgffa": runtime_utppgffa,
+            "runtime_pgffa": runtime_pgffa,
+            "runtime_trunc": runtime_trunc_final,
+            "y": y,
+            "N": N,
+            "n_max": n_max
+        }
+
+        filename = "N%dR%0.2fK%d.pickle" % (N_val, rho_val, K_val)
+        pickle.dump(record, open(os.path.join(resultdir, filename), 'wb'))
 
 
 def runtime_experiment_zonn(N_space   = np.arange(10,100,10),
                             rho_space = np.arange(0.05, 1.00, 0.05),
-                            K_space   = np.array([5]),
+                            K_space   = np.array([5,8]),
                             mu      = 7.0,               # mean arrival time
                             sigma   = 4.0,               # SD of arrival
                             omega   = 3.0,               # exponential survival param
@@ -301,12 +323,12 @@ def runtime_experiment_zonn(N_space   = np.arange(10,100,10),
 
 
 if __name__ == "__main__":
-    # runtime_utppgffa, runtime_pgffa, runtime_trunc_final, runtime_trunc_total, n_max, y = runtime_hmm_zonn(silent=False)
+    # runtime_utppgffa, runtime_pgffa, runtime_trunc_final, runtime_trunc_total, n_max, y, N = runtime_hmm_zonn(silent=False)
     # runtime_nmix()
 
-    # runtime_experiment_zonn(silent=False)
+    runtime_experiment_zonn(silent=True)
 
-    def runtime_profile():
-        for i in range(0,100):
-            runtime_hmm_zonn(silent=True)
-    cProfile.run('runtime_profile()','utppgffa-vec+affine.stats')
+    # def runtime_profile():
+    #     for i in range(0,100):
+    #         runtime_hmm_zonn(silent=True)
+    # cProfile.run('runtime_profile()','utppgffa-vec+affine.stats')
