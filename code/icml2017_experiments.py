@@ -95,37 +95,38 @@ def runtime_hmm(
                                            branch_pgf,
                                            observ_pgf,
                                            d=3)
-        likelihood_utppgffa = Alpha_utppgffa[-1].data[0,0]
+        likelihood_utppgffa = Alpha_utppgffa[-1][0]
+        # likelihood_utppgffa = Alpha_utppgffa[-1].data[0,0]
         runtime_utppgffa[iter] = time.clock() - t_start
         if not silent: print "UTPPGFFA: %0.4f" % runtime_utppgffa[iter]
 
-        # likelihood from PGFFA
-        t_start = time.clock()
-        a, b, f = pgffa.pgf_forward(Lambda,
-                                        Rho,
-                                        Delta,
-                                        y[iter, :])
-        runtime_pgffa[iter] = time.clock() - t_start
-        if not silent: print "PGFFA: %0.4f" % runtime_pgffa[iter]
+        # # likelihood from PGFFA
+        # t_start = time.clock()
+        # a, b, f = pgffa.pgf_forward(Lambda,
+        #                                 Rho,
+        #                                 Delta,
+        #                                 y[iter, :])
+        # runtime_pgffa[iter] = time.clock() - t_start
+        # if not silent: print "PGFFA: %0.4f" % runtime_pgffa[iter]
 
-        # likelihood from truncated forward algorithm
-        n_max[iter] = max(y[iter, :])
-        t_start = time.clock()
-        likelihood_trunc = float('inf')
-        while abs(likelihood_trunc - likelihood_utppgffa) >= epsilon and n_max[iter] < N_LIMIT:
-            n_max[iter] += 1
-            t_loop = time.clock()
-            Alpha_trunc, z = truncatedfa.truncated_forward(arrival_pmf,
-                                                           Lambda_trunc,
-                                                           branch_fun,
-                                                           Delta_trunc,
-                                                           Rho,
-                                                           y[iter, :],
-                                                           n_max=n_max[iter])
-            likelihood_trunc = truncatedfa.likelihood(z, log=False)
-            runtime_trunc_final[iter] = time.clock() - t_loop
-        runtime_trunc_total[iter] = time.clock() - t_start
-        if not silent: print "Trunc: %0.4f last run @%d, %0.4f total" % (runtime_trunc_final[iter], n_max[iter], runtime_trunc_total[iter])
+        # # likelihood from truncated forward algorithm
+        # n_max[iter] = max(y[iter, :])
+        # t_start = time.clock()
+        # likelihood_trunc = float('inf')
+        # while abs(likelihood_trunc - likelihood_utppgffa) >= epsilon and n_max[iter] < N_LIMIT:
+        #     n_max[iter] += 1
+        #     t_loop = time.clock()
+        #     Alpha_trunc, z = truncatedfa.truncated_forward(arrival_pmf,
+        #                                                    Lambda_trunc,
+        #                                                    branch_fun,
+        #                                                    Delta_trunc,
+        #                                                    Rho,
+        #                                                    y[iter, :],
+        #                                                    n_max=n_max[iter])
+        #     likelihood_trunc = truncatedfa.likelihood(z, log=False)
+        #     runtime_trunc_final[iter] = time.clock() - t_loop
+        # runtime_trunc_total[iter] = time.clock() - t_start
+        # if not silent: print "Trunc: %0.4f last run @%d, %0.4f total" % (runtime_trunc_final[iter], n_max[iter], runtime_trunc_total[iter])
 
     return runtime_utppgffa, runtime_pgffa, runtime_trunc_final, runtime_trunc_total, n_max, y
 
@@ -303,9 +304,9 @@ if __name__ == "__main__":
     # runtime_utppgffa, runtime_pgffa, runtime_trunc_final, runtime_trunc_total, n_max, y = runtime_hmm_zonn(silent=False)
     # runtime_nmix()
 
-    runtime_experiment_zonn(silent=False)
+    # runtime_experiment_zonn(silent=False)
 
-    # def runtime_profile():
-    #     for i in range(0,100):
-    #         runtime_hmm_zonn(silent=True)
-    # cProfile.run('runtime_profile()', 'pgffa-kev.stats')
+    def runtime_profile():
+        for i in range(0,100):
+            runtime_hmm_zonn(silent=True)
+    cProfile.run('runtime_profile()','utppgffa-vec.stats')

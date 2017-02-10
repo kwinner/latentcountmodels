@@ -46,7 +46,8 @@ Alpha_tfa, z_tfa = truncatedfa.truncated_forward(arrival_pmf,
                                                  y,
                                                  n_max=100)
 
-likelihood_utppgffa = Alpha_utppgffa[-1].data[0,0]
+likelihood_utppgffa = Alpha_utppgffa[-1][0]
+# likelihood_utppgffa = Alpha_utppgffa[-1].data[0,0]
 likelihood_pgffa    = Alpha_pgffa[-1].data[0,0]
 likelihood_tfa      = truncatedfa.likelihood(z_tfa, log=False)
 
@@ -86,7 +87,8 @@ Alpha_tfa, z_tfa = truncatedfa.truncated_forward(arrival_pmf,
                                                  y,
                                                  n_max=500)
 
-likelihood_utppgffa = Alpha_utppgffa[-1].data[0,0]
+likelihood_utppgffa = Alpha_utppgffa[-1][0]
+# likelihood_utppgffa = Alpha_utppgffa[-1].data[0,0]
 likelihood_tfa      = truncatedfa.likelihood(z_tfa, log=False)
 
 print "--Poisson arrivals, Poisson branching--"

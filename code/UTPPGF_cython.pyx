@@ -13,7 +13,7 @@ cimport numpy as np
 
 from algopy import UTPM
 
-cpdef double[::1] utp_compose_vec(double[::1] G, double[::1] F):
+cpdef np.ndarray utp_compose_cython(np.ndarray G, np.ndarray F):
     cdef:
         double     g_scalar = G[0]        # value of G^{(0)}
         double     f_scalar = F[0]        # value of F^{(0)}
@@ -40,3 +40,9 @@ cpdef double[::1] utp_compose_vec(double[::1] G, double[::1] F):
     F[0] = f_scalar
 
     return out
+
+cpdef np.ndarray utp_mul_cython(np.ndarray F, np.ndarray G):
+    cdef:
+        int d          = max(F.shape[0], G.shape[0])
+
+    return np.convolve(F, G)[:d]
