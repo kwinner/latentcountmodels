@@ -309,4 +309,4 @@ if __name__ == "__main__":
     def runtime_profile():
         for i in range(0,100):
             runtime_hmm_zonn(silent=True)
-    cProfile.run('runtime_profile()','utppgffa-vec.stats')
+    cProfile.run('runtime_profile()','utppgffa-vec+affine.stats')

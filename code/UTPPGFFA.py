@@ -86,7 +86,7 @@ def utppgffa(y, Theta, arrival_pgf, branch_pgf, observ_pgf, d=1):
 
         s_ds = new_utp_vec(s, d_k)
         # derivative, scalar mul, and compose
-        alpha = utp_compose_vec(utp_deriv_vec(beta, y[k]), (s_ds * (1 - Theta['observ'][k])))
+        alpha = utp_compose_affine(utp_deriv_vec(beta, y[k]), (s_ds * (1 - Theta['observ'][k])))
         # scalar mul
         alpha /= scipy.misc.factorial(y[k])
         alpha = utp_mul_vec(alpha, utp_pow_vec(s_ds * Theta['observ'][k], y[k]))

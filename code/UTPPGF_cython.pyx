@@ -41,6 +41,18 @@ cpdef np.ndarray utp_compose_cython(np.ndarray G, np.ndarray F):
 
     return out
 
+# new utps typically have two nonzero coefficients
+# composing them can be done in linear time using only the second nonzero coefficient
+cpdef np.ndarray utp_compose_affine_cython(np.ndarray G, np.ndarray F):
+    cdef:
+        int        d        = G.shape[0]  # length of G, F, out
+        np.ndarray out      = np.zeros(d) # return value: G o F
+
+    # no need for Horner's method, utp composition uses only the 2nd and higher coefficients, of which F has only 1 nonzero
+    out = G * np.power(F[1], range(0, d))
+
+    return out
+
 cpdef np.ndarray utp_mul_cython(np.ndarray F, np.ndarray G):
     cdef:
         int d          = max(F.shape[0], G.shape[0])
