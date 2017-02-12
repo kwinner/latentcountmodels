@@ -98,3 +98,57 @@ def utppgffa(y, Theta, arrival_pgf, branch_pgf, observ_pgf, d=1):
     lift_A(1, K-1, d)
 
     return Alpha
+
+
+# def utppgffa(y, Theta, arrival_pgf, branch_pgf, observ_pgf, d=1):
+#     K = len(y)
+#
+#     Alpha = [None] * K
+#
+#     # define the recursive function to compute the Alpha messages
+#     def log_lift_A(s, k, d_k):  # returns < A_k(s), ds >_{d_k}
+#
+#         if k < 0:
+#             # new utp for f = 1
+#             lalpha = np.zeros(d_k)
+#             lalpha[0] = 0.
+#             # alpha[1] = 0.
+#
+#             Alpha[k] = lalpha
+#             return lalpha
+#
+#         F = lambda u: lift_generating_function_utpm(branch_pgf, u, Theta['branch'][k - 1])  # branching PGF
+#         G = lambda u: lift_generating_function_utpm(arrival_pgf, u, Theta['arrival'][k])  # arrival PGF
+#         # G = lambda u: utp_log_vec(lift_generating_function_utpm(arrival_pgf, u, Theta['arrival'][k]))  # arrival PGF
+#
+#         # scalar mul
+#         u = s * (1 - Theta['observ'][k])
+#         # lifted GF
+#         s_prev = F(u)
+#
+#         # init vector utp
+#         u_du = new_utp_vec(u, d_k + y[k])
+#
+#         # recurse
+#         beta = utp_compose_vec(log_lift_A(s_prev, k - 1, d_k + y[k]), F(u_du))
+#
+#         # utp mul
+#         # beta = utp_mul_vec(beta, G(u_du))
+#         # beta = beta + utp_log_vec(G(u_du))
+#         beta = beta + np.log(G(u_du))
+#
+#         s_ds = new_utp_vec(s, d_k)
+#         # derivative, scalar mul, and compose
+#         alpha = utp_log_vec(utp_compose_vec(utp_deriv_vec(utp_exp_vec(beta), y[k]), s_ds * (1 - Theta['observ'][k])))
+#         # scalar mul
+#         # alpha /= scipy.misc.factorial(y[k])
+#         # alpha = utp_mul_vec(alpha, utp_pow_vec(s_ds * Theta['observ'][k], y[k]))
+#         alpha = alpha + utp_log_vec(utp_pow_vec(s_ds * Theta['observ'][k], y[k]) / scipy.misc.factorial(y[k]))
+#
+#         Alpha[k] = alpha
+#         return alpha
+#
+#     # call the top level lift_A (which records all the Alpha messages as it goes)
+#     log_lift_A(1, K-1, d)
+#
+#     return Alpha
