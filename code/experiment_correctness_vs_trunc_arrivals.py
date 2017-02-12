@@ -1,12 +1,13 @@
 import UTPPGFFA_phmm
 import UTPPGFFA
+# import UTPPGFFA2 as UTPPGFFA
 from distributions import *
 import truncatedfa
 import numpy as np
 from scipy import stats
 
-y = np.array([6,8,10,6,8,10,6,8,10])
-Lambda = np.array([16, 20, 24, 16, 20, 24, 16, 20, 24])
+y = np.array([6,8,10,6,8,10,6,8,10]) * 10
+Lambda = np.array([16, 20, 24, 16, 20, 24, 16, 20, 24]) * 10
 Delta = np.array([0.6, 0.4, 0.6, 0.4, 0.6, 0.4, 0.6, 0.4])
 Rho = np.array([0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8])
 
@@ -44,7 +45,7 @@ Alpha_tfa, z_tfa = truncatedfa.truncated_forward(arrival_pmf,
                                                  Delta.reshape((-1, 1)),
                                                  Rho,
                                                  y,
-                                                 n_max=100)
+                                                 n_max=1000)
 
 likelihood_utppgffa = Alpha_utppgffa[-1][0]
 # likelihood_utppgffa = Alpha_utppgffa[-1].data[0,0]
@@ -94,7 +95,7 @@ Alpha_tfa, z_tfa = truncatedfa.truncated_forward(arrival_pmf,
                                                  Delta.reshape((-1, 1)),
                                                  Rho,
                                                  y,
-                                                 n_max=100)
+                                                 n_max=1000)
 
 likelihood_utppgffa = Alpha_utppgffa[-1][0]
 # likelihood_utppgffa = Alpha_utppgffa[-1].data[0,0]
@@ -136,7 +137,7 @@ Alpha_tfa, z_tfa = truncatedfa.truncated_forward(arrival_pmf,
                                                  Delta.reshape((-1, 1)),
                                                  Rho,
                                                  y,
-                                                 n_max=100)
+                                                 n_max=1000)
 
 likelihood_utppgffa = Alpha_utppgffa[-1][0]
 # likelihood_utppgffa = Alpha_utppgffa[-1].data[0,0]
@@ -178,7 +179,7 @@ Alpha_tfa, z_tfa = truncatedfa.truncated_forward(arrival_pmf,
                                                  Delta.reshape((-1, 1)),
                                                  Rho,
                                                  y,
-                                                 n_max=100)
+                                                 n_max=1000)
 
 likelihood_utppgffa = Alpha_utppgffa[-1][0]
 # likelihood_utppgffa = Alpha_utppgffa[-1].data[0,0]
