@@ -1,5 +1,5 @@
 import numpy as np
-import scipy.misc
+import scipy.misc, scipy.special
 from algopy import UTPM
 
 from UTPPGF_util import *
@@ -51,6 +51,7 @@ from UTPPGF_cython import utp_compose_cython
 
 # def utppgffa_vec(y, Theta, arrival_pgf, branch_pgf, observ_pgf, d=1):
 def utppgffa(y, Theta, arrival_pgf, branch_pgf, observ_pgf, d=1):
+    #print y, Theta, arrival_pgf, branch_pgf, observ_pgf
     K = len(y)
 
     Alpha = [None] * K
@@ -88,7 +89,8 @@ def utppgffa(y, Theta, arrival_pgf, branch_pgf, observ_pgf, d=1):
         # derivative, scalar mul, and compose
         alpha = utp_compose_affine(utp_deriv_vec(beta, y[k]), (s_ds * (1 - Theta['observ'][k])))
         # scalar mul
-        alpha /= scipy.misc.factorial(y[k])
+        #alpha /= scipy.misc.factorial(y[k])
+        alpha /= scipy.special.gamma(y[k] + 1)
         alpha = utp_mul_vec(alpha, utp_pow_vec(s_ds * Theta['observ'][k], y[k]))
 
         Alpha[k] = alpha
@@ -98,7 +100,6 @@ def utppgffa(y, Theta, arrival_pgf, branch_pgf, observ_pgf, d=1):
     lift_A(1, K-1, d)
 
     return Alpha
-
 
 # def utppgffa(y, Theta, arrival_pgf, branch_pgf, observ_pgf, d=1):
 #     K = len(y)
@@ -152,3 +153,9 @@ def utppgffa(y, Theta, arrival_pgf, branch_pgf, observ_pgf, d=1):
 #     log_lift_A(1, K-1, d)
 #
 #     return Alpha
+
+def log_likelihood(y, Theta, arrival_pgf, branch_pgf, observ_pgf, d=2):
+    alpha = utppgffa(y, Theta, arrival_pgf, branch_pgf, observ_pgf, d)
+    lik = alpha[-1][0]
+    ll = np.log(lik) if lik > 0 else -np.inf
+    return ll

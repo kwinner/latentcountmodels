@@ -8,7 +8,7 @@ probabilities, which will be truncated to zero
 """
 
 def truncated_forward(arrival_dist, arrival_params, branching_fn,
-                      branching_params, rho, y, n_max=40, silent=True):
+                      branching_params, rho, y, n_max=None, silent=True):
     """
     Input:
     - arrival_dist    : probability distribution object of new arrivals
@@ -30,6 +30,8 @@ def truncated_forward(arrival_dist, arrival_params, branching_fn,
     - alpha : matrix (n_max x K) of forward messages
     - z     : list (K) of normalizing constants
     """
+    if n_max is None: n_max = np.max(y) * 5
+
     n_max += 1 # so the maximum support is inclusive of n_max
     K = len(y)
     alpha = np.zeros((n_max, K))
@@ -98,20 +100,29 @@ def binomial_branching(n_max, delta_k):
     n_k = np.arange(n_max).reshape((-1, 1))
     return stats.binom.pmf(np.arange(n_max), n_k, delta_k)
 
+def nbinom_branching(n_max, p_k):
+    n_k = np.arange(n_max).reshape((-1, 1))
+    return stats.nbinom.pmf(np.arange(n_max), n_k, p_k)
+
 if __name__ == "__main__":
     # Poisson arrival, binomial branching
     y = np.array([6,8,10,6,8,10,6,8,10])
     lmbda = np.array([16, 20, 24, 16, 20, 24, 16, 20, 24]).reshape((-1, 1))
     delta = np.array([0.6, 0.4, 0.6, 0.4, 0.6, 0.4, 0.6, 0.4]).reshape((-1, 1))
     rho = np.array([0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8])
-    n_max = 10
+    n_max = 100
 
     _, z = truncated_forward(stats.poisson, lmbda, binomial_branching,
                              delta, rho, y, n_max)
-    ll = likelihood(z)
-    assert abs(ll - (-85.4080)) < 1e-5, 'Error too big'
-    print ll
+    lik = likelihood(z, False)
+    print lik, 2.30542690568e-29
 
+    # Poisson arrival, Poisson branching
+    _, z = truncated_forward(stats.poisson, lmbda, poisson_branching,
+                             delta, rho, y, n_max)
+    lik = likelihood(z, False)
+    print lik, 1.78037453027e-27
+    """
     # NB arrival, binomial branching
     r = [16, 20, 24, 16, 20, 24, 16, 20, 24]
     p = [0.6, 0.4, 0.6, 0.4, 0.6, 0.4, 0.6, 0.4, 0.8]
@@ -130,7 +141,6 @@ if __name__ == "__main__":
                              delta, rho, y, n_max)
     print likelihood(z)
 
-    """
     # Runtime test
     reps = 100
     t_start = time.clock()
