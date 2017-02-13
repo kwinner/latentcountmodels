@@ -31,3 +31,8 @@ def logarithmic_pgf(s, theta):
 def geometric_pgf(s, theta):
     p = theta
     return (p * s) / (1 - ((1 - p) * s))
+
+
+def geometric_pgf2(s, theta):
+    p = theta
+    return (1 - p) / (1 - (p * s))
