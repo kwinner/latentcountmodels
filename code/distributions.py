@@ -28,6 +28,13 @@ def logarithmic_pgf(s, theta):
     return np.log(1 - (p * s)) / np.log(1 - p)
 
 
+# PGF for geometric with support 0, 1, 2, ...
 def geometric_pgf(s, theta):
+    p = theta
+    return p / (1 - ((1 - p) * s))
+
+
+# PGF for geometric with support 1, 2, ...
+def geometric_pgf2(s, theta):
     p = theta
     return (p * s) / (1 - ((1 - p) * s))
