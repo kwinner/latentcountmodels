@@ -48,6 +48,9 @@ cpdef np.ndarray utp_compose_affine_cython(np.ndarray G, np.ndarray F):
         int        d        = G.shape[0]  # length of G, F, out
         np.ndarray out      = np.zeros(d) # return value: G o F
 
+    if F.shape[0] <= 1:
+        return G
+
     # no need for Horner's method, utp composition uses only the 2nd and higher coefficients, of which F has only 1 nonzero
     out = G * np.power(F[1], range(0, d))
 
