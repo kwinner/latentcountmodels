@@ -98,7 +98,7 @@ def runtime_hmm(
                                            branch_pgf,
                                            observ_pgf,
                                            d=3)
-        likelihood_utppgffa = Alpha_utppgffa[-1][0]
+        likelihood_utppgffa = np.log(Alpha_utppgffa[-1][0])
         # likelihood_utppgffa = Alpha_utppgffa[-1].data[0,0]
         runtime_utppgffa[iter] = time.clock() - t_start
         if verbose == "full": print "UTPPGFFA: %0.4f" % runtime_utppgffa[iter]
@@ -126,7 +126,7 @@ def runtime_hmm(
                                                            Rho,
                                                            y[iter, :],
                                                            n_max=n_max[iter])
-            likelihood_trunc = truncatedfa.likelihood(z, log=False)
+            likelihood_trunc = truncatedfa.likelihood(z, log=True)
             runtime_trunc_final[iter] = time.clock() - t_loop
         runtime_trunc_total[iter] = time.clock() - t_start
         if verbose == "full": print "Trunc: %0.4f last run @%d, %0.4f total" % (runtime_trunc_final[iter], n_max[iter], runtime_trunc_total[iter])
@@ -421,12 +421,12 @@ if __name__ == "__main__":
     # runtime_utppgffa, runtime_pgffa, runtime_trunc_final, runtime_trunc_total, n_max, y, N = runtime_hmm_zonn(verbose="full")
     # runtime_nmix()
 
-    resultdir = runtime_experiment_zonn(verbose="partial",
-                                        N_space=np.array([500]),
-                                        K_space=np.array([5]),
-                                        rho_space=np.array([0.05,0.5,.95]),
-                                        n_reps=25,
-                                        epsilon=10e-10)
+    # resultdir = runtime_experiment_zonn(verbose="partial",
+    #                                     N_space=np.array([500]),
+    #                                     K_space=np.array([5]),
+    #                                     rho_space=np.array([0.05,0.5,.95]),
+    #                                     n_reps=25,
+    #                                     epsilon=10e-5)
     print resultdir
 
     # resultdir = "/Users/kwinner/Work/Data/Results/20170215T115245506"
