@@ -1,8 +1,10 @@
 import os
+from glob import glob
 import pwd
 import time
 import cProfile
 import pickle
+import matplotlib.pyplot as plt
 
 import numpy as np
 from scipy import stats, integrate
@@ -22,7 +24,7 @@ def runtime_hmm(
         epsilon = 1e-10, # allowable error in truncated fa
         n_reps  = 10,   # number of times to repeat the experiment
         N_LIMIT = 1000, # hard cap on the max value for the truncated algorithm
-        silent  = True,
+        verbose = True,
         arrival = 'poisson',
         branch  = 'binomial',
         observ  = 'binomial'
@@ -76,7 +78,7 @@ def runtime_hmm(
         observ_pgf  = None
 
     for iter in range(0, n_reps):
-        if not silent: print "Iteration %d of %d" % (iter, n_reps)
+        if verbose == "full": print "Iteration %d of %d" % (iter, n_reps)
 
         # sample data
         for i in range(0, K):
@@ -86,7 +88,7 @@ def runtime_hmm(
                 N[iter, i] = arrival_pmf.rvs(Lambda[i]) + stats.binom.rvs(N[iter, i-1], Delta[i-1])
             y[iter, i] = stats.binom.rvs(N[iter, i], Rho[i])
 
-        if not silent: print y[iter,:]
+        if verbose == "full": print y[iter,:]
 
         # likelihood from UTPPGFFA
         t_start = time.clock()
@@ -99,7 +101,7 @@ def runtime_hmm(
         likelihood_utppgffa = Alpha_utppgffa[-1][0]
         # likelihood_utppgffa = Alpha_utppgffa[-1].data[0,0]
         runtime_utppgffa[iter] = time.clock() - t_start
-        if not silent: print "UTPPGFFA: %0.4f" % runtime_utppgffa[iter]
+        if verbose == "full": print "UTPPGFFA: %0.4f" % runtime_utppgffa[iter]
 
         # likelihood from PGFFA
         t_start = time.clock()
@@ -108,7 +110,7 @@ def runtime_hmm(
                                         Delta,
                                         y[iter, :])
         runtime_pgffa[iter] = time.clock() - t_start
-        if not silent: print "PGFFA: %0.4f" % runtime_pgffa[iter]
+        if verbose == "full": print "PGFFA: %0.4f" % runtime_pgffa[iter]
 
         # likelihood from truncated forward algorithm
         n_max[iter] = max(y[iter, :])
@@ -127,7 +129,7 @@ def runtime_hmm(
             likelihood_trunc = truncatedfa.likelihood(z, log=False)
             runtime_trunc_final[iter] = time.clock() - t_loop
         runtime_trunc_total[iter] = time.clock() - t_start
-        if not silent: print "Trunc: %0.4f last run @%d, %0.4f total" % (runtime_trunc_final[iter], n_max[iter], runtime_trunc_total[iter])
+        if verbose == "full": print "Trunc: %0.4f last run @%d, %0.4f total" % (runtime_trunc_final[iter], n_max[iter], runtime_trunc_total[iter])
 
     return runtime_utppgffa, runtime_pgffa, runtime_trunc_final, runtime_trunc_total, n_max, y, N
 
@@ -139,7 +141,7 @@ def runtime_nmix(
         epsilon = 1e-4, # allowable error in truncated fa
         n_reps  = 10,   # number of times to repeat the experiment
         N_LIMIT = 1000, # hard cap on the max value for the truncated algorithm
-        silent  = True,
+        verbose = "silent",
         arrival = 'poisson',
         observ  = 'binomial'
         ):
@@ -148,7 +150,7 @@ def runtime_nmix(
     Delta  = np.ones(R - 1)
     Rho    = rho * np.ones(R)
 
-    return runtime_hmm(Lambda, Delta, Rho, epsilon, n_reps, N_LIMIT, silent, arrival, 'binomial', observ)
+    return runtime_hmm(Lambda, Delta, Rho, epsilon, n_reps, N_LIMIT, verbose, arrival, 'binomial', observ)
 
 
 def runtime_hmm_zonn(
@@ -161,7 +163,7 @@ def runtime_hmm_zonn(
         epsilon = 1e-4,              # error tolerance in truncated fa
         n_reps  = 10,                # number of times to repeat the experiment
         N_LIMIT = 1000,              # hard cap on the max value for the truncated algorithm
-        silent  = True,
+        verbose = "silent",
         arrival = 'poisson',
         branch  = 'binomial',
         observ  = 'binomial'
@@ -172,7 +174,7 @@ def runtime_hmm_zonn(
 
     Rho = rho * np.ones(K)
 
-    return runtime_hmm(Lambda, Delta, Rho, epsilon, n_reps, N_LIMIT, silent, arrival, branch, observ)
+    return runtime_hmm(Lambda, Delta, Rho, epsilon, n_reps, N_LIMIT, verbose, arrival, branch, observ)
 
 
 def zonn_params(mu, sigma, omega, T, N):
@@ -216,7 +218,7 @@ def runtime_hmm_shannon_wrapper(
         epsilon,
         n_reps,
         N_LIMIT,
-        silent,
+        verbose,
         arrival,
         branch,
         observ,
@@ -225,7 +227,7 @@ def runtime_hmm_shannon_wrapper(
         K_val,
         resultdir
         ):
-    runtime_utppgffa, runtime_pgffa, runtime_trunc_final, runtime_trunc_total, n_max, y, N = runtime_hmm(Lambda,Delta,Rho,epsilon,n_reps,N_LIMIT,silent,arrival,branch,observ)
+    runtime_utppgffa, runtime_pgffa, runtime_trunc_final, runtime_trunc_total, n_max, y, N = runtime_hmm(Lambda,Delta,Rho,epsilon,n_reps,N_LIMIT,verbose,arrival,branch,observ)
 
     pickle_method = 'dict'
     if pickle_method == 'array':
@@ -258,8 +260,100 @@ def runtime_hmm_shannon_wrapper(
             "n_max": n_max
         }
 
+        if verbose != "silent": print "N: %d, rho: %0.2f, K: %d\nutppgffa: %0.4f\npgffa: %0.4f\ntrunc: %0.4f\n" % (N_val, rho_val, K_val, np.mean(runtime_utppgffa), np.mean(runtime_pgffa), np.mean(runtime_trunc_final))
+
         filename = "N%dR%0.2fK%d.pickle" % (N_val, rho_val, K_val)
         pickle.dump(record, open(os.path.join(resultdir, filename), 'wb'))
+
+
+def runtime_experiment_plot(resultdir):
+    # read in experiment metadata
+    metafile = open(os.path.join(resultdir, "meta.txt"))
+    for line in metafile:
+        if line.startswith("Repetitions:"):
+            nReps = int(line[len("Repetitions:"):].strip())
+        elif line.startswith("epsilon:"):
+            epsilon = float(line[len("epsilon:"):].strip())
+        elif line.startswith("Arrivals:"):
+            arrival = line[len("Arrivals:"):].strip()
+        elif line.startswith("Branching:"):
+            branch = line[len("Branching:"):].strip()
+        elif line.startswith("Observations:"):
+            observ = line[len("Observations:"):].strip()
+    metafile.close()
+
+    # read in the results in resultdir
+    resultlist = glob(os.path.join(resultdir, "*.pickle"))
+    nResults = len(resultlist)
+
+    # collect results from all experiments
+    N_val            = np.ndarray((nResults))
+    rho_val          = np.ndarray((nResults))
+    K_val            = np.ndarray((nResults))
+    runtime_utppgffa = np.ndarray((nResults, nReps))
+    runtime_pgffa    = np.ndarray((nResults, nReps))
+    runtime_trunc    = np.ndarray((nResults, nReps))
+    y_sum            = np.ndarray((nResults, nReps))
+    y_mean           = np.ndarray((nResults, nReps))
+    y_var            = np.ndarray((nResults, nReps))
+    n_sum            = np.ndarray((nResults, nReps))
+    n_mean           = np.ndarray((nResults, nReps))
+    n_var            = np.ndarray((nResults, nReps))
+    n_max            = np.ndarray((nResults, nReps))
+
+    for iResult in xrange(0,nResults):
+        result = pickle.load(open(resultlist[iResult], 'rb'))
+        N_val[iResult]   = result['N_val']
+        rho_val[iResult] = result['rho_val']
+        K_val[iResult]   = result['K_val']
+        runtime_utppgffa[iResult, :] = result['runtime_utppgffa']
+        runtime_pgffa[iResult, :]    = result['runtime_pgffa']
+        runtime_trunc[iResult, :]    = result['runtime_trunc']
+        n_max[iResult, :]            = result['n_max']
+        y_sum[iResult, :]  = np.sum(result['y'], axis=1)
+        y_mean[iResult, :] = np.mean(result['y'], axis=1)
+        y_var[iResult, :]  = np.var(result['y'], axis=1)
+        n_sum[iResult, :]  = np.sum(result['N'], axis=1)
+        n_mean[iResult, :] = np.mean(result['N'], axis=1)
+        n_var[iResult, :]  = np.var(result['N'], axis=1)
+
+    # take the mean over all repetitions of the experiment
+    mean_runtime_utppgffa = np.mean(runtime_utppgffa, axis=1)
+    mean_runtime_pgffa    = np.mean(runtime_pgffa, axis=1)
+    mean_runtime_trunc    = np.mean(runtime_trunc, axis=1)
+
+    # setup latex
+    plt.rc('text', usetex=True)
+    plt.rc('font', family='serif')
+
+    # # plot n_max vs Y
+    # plt.scatter(np.ravel(y_sum), np.ravel(n_max))
+    # plt.xlabel(r'$Y = \sum y$')
+    # plt.ylabel(r'$n_{max}$')
+    # plt.title('Total observed counts vs truncation parameter')
+
+    # plot runtime vs Y
+    # handle_utppgffa = plt.scatter(np.ravel(y_sum), np.ravel(runtime_utppgffa), color="#352A87", label="UTPPGFFA", alpha=0.5)
+    # handle_pgffa    = plt.scatter(np.ravel(y_sum), np.ravel(runtime_pgffa), color="#33B8A1", label="PGFFA", alpha=0.5)
+    # handle_trunc    = plt.scatter(np.ravel(y_sum), np.ravel(runtime_trunc), color="#F9FB0E", label="Trunc", alpha=0.5)
+
+    # handle_trunc = plt.scatter(np.ravel(y_sum), np.ravel(runtime_trunc), color="#352A87", label="Trunc", alpha=0.5)
+    handle_trunc = plt.scatter(np.ravel(n_max), np.ravel(runtime_trunc), color="#352A87", label="Trunc", alpha=0.5)
+    plt.xlabel(r'$n_{max}$')
+    plt.title('Runtime as a function of truncation parameter')
+    plt.xlim(np.min(n_max), np.max(n_max))
+
+
+    # plt.legend(handles=[handle_trunc, handle_pgffa, handle_utppgffa], loc=2)
+    plt.ylabel('Runtime (s)')
+    # plt.xlabel(r'$Y = \sum y$')
+    # plt.title('Runtime as a function of total observed counts')
+    # plt.xlim(np.min(y_sum), np.max(y_sum))
+    plt.ylim(np.min(runtime_trunc), np.max(runtime_trunc))
+    # plt.ylim(0, max((np.max(runtime_utppgffa), np.max(runtime_pgffa), np.max(runtime_trunc))))
+
+    plt.show(block=True)
+
 
 
 def runtime_experiment_zonn(N_space   = np.arange(10,100,10),
@@ -268,12 +362,12 @@ def runtime_experiment_zonn(N_space   = np.arange(10,100,10),
                             mu      = 7.0,               # mean arrival time
                             sigma   = 4.0,               # SD of arrival
                             omega   = 3.0,               # exponential survival param
-                            T_min   = 0,
-                            T_max   = 19,
-                            epsilon = 1e-4,              # error tolerance in truncated fa
+                            T_min   = 1.,
+                            T_max   = 20.,
+                            epsilon = 1e-6,              # error tolerance in truncated fa
                             n_reps  = 10,                # number of times to repeat the experiment
                             N_LIMIT = 1000,              # hard cap on the max value for the truncated algorithm
-                            silent  = True,
+                            verbose = "silent",
                             arrival = 'poisson',
                             branch  = 'binomial',
                             observ  = 'binomial'
@@ -298,7 +392,7 @@ def runtime_experiment_zonn(N_space   = np.arange(10,100,10),
 
     for iK in range(0, len(K_space)):
         K = K_space[iK]
-        T = np.arange(T_min, T_max, (T_max - T_min) / (K-1))
+        T = np.linspace(T_min, T_max, K)
         for iN in range(0, len(N_space)):
             N = N_space[iN]
             Lambda, Delta = zonn_params(mu, sigma, omega, T, N)
@@ -312,7 +406,7 @@ def runtime_experiment_zonn(N_space   = np.arange(10,100,10),
                                             epsilon,
                                             n_reps,
                                             N_LIMIT,
-                                            silent,
+                                            verbose,
                                             arrival,
                                             branch,
                                             observ,
@@ -320,15 +414,26 @@ def runtime_experiment_zonn(N_space   = np.arange(10,100,10),
                                             rho,
                                             K,
                                             resultdir)
+    return resultdir
 
 
 if __name__ == "__main__":
-    # runtime_utppgffa, runtime_pgffa, runtime_trunc_final, runtime_trunc_total, n_max, y, N = runtime_hmm_zonn(silent=False)
+    # runtime_utppgffa, runtime_pgffa, runtime_trunc_final, runtime_trunc_total, n_max, y, N = runtime_hmm_zonn(verbose="full")
     # runtime_nmix()
 
-    runtime_experiment_zonn(silent=True)
+    resultdir = runtime_experiment_zonn(verbose="partial",
+                                        N_space=np.array([500]),
+                                        K_space=np.array([5]),
+                                        rho_space=np.array([0.05,0.5,.95]),
+                                        n_reps=25,
+                                        epsilon=10e-10)
+    print resultdir
+
+    # resultdir = "/Users/kwinner/Work/Data/Results/20170215T115245506"
+    # resultdir = "/Users/kwinner/Work/Data/Results/20170213T232631920"
+    # runtime_experiment_plot(resultdir)
 
     # def runtime_profile():
     #     for i in range(0,100):
-    #         runtime_hmm_zonn(silent=True)
+    #         runtime_hmm_zonn(verbose="silent")
     # cProfile.run('runtime_profile()','utppgffa-vec+affine.stats')
