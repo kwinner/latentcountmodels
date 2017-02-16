@@ -119,6 +119,7 @@ def utp_exp_vec(F):
 
     return out
 
+
 def utp_log_vec(F):
     d = F.shape[0]
 

@@ -6,6 +6,7 @@ from UTPPGF_util import *
 from UTPPGF_cython import utp_compose_cython
 
 
+# algopy utppgffa
 # def utppgffa(y, Theta, arrival_pgf, branch_pgf, observ_pgf, d=1):
 #     K = len(y)
 #
@@ -48,13 +49,63 @@ from UTPPGF_cython import utp_compose_cython
 #
 #     return Alpha
 
+# vector form utppgffa
+# def utppgffa(y, Theta, arrival_pgf, branch_pgf, observ_pgf, d=1):
+#     K = len(y)
+#
+#     Alpha = [None] * K
+#
+#     # define the recursive function to compute the Alpha messages
+#     def lift_A(s, k, d_k):  # returns < A_k(s), ds >_{d_k}
+#
+#         if k < 0:
+#             # new utp for f = 1
+#             alpha = np.zeros(d_k)
+#             alpha[0] = 1.
+#             # alpha[1] = 0.
+#
+#             Alpha[k] = alpha
+#             return alpha
+#
+#         F = lambda u: lift_generating_function_utpm(branch_pgf, u, Theta['branch'][k - 1])  # branching PGF
+#         G = lambda u: lift_generating_function_utpm(arrival_pgf, u, Theta['arrival'][k])  # arrival PGF
+#
+#         # scalar mul
+#         u = s * (1 - Theta['observ'][k])
+#         # lifted GF
+#         s_prev = F(u)
+#
+#         # init vector utp
+#         u_du = new_utp_vec(u, d_k + y[k])
+#
+#         # recurse
+#         beta = utp_compose_vec(lift_A(s_prev, k - 1, d_k + y[k]), F(u_du))
+#
+#         # utp mul
+#         beta = utp_mul_vec(beta, G(u_du))
+#
+#         s_ds = new_utp_vec(s, d_k)
+#         # derivative, scalar mul, and compose
+#         alpha = utp_compose_affine(utp_deriv_vec(beta, y[k]), (s_ds * (1 - Theta['observ'][k])))
+#         # scalar mul
+#         alpha /= scipy.misc.factorial(y[k])
+#         alpha = utp_mul_vec(alpha, utp_pow_vec(s_ds * Theta['observ'][k], y[k]))
+#
+#         Alpha[k] = alpha
+#         return alpha
+#
+#     # call the top level lift_A (which records all the Alpha messages as it goes)
+#     lift_A(1, K-1, d)
+#
+#     return Alpha
 
-# def utppgffa_vec(y, Theta, arrival_pgf, branch_pgf, observ_pgf, d=1):
-def utppgffa(y, Theta, arrival_pgf, branch_pgf, observ_pgf, d=1):
-    #print y, Theta, arrival_pgf, branch_pgf, observ_pgf
+
+# normalized utppgffa
+def utppgffa(y, Theta, arrival_pgf, branch_pgf, observ_pgf, d=1, normalized=False):
     K = len(y)
 
     Alpha = [None] * K
+    Z = np.zeros(K)
 
     # define the recursive function to compute the Alpha messages
     def lift_A(s, k, d_k):  # returns < A_k(s), ds >_{d_k}
@@ -93,21 +144,32 @@ def utppgffa(y, Theta, arrival_pgf, branch_pgf, observ_pgf, d=1):
         alpha /= scipy.special.gamma(y[k] + 1)
         alpha = utp_mul_vec(alpha, utp_pow_vec(s_ds * Theta['observ'][k], y[k]))
 
+        # normalize the alpha messages
+        Z[k] = np.max(alpha / scipy.misc.factorial(np.arange(0,len(alpha))))
+        alpha = alpha / Z[k]
+
         Alpha[k] = alpha
         return alpha
 
     # call the top level lift_A (which records all the Alpha messages as it goes)
-    lift_A(1, K-1, d)
+    lift_A(1, K - 1, d)
 
-    return Alpha
+    if normalized:
+        return Alpha, Z
+    else:
+        # denormalize the messages
+        for i in xrange(0, K):
+            Alpha[i] *= np.prod(Z[0:i+1])
+        return Alpha, np.ones(K)
 
+# log-space utppgffa
 # def utppgffa(y, Theta, arrival_pgf, branch_pgf, observ_pgf, d=1):
 #     K = len(y)
 #
 #     Alpha = [None] * K
 #
 #     # define the recursive function to compute the Alpha messages
-#     def log_lift_A(s, k, d_k):  # returns < A_k(s), ds >_{d_k}
+#     def log_lift_A(s, k, d_k):  # returns < log A_k(s), ds >_{d_k}
 #
 #         if k < 0:
 #             # new utp for f = 1
@@ -135,15 +197,18 @@ def utppgffa(y, Theta, arrival_pgf, branch_pgf, observ_pgf, d=1):
 #
 #         # utp mul
 #         # beta = utp_mul_vec(beta, G(u_du))
-#         # beta = beta + utp_log_vec(G(u_du))
-#         beta = beta + np.log(G(u_du))
+#         beta = beta + utp_log_vec(G(u_du))
+#         # beta = beta + np.log(G(u_du))
+#         # beta = utp_exp_vec(beta + utp_log_vec(G(u_du)))
 #
 #         s_ds = new_utp_vec(s, d_k)
 #         # derivative, scalar mul, and compose
+#         # alpha = utp_log_vec(utp_compose_vec(utp_deriv_vec(beta, y[k]), s_ds * (1 - Theta['observ'][k])))
 #         alpha = utp_log_vec(utp_compose_vec(utp_deriv_vec(utp_exp_vec(beta), y[k]), s_ds * (1 - Theta['observ'][k])))
 #         # scalar mul
 #         # alpha /= scipy.misc.factorial(y[k])
 #         # alpha = utp_mul_vec(alpha, utp_pow_vec(s_ds * Theta['observ'][k], y[k]))
+#         # alpha = alpha + utp_log_vec(utp_pow_vec(s_ds * Theta['observ'][k], y[k]) / scipy.misc.factorial(y[k]))
 #         alpha = alpha + utp_log_vec(utp_pow_vec(s_ds * Theta['observ'][k], y[k]) / scipy.misc.factorial(y[k]))
 #
 #         Alpha[k] = alpha
