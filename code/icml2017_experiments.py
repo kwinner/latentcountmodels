@@ -1,4 +1,5 @@
 import os
+import sys
 from glob import glob
 import pwd
 import time
@@ -80,57 +81,64 @@ def runtime_hmm(
     for iter in range(0, n_reps):
         if verbose == "full": print "Iteration %d of %d" % (iter, n_reps)
 
-        # sample data
-        for i in range(0, K):
-            if i == 0:
-                N[iter, i] = arrival_pmf.rvs(Lambda[i])
-            else:
-                N[iter, i] = arrival_pmf.rvs(Lambda[i]) + stats.binom.rvs(N[iter, i-1], Delta[i-1])
-            y[iter, i] = stats.binom.rvs(N[iter, i], Rho[i])
+        attempt = 1
+        while True:
+            try:
+                # sample data
+                for i in range(0, K):
+                    if i == 0:
+                        N[iter, i] = arrival_pmf.rvs(Lambda[i])
+                    else:
+                        N[iter, i] = arrival_pmf.rvs(Lambda[i]) + stats.binom.rvs(N[iter, i-1], Delta[i-1])
+                    y[iter, i] = stats.binom.rvs(N[iter, i], Rho[i])
 
-        if verbose == "full": print y[iter,:]
+                if verbose == "full": print y[iter,:]
 
-        # likelihood from UTPPGFFA
-        t_start = time.clock()
-        Alpha_utppgffa = UTPPGFFA.utppgffa(y[iter, :],
-                                           Theta,
-                                           arrival_pgf,
-                                           branch_pgf,
-                                           observ_pgf,
-                                           d=3)
-        likelihood_utppgffa = np.log(Alpha_utppgffa[-1][0])
-        # likelihood_utppgffa = Alpha_utppgffa[-1].data[0,0]
-        runtime_utppgffa[iter] = time.clock() - t_start
-        if verbose == "full": print "UTPPGFFA: %0.4f" % runtime_utppgffa[iter]
+                # likelihood from UTPPGFFA
+                t_start = time.clock()
+                Alpha_utppgffa, logZ_utppgffa = UTPPGFFA.utppgffa(y[iter, :],
+                                                               Theta,
+                                                               arrival_pgf,
+                                                               branch_pgf,
+                                                               observ_pgf,
+                                                               d=1,
+                                                               normalized=True)
+                loglikelihood_utppgffa = np.log(Alpha_utppgffa[-1][0]) + np.sum(logZ_utppgffa)
+                runtime_utppgffa[iter] = time.clock() - t_start
+                if verbose == "full": print "UTPPGFFA: %0.4f" % runtime_utppgffa[iter]
 
-        # likelihood from PGFFA
-        t_start = time.clock()
-        a, b, f = pgffa.pgf_forward(Lambda,
-                                        Rho,
-                                        Delta,
-                                        y[iter, :])
-        runtime_pgffa[iter] = time.clock() - t_start
-        if verbose == "full": print "PGFFA: %0.4f" % runtime_pgffa[iter]
+                # likelihood from PGFFA
+                t_start = time.clock()
+                a, b, f = pgffa.pgf_forward(Lambda,
+                                                Rho,
+                                                Delta,
+                                                y[iter, :])
+                runtime_pgffa[iter] = time.clock() - t_start
+                if verbose == "full": print "PGFFA: %0.4f" % runtime_pgffa[iter]
 
-        # likelihood from truncated forward algorithm
-        n_max[iter] = max(y[iter, :])
-        t_start = time.clock()
-        likelihood_trunc = float('inf')
-        while abs(likelihood_trunc - likelihood_utppgffa) >= epsilon and n_max[iter] < N_LIMIT:
-            n_max[iter] += 1
-            t_loop = time.clock()
-            Alpha_trunc, z = truncatedfa.truncated_forward(arrival_pmf,
-                                                           Lambda_trunc,
-                                                           branch_fun,
-                                                           Delta_trunc,
-                                                           Rho,
-                                                           y[iter, :],
-                                                           n_max=n_max[iter])
-            likelihood_trunc = truncatedfa.likelihood(z, log=True)
-            runtime_trunc_final[iter] = time.clock() - t_loop
-        runtime_trunc_total[iter] = time.clock() - t_start
-        if verbose == "full": print "Trunc: %0.4f last run @%d, %0.4f total" % (runtime_trunc_final[iter], n_max[iter], runtime_trunc_total[iter])
-
+                # likelihood from truncated forward algorithm
+                n_max[iter] = max(y[iter, :])
+                t_start = time.clock()
+                loglikelihood_trunc = float('inf')
+                while abs(loglikelihood_trunc - loglikelihood_utppgffa) >= epsilon and n_max[iter] < N_LIMIT:
+                # while abs(1 - (loglikelihood_trunc / loglikelihood_utppgffa)) >= epsilon and n_max[iter] < N_LIMIT:
+                    n_max[iter] += 1
+                    t_loop = time.clock()
+                    Alpha_trunc, z = truncatedfa.truncated_forward(arrival_pmf,
+                                                                   Lambda_trunc,
+                                                                   branch_fun,
+                                                                   Delta_trunc,
+                                                                   Rho,
+                                                                   y[iter, :],
+                                                                   n_max=n_max[iter])
+                    loglikelihood_trunc = truncatedfa.likelihood(z, log=True)
+                    runtime_trunc_final[iter] = time.clock() - t_loop
+                runtime_trunc_total[iter] = time.clock() - t_start
+                if verbose == "full": print "Trunc: %0.4f last run @%d, %0.4f total" % (runtime_trunc_final[iter], n_max[iter], runtime_trunc_total[iter])
+                break
+            except Exception as inst:
+                print "Attempt #%d failed, Error: " % attempt, inst
+                attempt += 1
     return runtime_utppgffa, runtime_pgffa, runtime_trunc_final, runtime_trunc_total, n_max, y, N
 
 
@@ -359,11 +367,11 @@ def runtime_experiment_plot(resultdir):
 def runtime_experiment_zonn(N_space   = np.arange(10,100,10),
                             rho_space = np.arange(0.05, 1.00, 0.05),
                             K_space   = np.array([5,8]),
-                            mu      = 7.0,               # mean arrival time
+                            mu      = 8.0,               # mean arrival time
                             sigma   = 4.0,               # SD of arrival
                             omega   = 3.0,               # exponential survival param
                             T_min   = 1.,
-                            T_max   = 20.,
+                            T_max   = 17.,
                             epsilon = 1e-6,              # error tolerance in truncated fa
                             n_reps  = 10,                # number of times to repeat the experiment
                             N_LIMIT = 1000,              # hard cap on the max value for the truncated algorithm
@@ -421,12 +429,13 @@ if __name__ == "__main__":
     # runtime_utppgffa, runtime_pgffa, runtime_trunc_final, runtime_trunc_total, n_max, y, N = runtime_hmm_zonn(verbose="full")
     # runtime_nmix()
 
-    # resultdir = runtime_experiment_zonn(verbose="partial",
-    #                                     N_space=np.array([500]),
-    #                                     K_space=np.array([5]),
-    #                                     rho_space=np.array([0.05,0.5,.95]),
-    #                                     n_reps=25,
-    #                                     epsilon=10e-5)
+    resultdir = runtime_experiment_zonn(verbose="partial",
+                                        # N_space=np.append(np.arange(10,101,10), np.arange(125, 501, 25)),
+                                        N_space=np.arange(25,501,25),
+                                        K_space=np.array([5,8]),
+                                        rho_space=np.arange(0.05,0.95,0.05),
+                                        n_reps=20,
+                                        epsilon=1e-5)
     print resultdir
 
     # resultdir = "/Users/kwinner/Work/Data/Results/20170215T115245506"
