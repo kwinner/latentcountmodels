@@ -105,7 +105,7 @@ def utppgffa(y, Theta, arrival_pgf, branch_pgf, observ_pgf, d=1, normalized=Fals
     K = len(y)
 
     Alpha = [None] * K
-    Z = np.zeros(K)
+    logZ = np.zeros(K)
 
     # define the recursive function to compute the Alpha messages
     def lift_A(s, k, d_k):  # returns < A_k(s), ds >_{d_k}
@@ -140,13 +140,18 @@ def utppgffa(y, Theta, arrival_pgf, branch_pgf, observ_pgf, d=1, normalized=Fals
         # derivative, scalar mul, and compose
         alpha = utp_compose_affine(utp_deriv_vec(beta, y[k]), (s_ds * (1 - Theta['observ'][k])))
         # scalar mul
-        #alpha /= scipy.misc.factorial(y[k])
-        alpha /= scipy.special.gamma(y[k] + 1)
         alpha = utp_mul_vec(alpha, utp_pow_vec(s_ds * Theta['observ'][k], y[k]))
 
+        # incorporate y_k factorial into logZ
+        logZ[k] = -scipy.special.gammaln(y[k] + 1)
+
         # normalize the alpha messages
-        Z[k] = np.max(alpha / scipy.misc.factorial(np.arange(0,len(alpha))))
-        alpha = alpha / Z[k]
+        if np.any(alpha):
+
+            # Z[k] = np.max(alpha / scipy.misc.factorial(np.arange(0,len(alpha))))
+            Z = np.max(alpha)
+            logZ[k] += np.log(Z)
+            alpha /= Z
 
         Alpha[k] = alpha
         return alpha
@@ -155,12 +160,14 @@ def utppgffa(y, Theta, arrival_pgf, branch_pgf, observ_pgf, d=1, normalized=Fals
     lift_A(1, K - 1, d)
 
     if normalized:
-        return Alpha, Z
+        return Alpha, logZ
     else:
         # denormalize the messages
         for i in xrange(0, K):
-            Alpha[i] *= np.prod(Z[0:i+1])
-        return Alpha, np.ones(K)
+            # Alpha[i] *= np.prod(Z[0:i+1])
+            Alpha[i] *= np.exp(np.sum(logZ[0:i+1]))
+        # return Alpha, np.ones(K)
+        return Alpha, np.zeros(K)
 
 # log-space utppgffa
 # def utppgffa(y, Theta, arrival_pgf, branch_pgf, observ_pgf, d=1):
@@ -219,8 +226,4 @@ def utppgffa(y, Theta, arrival_pgf, branch_pgf, observ_pgf, d=1, normalized=Fals
 #
 #     return Alpha
 
-def log_likelihood(y, Theta, arrival_pgf, branch_pgf, observ_pgf, d=2):
-    alpha = utppgffa(y, Theta, arrival_pgf, branch_pgf, observ_pgf, d)
-    lik = alpha[-1][0]
-    ll = np.log(lik) if lik > 0 else -np.inf
-    return ll
+
