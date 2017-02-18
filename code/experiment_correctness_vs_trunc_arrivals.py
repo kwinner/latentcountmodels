@@ -5,8 +5,8 @@ import truncatedfa
 import numpy as np
 from scipy import stats
 
-y = np.array([6,8,10,6,8,10,6,8,10]) * 10
-Lambda = np.array([16, 20, 24, 16, 20, 24, 16, 20, 24]) * 10
+y = np.array([6,8,10,6,8,10,6,8,10]) #* 10
+Lambda = np.array([16, 20, 24, 16, 20, 24, 16, 20, 24]) #* 10
 Delta = np.array([0.6, 0.4, 0.6, 0.4, 0.6, 0.4, 0.6, 0.4])
 Rho = np.array([0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8])
 
@@ -35,13 +35,13 @@ Theta = {'arrival': Lambda,
 #                                    branch_pgf,
 #                                    observ_pgf,
 #                                    d=1)
-Alpha_utppgffa, Z_utppgffa = UTPPGFFA.utppgffa(y,
-                                               Theta,
-                                               arrival_pgf,
-                                               branch_pgf,
-                                               observ_pgf,
-                                               d=1,
-                                               normalized=True)
+Alpha_utppgffa, logZ_utppgffa = UTPPGFFA.utppgffa(y,
+                                                  Theta,
+                                                  arrival_pgf,
+                                                  branch_pgf,
+                                                  observ_pgf,
+                                                  d=1,
+                                                  normalized=True)
 Alpha_pgffa, Gamma_pgffa, Psi_pgffa = UTPPGFFA_phmm.UTP_PGFFA_phmm(y,
                                                                    Lambda,
                                                                    Delta,
@@ -59,7 +59,8 @@ Alpha_tfa, z_tfa = truncatedfa.truncated_forward(arrival_pmf,
 # likelihood_utppgffa = Alpha_utppgffa[-1][0]          # vector impl
 # likelihood_utppgffa = np.exp(Alpha_utppgffa[-1][0])  # failed log-space impl
 # likelihood_utppgffa = Alpha_utppgffa[-1][0] * np.prod(Z_utppgffa)
-loglikelihood_utppgffa = np.log(Alpha_utppgffa[-1][0]) + np.sum(np.log(Z_utppgffa))
+# loglikelihood_utppgffa = np.log(Alpha_utppgffa[-1][0]) + np.sum(np.log(Z_utppgffa)) # linear Z
+loglikelihood_utppgffa = np.log(Alpha_utppgffa[-1][0]) + np.sum(logZ_utppgffa)
 loglikelihood_pgffa    = np.log(Alpha_pgffa[-1].data[0,0])
 loglikelihood_tfa      = truncatedfa.likelihood(z_tfa, log=True)
 
@@ -100,13 +101,13 @@ Theta = {'arrival': arrival_params,
 #                                    branch_pgf,
 #                                    observ_pgf,
 #                                    d=1)
-Alpha_utppgffa, Z_utppgffa = UTPPGFFA.utppgffa(y,
-                                               Theta,
-                                               arrival_pgf,
-                                               branch_pgf,
-                                               observ_pgf,
-                                               d=1,
-                                               normalized=True)
+Alpha_utppgffa, logZ_utppgffa = UTPPGFFA.utppgffa(y,
+                                                  Theta,
+                                                  arrival_pgf,
+                                                  branch_pgf,
+                                                  observ_pgf,
+                                                  d=1,
+                                                  normalized=True)
 Alpha_tfa, z_tfa = truncatedfa.truncated_forward(arrival_pmf,
                                                  arrival_params,
                                                  branch_fun,
@@ -118,7 +119,8 @@ Alpha_tfa, z_tfa = truncatedfa.truncated_forward(arrival_pmf,
 # likelihood_utppgffa = Alpha_utppgffa[-1][0]          # vector impl
 # likelihood_utppgffa = np.exp(Alpha_utppgffa[-1][0])  # failed log-space impl
 # likelihood_utppgffa = Alpha_utppgffa[-1][0] * np.prod(Z_utppgffa)
-loglikelihood_utppgffa = np.log(Alpha_utppgffa[-1][0]) + np.sum(np.log(Z_utppgffa))
+# loglikelihood_utppgffa = np.log(Alpha_utppgffa[-1][0]) + np.sum(np.log(Z_utppgffa)) # linear Z
+loglikelihood_utppgffa = np.log(Alpha_utppgffa[-1][0]) + np.sum(logZ_utppgffa)
 loglikelihood_tfa      = truncatedfa.likelihood(z_tfa, log=True)
 
 print "--NegBin arrivals--"
@@ -151,13 +153,13 @@ Theta = {'arrival':invLambda,
 #                                    branch_pgf,
 #                                    observ_pgf,
 #                                    d=1)
-Alpha_utppgffa, Z_utppgffa = UTPPGFFA.utppgffa(y,
-                                               Theta,
-                                               arrival_pgf,
-                                               branch_pgf,
-                                               observ_pgf,
-                                               d=1,
-                                               normalized=True)
+Alpha_utppgffa, logZ_utppgffa = UTPPGFFA.utppgffa(y,
+                                                  Theta,
+                                                  arrival_pgf,
+                                                  branch_pgf,
+                                                  observ_pgf,
+                                                  d=1,
+                                                  normalized=True)
 Alpha_tfa, z_tfa = truncatedfa.truncated_forward(arrival_pmf,
                                                  invLambda.reshape((-1, 1)),
                                                  branch_fun,
@@ -169,7 +171,8 @@ Alpha_tfa, z_tfa = truncatedfa.truncated_forward(arrival_pmf,
 # likelihood_utppgffa = Alpha_utppgffa[-1][0]          # vector impl
 # likelihood_utppgffa = np.exp(Alpha_utppgffa[-1][0])  # failed log-space impl
 # likelihood_utppgffa = Alpha_utppgffa[-1][0] * np.prod(Z_utppgffa)
-loglikelihood_utppgffa = np.log(Alpha_utppgffa[-1][0]) + np.sum(np.log(Z_utppgffa))
+# loglikelihood_utppgffa = np.log(Alpha_utppgffa[-1][0]) + np.sum(np.log(Z_utppgffa)) # linear Z
+loglikelihood_utppgffa = np.log(Alpha_utppgffa[-1][0]) + np.sum(logZ_utppgffa)
 loglikelihood_tfa      = truncatedfa.likelihood(z_tfa, log=True)
 
 print "--Logarithmic arrivals--"
@@ -202,13 +205,13 @@ Theta = {'arrival':invLambda,
 #                                    branch_pgf,
 #                                    observ_pgf,
 #                                    d=1)
-Alpha_utppgffa, Z_utppgffa = UTPPGFFA.utppgffa(y,
-                                               Theta,
-                                               arrival_pgf,
-                                               branch_pgf,
-                                               observ_pgf,
-                                               d=1,
-                                               normalized=True)
+Alpha_utppgffa, logZ_utppgffa = UTPPGFFA.utppgffa(y,
+                                                  Theta,
+                                                  arrival_pgf,
+                                                  branch_pgf,
+                                                  observ_pgf,
+                                                  d=1,
+                                                  normalized=True)
 Alpha_tfa, z_tfa = truncatedfa.truncated_forward(arrival_pmf,
                                                  invLambda.reshape((-1, 1)),
                                                  branch_fun,
@@ -220,7 +223,8 @@ Alpha_tfa, z_tfa = truncatedfa.truncated_forward(arrival_pmf,
 # likelihood_utppgffa = Alpha_utppgffa[-1][0]          # vector impl
 # likelihood_utppgffa = np.exp(Alpha_utppgffa[-1][0])  # failed log-space impl
 # likelihood_utppgffa = Alpha_utppgffa[-1][0] * np.prod(Z_utppgffa)
-loglikelihood_utppgffa = np.log(Alpha_utppgffa[-1][0]) + np.sum(np.log(Z_utppgffa))
+# loglikelihood_utppgffa = np.log(Alpha_utppgffa[-1][0]) + np.sum(np.log(Z_utppgffa)) # linear Z
+loglikelihood_utppgffa = np.log(Alpha_utppgffa[-1][0]) + np.sum(logZ_utppgffa)
 loglikelihood_tfa      = truncatedfa.likelihood(z_tfa, log=True)
 
 print "--Geometric arrivals--"

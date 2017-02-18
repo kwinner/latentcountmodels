@@ -324,6 +324,8 @@ def runtime_experiment_plot(resultdir):
         n_sum[iResult, :]  = np.sum(result['N'], axis=1)
         n_mean[iResult, :] = np.mean(result['N'], axis=1)
         n_var[iResult, :]  = np.var(result['N'], axis=1)
+        # if N_val[iResult] == 200 and K_val[iResult] == 5 and rho_val[iResult] == 0.8:
+        #     True
 
     # take the mean over all repetitions of the experiment
     mean_runtime_utppgffa = np.mean(runtime_utppgffa, axis=1)
@@ -334,31 +336,81 @@ def runtime_experiment_plot(resultdir):
     plt.rc('text', usetex=True)
     plt.rc('font', family='serif')
 
-    # # plot n_max vs Y
+    # plot n_max vs Y
     # plt.scatter(np.ravel(y_sum), np.ravel(n_max))
     # plt.xlabel(r'$Y = \sum y$')
     # plt.ylabel(r'$n_{max}$')
     # plt.title('Total observed counts vs truncation parameter')
 
+    # plot n_max vs rho
+    # plt.scatter(np.ravel(rho_val), np.ravel(np.mean(n_max, axis=1)))
+    # plt.xlabel(r'$Y = \sum y$')
+    # plt.ylabel(r'$\rho$')
+    # plt.title('Rho vs truncation parameter')
+
+    # plot n_max vs runtime of trunc
+    # handle_trunc = plt.scatter(np.ravel(n_max), np.ravel(runtime_trunc), color="#352A87", label="Trunc", alpha=0.1)
+    # plt.xlabel(r'$n_{max}$')
+    # plt.title('Runtime as a function of truncation parameter')
+    # plt.xlim(np.min(n_max), np.max(n_max))
+    # plt.ylabel('Runtime (s)')
+    # plt.ylim(np.min(runtime_trunc), np.max(runtime_trunc))
+
     # plot runtime vs Y
-    # handle_utppgffa = plt.scatter(np.ravel(y_sum), np.ravel(runtime_utppgffa), color="#352A87", label="UTPPGFFA", alpha=0.5)
-    # handle_pgffa    = plt.scatter(np.ravel(y_sum), np.ravel(runtime_pgffa), color="#33B8A1", label="PGFFA", alpha=0.5)
-    # handle_trunc    = plt.scatter(np.ravel(y_sum), np.ravel(runtime_trunc), color="#F9FB0E", label="Trunc", alpha=0.5)
-
-    # handle_trunc = plt.scatter(np.ravel(y_sum), np.ravel(runtime_trunc), color="#352A87", label="Trunc", alpha=0.5)
-    handle_trunc = plt.scatter(np.ravel(n_max), np.ravel(runtime_trunc), color="#352A87", label="Trunc", alpha=0.5)
-    plt.xlabel(r'$n_{max}$')
-    plt.title('Runtime as a function of truncation parameter')
-    plt.xlim(np.min(n_max), np.max(n_max))
-
-
+    # handle_utppgffa = plt.scatter(np.ravel(y_sum), np.ravel(runtime_utppgffa), color="#352A87", label="UTPPGFFA", alpha=0.25)
+    # handle_pgffa    = plt.scatter(np.ravel(y_sum), np.ravel(runtime_pgffa), color="#33B8A1", label="PGFFA", alpha=0.25)
+    # handle_trunc    = plt.scatter(np.ravel(y_sum), np.ravel(runtime_trunc), color="#F9FB0E", label="Trunc", alpha=0.25)
+    #
     # plt.legend(handles=[handle_trunc, handle_pgffa, handle_utppgffa], loc=2)
-    plt.ylabel('Runtime (s)')
+    # plt.ylabel('Runtime (s)')
     # plt.xlabel(r'$Y = \sum y$')
     # plt.title('Runtime as a function of total observed counts')
     # plt.xlim(np.min(y_sum), np.max(y_sum))
-    plt.ylim(np.min(runtime_trunc), np.max(runtime_trunc))
     # plt.ylim(0, max((np.max(runtime_utppgffa), np.max(runtime_pgffa), np.max(runtime_trunc))))
+
+    # plot runtime vs rho
+    # plotalpha = 0.5
+    # handle_utppgffa = plt.scatter(np.ravel(rho_val), np.ravel(mean_runtime_utppgffa), color="#352A87", label="UTPPGFFA", alpha=plotalpha)
+    # handle_pgffa = plt.scatter(np.ravel(rho_val), np.ravel(mean_runtime_pgffa), color="#33B8A1", label="PGFFA", alpha=plotalpha)
+    # handle_trunc = plt.scatter(np.ravel(rho_val), np.ravel(mean_runtime_trunc), color="#F9FB0E", label="Trunc", alpha=plotalpha)
+    #
+    # plt.legend(handles=[handle_trunc, handle_pgffa, handle_utppgffa], loc=2)
+    # plt.ylabel('Runtime (s)')
+    # plt.xlabel(r'$\rho$')
+    # plt.title('Runtime as a function of rho')
+    # plt.xlim(0, 1)
+    # plt.ylim(0, max((np.max(runtime_utppgffa), np.max(runtime_pgffa), np.max(runtime_trunc))))
+
+    # plot runtime vs rho*Lambda
+    # plotalpha = 0.5
+    # rhoLambda = np.multiply(rho_val, N_val)
+    # handle_utppgffa = plt.scatter(np.ravel(rhoLambda), np.ravel(mean_runtime_utppgffa), color="#352A87", label="UTPPGFFA", alpha=plotalpha)
+    # handle_pgffa = plt.scatter(np.ravel(rhoLambda), np.ravel(mean_runtime_pgffa), color="#33B8A1", label="PGFFA", alpha=plotalpha)
+    # handle_trunc = plt.scatter(np.ravel(rhoLambda), np.ravel(mean_runtime_trunc), color="#F9FB0E", label="Trunc", alpha=plotalpha)
+    #
+    # plt.legend(handles=[handle_trunc, handle_pgffa, handle_utppgffa], loc=2)
+    # plt.ylabel('Runtime (s)')
+    # plt.xlabel(r'$\rho\Lambda$')
+    # plt.title(r'Runtime as a function of $\rho\Lambda$')
+    # plt.xlim(np.min(rhoLambda), np.max(rhoLambda))
+    # plt.ylim(0, max((np.max(runtime_utppgffa), np.max(runtime_pgffa), np.max(runtime_trunc))))
+
+    # plot runtime vs rho*Lambda (only for K = 5)
+    # plotalpha = 0.5
+    # rhoLambda = np.multiply(rho_val, N_val)
+    # handle_utppgffa = plt.scatter(np.ravel(rhoLambda[K_val == 5]), np.ravel(mean_runtime_utppgffa[K_val == 5]), color="#352A87",
+    #                               label="UTPPGFFA", alpha=plotalpha)
+    # handle_pgffa = plt.scatter(np.ravel(rhoLambda[K_val == 5]), np.ravel(mean_runtime_pgffa[K_val == 5]), color="#33B8A1", label="PGFFA",
+    #                            alpha=plotalpha)
+    # handle_trunc = plt.scatter(np.ravel(rhoLambda[K_val == 5]), np.ravel(mean_runtime_trunc[K_val == 5]), color="#F9FB0E", label="Trunc",
+    #                            alpha=plotalpha)
+    #
+    # plt.legend(handles=[handle_trunc, handle_pgffa, handle_utppgffa], loc=2)
+    # plt.ylabel('Runtime (s)')
+    # plt.xlabel(r'$\rho\Lambda$')
+    # plt.title(r'Runtime as a function of $\rho\Lambda$')
+    # plt.xlim(np.min(rhoLambda[K_val == 5]), np.max(rhoLambda[K_val == 5]))
+    # plt.ylim(0, max((np.max(runtime_utppgffa[K_val == 5]), np.max(runtime_pgffa[K_val == 5]), np.max(runtime_trunc[K_val == 5]))))
 
     plt.show(block=True)
 
@@ -425,22 +477,61 @@ def runtime_experiment_zonn(N_space   = np.arange(10,100,10),
     return resultdir
 
 
+def nmax_vs_runtime(nmax_space = np.arange(42, 250),
+                    y = np.array([5, 21, 42, 36, 15]),
+                    nReps = 10):
+    arrival_pmf = stats.poisson
+    branch_fun = truncatedfa.binomial_branching
+    Lambda, Delta = zonn_params(8., 4., 3., np.linspace(1,17,5),50)
+    Rho = 0.8 * np.ones(5)
+
+    runtime_trunc = np.zeros_like(nmax_space, dtype=float)
+    for in_max in xrange(0,len(nmax_space)):
+        for i in xrange(0,nReps):
+            t_loop = time.clock()
+            Alpha_trunc, z = truncatedfa.truncated_forward(arrival_pmf,
+                                                           Lambda.reshape((-1, 1)),
+                                                           branch_fun,
+                                                           Delta.reshape((-1, 1)),
+                                                           Rho,
+                                                           y,
+                                                           n_max=nmax_space[in_max])
+            loglikelihood_trunc = truncatedfa.likelihood(z, log=True)
+            runtime_trunc[in_max] += time.clock() - t_loop
+        runtime_trunc[in_max] /= float(nReps)
+
+    plt.rc('text', usetex=True)
+    plt.rc('font', family='serif')
+
+    handle_trunc = plt.scatter(np.ravel(nmax_space), np.ravel(runtime_trunc), color="#352A87", label="Trunc", alpha=1.0)
+    plt.xlabel(r'$n_{max}$')
+    plt.title('Runtime as a function of truncation parameter')
+    plt.xlim(np.min(nmax_space), np.max(nmax_space))
+    plt.ylabel('Runtime (s)')
+    plt.ylim(np.min(runtime_trunc), np.max(runtime_trunc))
+
+    plt.show(block=True)
+
+
 if __name__ == "__main__":
     # runtime_utppgffa, runtime_pgffa, runtime_trunc_final, runtime_trunc_total, n_max, y, N = runtime_hmm_zonn(verbose="full")
     # runtime_nmix()
 
-    resultdir = runtime_experiment_zonn(verbose="partial",
-                                        # N_space=np.append(np.arange(10,101,10), np.arange(125, 501, 25)),
-                                        N_space=np.arange(25,501,25),
-                                        K_space=np.array([5,8]),
-                                        rho_space=np.arange(0.05,0.95,0.05),
-                                        n_reps=20,
-                                        epsilon=1e-5)
-    print resultdir
+    # resultdir = runtime_experiment_zonn(verbose="partial",
+    #                                     # N_space=np.append(np.arange(10,101,10), np.arange(125, 501, 25)),
+    #                                     N_space=np.arange(25,501,25),
+    #                                     K_space=np.array([5,8]),
+    #                                     rho_space=np.arange(0.05,0.95,0.05),
+    #                                     n_reps=20,
+    #                                     epsilon=1e-5)
+    # print resultdir
 
     # resultdir = "/Users/kwinner/Work/Data/Results/20170215T115245506"
     # resultdir = "/Users/kwinner/Work/Data/Results/20170213T232631920"
+    # resultdir = "/Users/kwinner/Work/Data/Results/20170217T111957694"
     # runtime_experiment_plot(resultdir)
+
+    nmax_vs_runtime()
 
     # def runtime_profile():
     #     for i in range(0,100):

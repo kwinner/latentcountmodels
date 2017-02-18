@@ -1,7 +1,7 @@
 import numpy as np
 import scipy as sp
 from algopy import UTPM
-from UTPPGF_cython import utp_compose_cython, utp_compose_affine_cython
+from UTPPGF_cython import utpvec_compose_cython, utpvec_compose_affine_cython
 
 # i!/(i-k)!
 def falling_factorial(k, i):
@@ -84,19 +84,19 @@ def utp_compose_utpm(G, F):
     assert G.data.shape[0] == F.data.shape[0]
 
     # return UTPM(np.asarray(utp_compose_vec(G.data[:,0], F.data[:,0])).reshape(-1,1))
-    return UTPM(utp_compose_cython(G.data[:,0], F.data[:,0]).reshape(-1,1))
+    return UTPM(utpvec_compose_cython(G.data[:,0], F.data[:,0]).reshape(-1,1))
 
 
 def utp_compose_vec(G, F):
     assert G.shape[0] == F.shape[0]
 
-    return utp_compose_cython(G, F)
+    return utpvec_compose_cython(G, F)
 
 
 def utp_compose_affine(G, F):
     assert ~np.any(F[2:])
 
-    return utp_compose_affine_cython(G, F)
+    return utpvec_compose_affine_cython(G, F)
 
 
 def utp_mul_vec(F, G):

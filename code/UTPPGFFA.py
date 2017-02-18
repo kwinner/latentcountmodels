@@ -2,8 +2,8 @@ import numpy as np
 import scipy.misc
 from algopy import UTPM
 
-from UTPPGF_util import *
-from UTPPGF_cython import utp_compose_cython
+from UTPPGF_util import lift_generating_function_utpm
+from UTPPGF_cython import *
 
 
 # algopy utppgffa
@@ -129,19 +129,19 @@ def utppgffa(y, Theta, arrival_pgf, branch_pgf, observ_pgf, d=1, normalized=Fals
         s_prev = F(u)
 
         # init vector utp
-        u_du = new_utp_vec(u, d_k + y[k])
+        u_du = new_utpvec_cython(u, d_k + y[k])
 
         # recurse
-        beta = utp_compose_vec(lift_A(s_prev, k - 1, d_k + y[k]), F(u_du))
+        beta = utpvec_compose_cython(lift_A(s_prev, k - 1, d_k + y[k]), F(u_du))
 
         # utp mul
-        beta = utp_mul_vec(beta, G(u_du))
+        beta = utpvec_mul_cython(beta, G(u_du))
 
-        s_ds = new_utp_vec(s, d_k)
+        s_ds = new_utpvec_cython(s, d_k)
         # derivative, scalar mul, and compose
-        alpha = utp_compose_affine(utp_deriv_vec(beta, y[k]), (s_ds * (1 - Theta['observ'][k])))
+        alpha = utpvec_compose_affine_cython(utpvec_deriv_cython(beta, y[k]), (s_ds * (1 - Theta['observ'][k])))
         # scalar mul
-        alpha = utp_mul_vec(alpha, utp_pow_vec(s_ds * Theta['observ'][k], y[k]))
+        alpha = utpvec_mul_cython(alpha, utpvec_pow_cython(s_ds * Theta['observ'][k], y[k]))
 
         # incorporate y_k factorial into logZ
         logZ[k] = -scipy.special.gammaln(y[k] + 1)
