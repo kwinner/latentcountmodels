@@ -102,7 +102,7 @@ from UTPPGF_cython import *
 
 
 # normalized utppgffa
-def utppgffa(y, Theta, arrival_pgf, branch_pgf, observ_pgf, d=1, normalized=False):
+def utppgffa(y, Theta, arrival_pgf_cython, branch_pgf_cython, observ_pgf, d=1, normalized=False):
     K = len(y)
 
     Alpha = [None] * K
@@ -120,22 +120,30 @@ def utppgffa(y, Theta, arrival_pgf, branch_pgf, observ_pgf, d=1, normalized=Fals
             Alpha[k] = alpha
             return alpha
 
-        F = lambda u: lift_generating_function_utpm(branch_pgf, u, Theta['branch'][k - 1])  # branching PGF
-        G = lambda u: lift_generating_function_utpm(arrival_pgf, u, Theta['arrival'][k])  # arrival PGF
+        # F = lambda u: lift_generating_function_utpm(branch_pgf, u, Theta['branch'][k - 1])  # branching PGF
+        # G = lambda u: lift_generating_function_utpm(arrival_pgf, u, Theta['arrival'][k])  # arrival PGF
+        # F = lambda u: branch_pgf_cython(u, Theta['branch'][k - 1])
+        # G = lambda u: arrival_pgf_cython(u, Theta['arrival'][k])
 
         # scalar mul
         u = s * (1 - Theta['observ'][k])
         # lifted GF
-        s_prev = F(u)
+        # s_prev = F(u)
+        # s_prev = branch_pgf_cython(u, Theta['branch'][k - 1])
 
         # init vector utp
         u_du = new_utpvec_cython(u, d_k + y[k])
 
+        F = branch_pgf_cython(u_du, Theta['branch'][k - 1])
+        s_prev = new_utpvec_cython(F[0], 1)
+
         # recurse
-        beta = utpvec_compose_cython(lift_A(s_prev, k - 1, d_k + y[k]), F(u_du))
+        beta = utpvec_compose_cython(lift_A(s_prev, k - 1, d_k + y[k]),
+                                     branch_pgf_cython(u_du, Theta['branch'][k - 1]))
 
         # utp mul
-        beta = utpvec_mul_cython(beta, G(u_du))
+        beta = utpvec_mul_cython(beta,
+                                 arrival_pgf_cython(u_du, Theta['arrival'][k]))
 
         s_ds = new_utpvec_cython(s, d_k)
         # derivative, scalar mul, and compose
@@ -158,7 +166,8 @@ def utppgffa(y, Theta, arrival_pgf, branch_pgf, observ_pgf, d=1, normalized=Fals
         return alpha
 
     # call the top level lift_A (which records all the Alpha messages as it goes)
-    lift_A(1, K - 1, d)
+    # lift_A(1, K - 1, d)
+    lift_A(new_utpvec_cython(1., 1), K - 1, d)
 
     if normalized:
         return Alpha, logZ

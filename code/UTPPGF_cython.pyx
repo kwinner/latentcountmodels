@@ -15,21 +15,24 @@ import scipy as sp
 from algopy import UTPM
 
 
-cpdef int falling_factorial_cython(int k, int i):
+cpdef np.long_t falling_factorial_cython(int k,
+                                   int i):
     return sp.special.poch(i - k + 1, k)
 
 
-cpdef np.ndarray falling_factorial_vec_cython(int k, np.ndarray i):
+cpdef np.ndarray[np.long_t, ndim=1] falling_factorial_vec_cython(int k,
+                                                              np.ndarray i):
     return sp.special.poch(i - k + 1, k)
 
 
-cpdef np.ndarray utpvec_compose_cython(np.ndarray G, np.ndarray F):
+cpdef np.ndarray[np.double_t, ndim=1] utpvec_compose_cython(np.ndarray[np.double_t, ndim=1] G,
+                                                          np.ndarray[np.double_t, ndim=1] F):
     cdef:
-        double     g_scalar = G[0]        # value of G^{(0)}
-        double     f_scalar = F[0]        # value of F^{(0)}
-        int        d        = G.shape[0]  # length of G, F, out
-        int        i                      # Horner's method index
-        np.ndarray out      = np.zeros(d) # return value: G o F
+        np.double_t                     g_scalar = G[0]                         # value of G^{(0)}
+        np.double_t                     f_scalar = F[0]                         # value of F^{(0)}
+        int                           d        = G.shape[0]                   # length of G, F, out
+        int                           i                                       # Horner's method index
+        np.ndarray[np.double_t, ndim=1] out      = np.zeros(d, dtype=np.double) # return value: G o F
 
     # temporarily zero out first element of G and F
     # this lets us do the convolution "in place" as it were
@@ -54,10 +57,11 @@ cpdef np.ndarray utpvec_compose_cython(np.ndarray G, np.ndarray F):
 
 # new utps typically have two nonzero coefficients
 # composing them can be done in linear time using only the second nonzero coefficient
-cpdef np.ndarray utpvec_compose_affine_cython(np.ndarray G, np.ndarray F):
+cpdef np.ndarray[np.double_t, ndim=1] utpvec_compose_affine_cython(np.ndarray[np.double_t, ndim=1] G,
+                                                                 np.ndarray[np.double_t, ndim=1] F):
     cdef:
-        int        d        = G.shape[0]  # length of G, F, out
-        np.ndarray out      = np.zeros(d) # return value: G o F
+        int                           d        = G.shape[0]                   # length of G, F, out
+        np.ndarray[np.double_t, ndim=1] out      = np.zeros(d, dtype=np.double) # return value: G o F
 
     if F.shape[0] <= 1:
         return G
@@ -68,16 +72,17 @@ cpdef np.ndarray utpvec_compose_affine_cython(np.ndarray G, np.ndarray F):
     return out
 
 
-cpdef np.ndarray utpvec_mul_cython(np.ndarray F, np.ndarray G):
+cpdef np.ndarray[np.double_t, ndim=1] utpvec_mul_cython(np.ndarray[np.double_t, ndim=1] F,
+                                                      np.ndarray[np.double_t, ndim=1] G):
     cdef:
         int d          = max(F.shape[0], G.shape[0])
 
     return np.convolve(F, G)[:d]
 
 
-cpdef np.ndarray new_utpvec_cython(double x, int d):
+cpdef np.ndarray[np.double_t, ndim=1] new_utpvec_cython(np.double_t x, int d):
     cdef:
-        np.ndarray out = np.zeros(d, dtype=np.double)
+        np.ndarray[np.double_t, ndim=1] out = np.zeros(d, dtype=np.double)
 
     out[0] = x
     if d > 1:
@@ -86,11 +91,12 @@ cpdef np.ndarray new_utpvec_cython(double x, int d):
     return out
 
 
-cpdef np.ndarray utpvec_deriv_cython(np.ndarray x, int k):
+cpdef np.ndarray[np.double_t, ndim=1] utpvec_deriv_cython(np.ndarray[np.double_t, ndim=1] x,
+                                                        int k):
     cdef:
         int d = len(x)
-        np.ndarray fact = falling_factorial_vec_cython(k, np.arange(d))
-        np.ndarray out = np.array(x * fact, copy=True)
+        np.ndarray[np.double_t, ndim=1] fact = falling_factorial_vec_cython(k, np.arange(d))
+        np.ndarray[np.double_t, ndim=1] out  = np.array(x * fact, copy=True)
 
     # shift by k places
     out = out[k:]
@@ -98,19 +104,19 @@ cpdef np.ndarray utpvec_deriv_cython(np.ndarray x, int k):
     return out
 
 
-cpdef double utpvecpgf_mean_cython(np.ndarray F):
+cpdef np.double_t utpvecpgf_mean_cython(np.ndarray[np.double_t, ndim=1] F):
     return F[1]
 
 
-cpdef double utpvecpgf_var_cython(np.ndarray F):
+cpdef np.double_t utpvecpgf_var_cython(np.ndarray[np.double_t, ndim=1] F):
     return (2 * F[2]) - np.power(F[1], 2) + F[1]
 
 
-cpdef np.ndarray utpvec_exp_cython(np.ndarray F):
+cpdef np.ndarray[np.double_t, ndim=1] utpvec_exp_cython(np.ndarray[np.double_t, ndim=1] F):
     cdef:
         int d = F.shape[0]
-        np.ndarray out = np.empty_like(F)
-        np.ndarray Ftilde = F[1:].copy()
+        np.ndarray[np.double_t, ndim=1] out    = np.empty_like(F, dtype=np.double)
+        np.ndarray[np.double_t, ndim=1] Ftilde = F[1:].copy()
 
     out[0] = np.exp(F[0])
     # for i in range(1, d):
@@ -122,10 +128,10 @@ cpdef np.ndarray utpvec_exp_cython(np.ndarray F):
     return out
 
 
-cpdef np.ndarray utpvec_log_cython(np.ndarray F):
+cpdef np.ndarray[np.double_t, ndim=1] utpvec_log_cython(np.ndarray[np.double_t, ndim=1] F):
     cdef:
         int d = F.shape[0]
-        np.ndarray out = np.empty_like(F)
+        np.ndarray[np.double_t, ndim=1] out = np.empty_like(F, dtype=np.double)
 
     out[0] = np.log(F[0])
 
@@ -138,5 +144,18 @@ cpdef np.ndarray utpvec_log_cython(np.ndarray F):
     return out
 
 
-cpdef np.ndarray utpvec_pow_cython(np.ndarray F, double k):
+cpdef np.ndarray[np.double_t, ndim=1] utpvec_pow_cython(np.ndarray[np.double_t, ndim=1] F,
+                                                      np.double_t k):
     return utpvec_exp_cython(k * utpvec_log_cython(F))
+
+
+cpdef np.ndarray[np.double_t, ndim=1] utpvec_reciprocal_cython(np.ndarray[np.double_t, ndim=1] F):
+    cdef:
+        int d = F.shape[0]
+        np.ndarray[np.double_t, ndim=1] out = np.empty_like(F, dtype=np.double)
+
+    out[0] = 1. / F[0]
+    for i in range(1, d):
+        out[i] = 1. / F[0] * (-np.sum(out[:i] * F[i:0:-1], axis = 0))
+
+    return out

@@ -10,7 +10,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy import stats, integrate
 
-from distributions import *
+# from distributions import *
+from distributions_cython import *
 
 import UTPPGFFA
 import pgffa_kev as pgffa
@@ -47,8 +48,8 @@ def runtime_hmm(
     n_max = np.zeros(n_reps).astype(int)
 
     # organize parameters for pgffa, utppgffa and trunfa
-    Theta  = {'arrival': Lambda,
-              'branch':  Delta,
+    Theta  = {'arrival': Lambda.reshape((-1, 1)),
+              'branch':  Delta.reshape((-1, 1)),
               'observ':  Rho}
 
     Lambda_trunc = Lambda.reshape((-1, 1))
@@ -57,23 +58,29 @@ def runtime_hmm(
     # configure distributions
     if arrival == 'poisson':
         arrival_pmf = stats.poisson
-        arrival_pgf = lambda s, theta: poisson_pgf(s, theta)
+        # arrival_pgf = lambda s, theta: poisson_pgf(s, theta)
+        arrival_pgf = poisson_utppgf_cython
     elif arrival == 'negbin':
         arrival_pmf = stats.nbinom
-        arrival_pgf = lambda s, theta: negbin_pgf(s, theta)
+        # arrival_pgf = lambda s, theta: negbin_pgf(s, theta)
+        arrival_pgf = negbin_utppgf_cython
     elif arrival == 'logser':
         arrival_pmf = stats.logser
-        arrival_pgf = lambda s, theta: logarithmic_pgf(s, theta)
+        # arrival_pgf = lambda s, theta: logarithmic_pgf(s, theta)
+        arrival_pgf = logarithmic_utppgf_cython
     elif arrival == 'geom':
         arrival_pmf = stats.geom
-        arrival_pgf = lambda s, theta: geometric_pgf(s, theta)
+        # arrival_pgf = lambda s, theta: geometric_pgf(s, theta)
+        arrival_pgf = geometric_utppgf_cython
 
     if branch  == 'binomial':
         branch_fun  = truncatedfa.binomial_branching
-        branch_pgf  = lambda s, theta: bernoulli_pgf(s, theta)
+        # branch_pgf  = lambda s, theta: bernoulli_pgf(s, theta)
+        branch_pgf = bernoulli_utppgf_cython
     elif branch == 'poisson':
         branch_fun  = truncatedfa.poisson_branching
-        branch_pgf  = lambda s, theta: poisson_pgf(s, theta)
+        # branch_pgf  = lambda s, theta: poisson_pgf(s, theta)
+        branch_pgf = poisson_utppgf_cython
 
     if observ  == 'binomial':
         observ_pgf  = None
@@ -517,21 +524,21 @@ if __name__ == "__main__":
     # runtime_utppgffa, runtime_pgffa, runtime_trunc_final, runtime_trunc_total, n_max, y, N = runtime_hmm_zonn(verbose="full")
     # runtime_nmix()
 
-    # resultdir = runtime_experiment_zonn(verbose="partial",
-    #                                     # N_space=np.append(np.arange(10,101,10), np.arange(125, 501, 25)),
-    #                                     N_space=np.arange(25,501,25),
-    #                                     K_space=np.array([5,8]),
-    #                                     rho_space=np.arange(0.05,0.95,0.05),
-    #                                     n_reps=20,
-    #                                     epsilon=1e-5)
-    # print resultdir
+    resultdir = runtime_experiment_zonn(verbose="partial",
+                                        # N_space=np.append(np.arange(10,101,10), np.arange(125, 501, 25)),
+                                        N_space=np.arange(25,501,50),
+                                        K_space=np.array([5]),
+                                        rho_space=np.arange(0.05,0.95,0.05),
+                                        n_reps=10,
+                                        epsilon=1e-5)
+    print resultdir
 
     # resultdir = "/Users/kwinner/Work/Data/Results/20170215T115245506"
     # resultdir = "/Users/kwinner/Work/Data/Results/20170213T232631920"
     # resultdir = "/Users/kwinner/Work/Data/Results/20170217T111957694"
     # runtime_experiment_plot(resultdir)
 
-    nmax_vs_runtime()
+    # nmax_vs_runtime()
 
     # def runtime_profile():
     #     for i in range(0,100):
