@@ -35,7 +35,7 @@ cpdef np.ndarray[np.double_t, ndim=1] bernoulli_utppgf_cython(np.ndarray[np.doub
 cpdef np.ndarray[np.double_t, ndim=1] binomial_utppgf_cython(np.ndarray[np.double_t, ndim=1] s,
                                                              np.ndarray[np.double_t, ndim=1] theta):
     cdef:
-        int                             n   = int(theta[0])
+        np.double_t                     n   = theta[0]
         np.double_t                     p   = theta[1]
         np.ndarray[np.double_t, ndim=1] out = s.copy()
     out *= p
@@ -46,13 +46,17 @@ cpdef np.ndarray[np.double_t, ndim=1] binomial_utppgf_cython(np.ndarray[np.doubl
 cpdef np.ndarray[np.double_t, ndim=1] negbin_utppgf_cython(np.ndarray[np.double_t, ndim=1] s,
                                                            np.ndarray[np.double_t, ndim=1] theta):
     cdef:
-        int                             r   = int(theta[0])
+        np.double_t                     r   = theta[0]
         np.double_t                     p   = theta[1]
         np.ndarray[np.double_t, ndim=1] out = s.copy()
+
     out *= (p-1)
     out[0] += 1
-    out = p * utpvec_reciprocal_cython(out)
-    return utpvec_pow_cython(out, r)
+    out = utpvec_reciprocal_cython(out)
+    out = p * out
+    out = utpvec_pow_cython(out, r)
+
+    return out
 
 
 cpdef np.ndarray[np.double_t, ndim=1] logarithmic_utppgf_cython(np.ndarray[np.double_t, ndim=1] s,

@@ -20,6 +20,20 @@ def binomial_pgf(s, theta):
 
 def negbin_pgf(s, theta):
     r, p = theta[:]
+
+    # out = s * (1 - p)
+    #
+    # # print '1. %s' % out
+    # out = 1 - out
+    #
+    # # print '2. %s' % out
+    # out = 1/ out
+    # # print '3. %s' % out
+    # out *= p
+    # # print '4. %s' % out
+    # out = np.power(out, r)
+    # # print '5. %s' % out
+    # return out
     return np.power(p / (1 - ((1 - p) * s)), r)
 
 

@@ -129,13 +129,13 @@ def utppgffa(y, Theta, arrival_pgf_cython, branch_pgf_cython, observ_pgf, d=1, n
         u = s * (1 - Theta['observ'][k])
         # lifted GF
         # s_prev = F(u)
-        # s_prev = branch_pgf_cython(u, Theta['branch'][k - 1])
+        s_prev = branch_pgf_cython(u, Theta['branch'][k - 1])
 
         # init vector utp
         u_du = new_utpvec_cython(u, d_k + y[k])
 
-        F = branch_pgf_cython(u_du, Theta['branch'][k - 1])
-        s_prev = new_utpvec_cython(F[0], 1)
+        # F = branch_pgf_cython(u_du, Theta['branch'][k - 1])
+        # s_prev = new_utpvec_cython(F[0], 1)
 
         # recurse
         beta = utpvec_compose_cython(lift_A(s_prev, k - 1, d_k + y[k]),

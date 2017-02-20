@@ -5,6 +5,7 @@ import pwd
 import time
 import cProfile
 import pickle
+import itertools
 import matplotlib.pyplot as plt
 
 import numpy as np
@@ -29,7 +30,8 @@ def runtime_hmm(
         verbose = True,
         arrival = 'poisson',
         branch  = 'binomial',
-        observ  = 'binomial'
+        observ  = 'binomial',
+        CONV_LIMIT = 1e-10
         ):
 
     K = len(Lambda)
@@ -127,7 +129,10 @@ def runtime_hmm(
                 n_max[iter] = max(y[iter, :])
                 t_start = time.clock()
                 loglikelihood_trunc = float('inf')
-                while abs(loglikelihood_trunc - loglikelihood_utppgffa) >= epsilon and n_max[iter] < N_LIMIT:
+                loglikelihood_diff  = float('inf')
+                while abs(loglikelihood_trunc - loglikelihood_utppgffa) >= epsilon and \
+                      loglikelihood_diff >= CONV_LIMIT and \
+                      n_max[iter] < N_LIMIT:
                 # while abs(1 - (loglikelihood_trunc / loglikelihood_utppgffa)) >= epsilon and n_max[iter] < N_LIMIT:
                     n_max[iter] += 1
                     t_loop = time.clock()
@@ -138,11 +143,19 @@ def runtime_hmm(
                                                                    Rho,
                                                                    y[iter, :],
                                                                    n_max=n_max[iter])
-                    loglikelihood_trunc = truncatedfa.likelihood(z, log=True)
+                    loglikelihood_iter = truncatedfa.likelihood(z, log=True)
+                    loglikelihood_diff = abs(loglikelihood_trunc - loglikelihood_iter)
+                    loglikelihood_trunc = loglikelihood_iter
                     runtime_trunc_final[iter] = time.clock() - t_loop
                 runtime_trunc_total[iter] = time.clock() - t_start
+
                 if verbose == "full": print "Trunc: %0.4f last run @%d, %0.4f total" % (runtime_trunc_final[iter], n_max[iter], runtime_trunc_total[iter])
-                break
+
+                if n_max[iter] >= N_LIMIT:
+                    print "Attempt #%d, trunc failed to converge." % attempt
+                    attempt += 1
+                else:
+                    break
             except Exception as inst:
                 print "Attempt #%d failed, Error: " % attempt, inst
                 attempt += 1
@@ -343,19 +356,19 @@ def runtime_experiment_plot(resultdir):
     plt.rc('text', usetex=True)
     plt.rc('font', family='serif')
 
-    # plot n_max vs Y
+    ### plot n_max vs Y
     # plt.scatter(np.ravel(y_sum), np.ravel(n_max))
     # plt.xlabel(r'$Y = \sum y$')
     # plt.ylabel(r'$n_{max}$')
     # plt.title('Total observed counts vs truncation parameter')
 
-    # plot n_max vs rho
+    ### plot n_max vs rho
     # plt.scatter(np.ravel(rho_val), np.ravel(np.mean(n_max, axis=1)))
     # plt.xlabel(r'$Y = \sum y$')
     # plt.ylabel(r'$\rho$')
     # plt.title('Rho vs truncation parameter')
 
-    # plot n_max vs runtime of trunc
+    ### plot n_max vs runtime of trunc
     # handle_trunc = plt.scatter(np.ravel(n_max), np.ravel(runtime_trunc), color="#352A87", label="Trunc", alpha=0.1)
     # plt.xlabel(r'$n_{max}$')
     # plt.title('Runtime as a function of truncation parameter')
@@ -363,7 +376,7 @@ def runtime_experiment_plot(resultdir):
     # plt.ylabel('Runtime (s)')
     # plt.ylim(np.min(runtime_trunc), np.max(runtime_trunc))
 
-    # plot runtime vs Y
+    ### plot runtime vs Y
     # handle_utppgffa = plt.scatter(np.ravel(y_sum), np.ravel(runtime_utppgffa), color="#352A87", label="UTPPGFFA", alpha=0.25)
     # handle_pgffa    = plt.scatter(np.ravel(y_sum), np.ravel(runtime_pgffa), color="#33B8A1", label="PGFFA", alpha=0.25)
     # handle_trunc    = plt.scatter(np.ravel(y_sum), np.ravel(runtime_trunc), color="#F9FB0E", label="Trunc", alpha=0.25)
@@ -375,7 +388,7 @@ def runtime_experiment_plot(resultdir):
     # plt.xlim(np.min(y_sum), np.max(y_sum))
     # plt.ylim(0, max((np.max(runtime_utppgffa), np.max(runtime_pgffa), np.max(runtime_trunc))))
 
-    # plot runtime vs rho
+    ### plot runtime vs rho
     # plotalpha = 0.5
     # handle_utppgffa = plt.scatter(np.ravel(rho_val), np.ravel(mean_runtime_utppgffa), color="#352A87", label="UTPPGFFA", alpha=plotalpha)
     # handle_pgffa = plt.scatter(np.ravel(rho_val), np.ravel(mean_runtime_pgffa), color="#33B8A1", label="PGFFA", alpha=plotalpha)
@@ -388,8 +401,8 @@ def runtime_experiment_plot(resultdir):
     # plt.xlim(0, 1)
     # plt.ylim(0, max((np.max(runtime_utppgffa), np.max(runtime_pgffa), np.max(runtime_trunc))))
 
-    # plot runtime vs rho*Lambda
-    # plotalpha = 0.5
+    ### plot runtime vs rho*Lambda
+    # plotalpha = 1.0
     # rhoLambda = np.multiply(rho_val, N_val)
     # handle_utppgffa = plt.scatter(np.ravel(rhoLambda), np.ravel(mean_runtime_utppgffa), color="#352A87", label="UTPPGFFA", alpha=plotalpha)
     # handle_pgffa = plt.scatter(np.ravel(rhoLambda), np.ravel(mean_runtime_pgffa), color="#33B8A1", label="PGFFA", alpha=plotalpha)
@@ -402,7 +415,7 @@ def runtime_experiment_plot(resultdir):
     # plt.xlim(np.min(rhoLambda), np.max(rhoLambda))
     # plt.ylim(0, max((np.max(runtime_utppgffa), np.max(runtime_pgffa), np.max(runtime_trunc))))
 
-    # plot runtime vs rho*Lambda (only for K = 5)
+    ### plot runtime vs rho*Lambda (only for K = 5)
     # plotalpha = 0.5
     # rhoLambda = np.multiply(rho_val, N_val)
     # handle_utppgffa = plt.scatter(np.ravel(rhoLambda[K_val == 5]), np.ravel(mean_runtime_utppgffa[K_val == 5]), color="#352A87",
@@ -419,8 +432,96 @@ def runtime_experiment_plot(resultdir):
     # plt.xlim(np.min(rhoLambda[K_val == 5]), np.max(rhoLambda[K_val == 5]))
     # plt.ylim(0, max((np.max(runtime_utppgffa[K_val == 5]), np.max(runtime_pgffa[K_val == 5]), np.max(runtime_trunc[K_val == 5]))))
 
+    ### plot difference in runtime between trunc, utppgffa vs rho
+    # plt.scatter(np.ravel(rho_val), np.ravel(mean_runtime_utppgffa - mean_runtime_trunc), color="#352A87")
+    # plt.ylabel('T(utppgffa) - T(trunc)')
+    # plt.xlabel(r'$\rho$')
+    # plt.title(r'Runtime difference as a function of $\rho$')
+
+    ### plot runtime vs Lambda (for some fixed rho)
+    rho_target = 0.5
+    plotalpha = 1.0
+
+    N_val                 = N_val[rho_val == rho_target]
+    mean_runtime_utppgffa = mean_runtime_utppgffa[rho_val == rho_target]
+    mean_runtime_pgffa    = mean_runtime_pgffa[rho_val == rho_target]
+    mean_runtime_trunc    = mean_runtime_trunc[rho_val == rho_target]
+
+    lists = sorted(itertools.izip(*[N_val, mean_runtime_utppgffa, mean_runtime_pgffa, mean_runtime_trunc]))
+    N_val, mean_runtime_utppgffa, mean_runtime_pgffa, mean_runtime_trunc = list(itertools.izip(*lists))
+
+    handle_trunc    = plt.plot(np.ravel(N_val),
+                               np.ravel(mean_runtime_trunc),
+                               color="#fabf0e", label="Trunc", alpha=plotalpha)
+    handle_pgffa    = plt.plot(np.ravel(N_val),
+                               np.ravel(mean_runtime_pgffa),
+                               color="#33B8A1", label="PGFFA", alpha=plotalpha)
+    handle_utppgffa = plt.plot(np.ravel(N_val),
+                               np.ravel(mean_runtime_utppgffa),
+                               color="#352A87", label="UTPPGFFA", alpha=plotalpha)
+
+    plt.legend(loc=2)
+    plt.ylabel('Runtime (s)')
+    plt.xlabel(r'$\Lambda$')
+    plt.title(r'Runtime vs $\Lambda$ for $\rho = %s$' % str(rho_target))
+    plt.xlim(np.min(N_val), np.max(N_val))
+    plt.ylim(0, max((np.max(runtime_utppgffa), np.max(runtime_pgffa), np.max(runtime_trunc))))
+
     plt.show(block=True)
 
+def runtime_experiment_gen(N_space   = np.arange(10,100,10),
+                           rho_space = np.arange(0.05, 1.00, 0.05),
+                           Lambda    = np.array([0.0257, 0.1163, 0.2104, 0.1504, 0.0428], dtype=np.float64), # unscaled Lambda
+                           Delta     = np.array([0.2636, 0.2636, 0.2636, 0.2636], dtype=np.float64),
+                           epsilon = 1e-6,              # error tolerance in truncated fa
+                           n_reps  = 10,                # number of times to repeat the experiment
+                           N_LIMIT = 1000,              # hard cap on the max value for the truncated algorithm
+                           verbose = "silent",
+                           arrival = 'poisson',
+                           branch  = 'binomial',
+                           observ  = 'binomial'
+                           ):
+    assert Lambda.shape[0] == Delta.shape[0] + 1
+    K = Lambda.shape[0]
+
+    resultdir = default_result_directory()
+    os.mkdir(resultdir)
+
+    f = open(os.path.join(resultdir, "meta.txt"),'w')
+    f.write("Experiment parameters:\n")
+    f.write("Arrivals: %s\n" % arrival)
+    f.write("Branching: %s\n" % branch)
+    f.write("Observations: %s\n" % observ)
+    f.write("Repetitions: %d\n" % n_reps)
+    f.write("N values: %s\n" % str(N_space))
+    f.write("Rho values: %s\n" % str(rho_space))
+    f.write("Lambda: %s\n" % str(Lambda))
+    f.write("Delta: %s\n" % str(Delta))
+    f.write("epsilon: %f\n" % epsilon)
+    f.close()
+
+    for iN in range(0, len(N_space)):
+        N = N_space[iN]
+        Lambda_iter = N * Lambda
+        for iRho in range(0, len(rho_space)):
+            rho = rho_space[iRho]
+            Rho = np.full(K, rho)
+
+            runtime_hmm_shannon_wrapper(Lambda_iter,
+                                        Delta,
+                                        Rho,
+                                        epsilon,
+                                        n_reps,
+                                        N_LIMIT,
+                                        verbose,
+                                        arrival,
+                                        branch,
+                                        observ,
+                                        N,
+                                        rho,
+                                        K,
+                                        resultdir)
+    return resultdir
 
 
 def runtime_experiment_zonn(N_space   = np.arange(10,100,10),
@@ -524,19 +625,32 @@ if __name__ == "__main__":
     # runtime_utppgffa, runtime_pgffa, runtime_trunc_final, runtime_trunc_total, n_max, y, N = runtime_hmm_zonn(verbose="full")
     # runtime_nmix()
 
-    resultdir = runtime_experiment_zonn(verbose="partial",
-                                        # N_space=np.append(np.arange(10,101,10), np.arange(125, 501, 25)),
-                                        N_space=np.arange(25,501,50),
-                                        K_space=np.array([5]),
-                                        rho_space=np.arange(0.05,0.95,0.05),
-                                        n_reps=10,
-                                        epsilon=1e-5)
-    print resultdir
+    # resultdir = runtime_experiment_zonn(verbose="partial",
+    #                                     sigma = 2.,
+    #                                     # N_space=np.append(np.arange(10,101,10), np.arange(125, 501, 25)),
+    #                                     N_space=np.arange(25,501,50),
+    #                                     K_space=np.array([5]),
+    #                                     rho_space=np.arange(0.05,0.95,0.05),
+    #                                     n_reps=20,
+    #                                     epsilon=1e-5)
+    # resultdir = runtime_experiment_gen(verbose="partial",
+    #                                    Lambda=np.array([1.,0,0,0,0],dtype=np.float64),
+    #                                    Delta=0.4 * np.ones(4,dtype=np.float64),
+    #                                    N_space=np.arange(25,101,25),
+    #                                    rho_space=np.arange(0.1,0.96,0.4),
+    #                                    n_reps=50,
+    #                                    epsilon=1e-5,
+    #                                    )
+    # print resultdir
 
     # resultdir = "/Users/kwinner/Work/Data/Results/20170215T115245506"
     # resultdir = "/Users/kwinner/Work/Data/Results/20170213T232631920"
     # resultdir = "/Users/kwinner/Work/Data/Results/20170217T111957694"
-    # runtime_experiment_plot(resultdir)
+    # resultdir = "/Users/kwinner/Work/Data/Results/20170219T004331426"
+    # resultdir = "/Users/kwinner/Work/Data/Results/20170219T011553514"
+    # resultdir = "/Users/kwinner/Work/Data/Results/20170219T151119276"
+    resultdir = "/Users/kwinner/Work/Data/Results/20170219T153853790"
+    runtime_experiment_plot(resultdir)
 
     # nmax_vs_runtime()
 

@@ -30,8 +30,8 @@ cpdef np.ndarray[np.double_t, ndim=1] utpvec_compose_cython(np.ndarray[np.double
     cdef:
         np.double_t                     g_scalar = G[0]                         # value of G^{(0)}
         np.double_t                     f_scalar = F[0]                         # value of F^{(0)}
-        int                           d        = G.shape[0]                   # length of G, F, out
-        int                           i                                       # Horner's method index
+        int                             d        = G.shape[0]                   # length of G, F, out
+        int                             i                                       # Horner's method index
         np.ndarray[np.double_t, ndim=1] out      = np.zeros(d, dtype=np.double) # return value: G o F
 
     # temporarily zero out first element of G and F
@@ -152,7 +152,7 @@ cpdef np.ndarray[np.double_t, ndim=1] utpvec_pow_cython(np.ndarray[np.double_t, 
 cpdef np.ndarray[np.double_t, ndim=1] utpvec_reciprocal_cython(np.ndarray[np.double_t, ndim=1] F):
     cdef:
         int d = F.shape[0]
-        np.ndarray[np.double_t, ndim=1] out = np.empty_like(F, dtype=np.double)
+        np.ndarray[np.double_t, ndim=1] out = np.zeros_like(F, dtype=np.double)
 
     out[0] = 1. / F[0]
     for i in range(1, d):
