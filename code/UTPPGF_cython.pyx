@@ -10,20 +10,29 @@ from cython cimport boundscheck, cdivision, nonecheck, wraparound
 
 import numpy as np
 cimport numpy as np
-import scipy as sp
+import scipy
 
 from algopy import UTPM
 
+from libc.math cimport lgamma, exp
 
-cpdef np.long_t falling_factorial_cython(int k,
-                                   int i):
-    return sp.special.poch(i - k + 1, k)
+cdef double poch(double x, double n):
+    return exp(lgamma(x + n) - lgamma(x))
 
+cdef double falling_factorial_c(double k, double i):
+    return poch(i - k + 1, k)
 
-cpdef np.ndarray[np.long_t, ndim=1] falling_factorial_vec_cython(int k,
-                                                              np.ndarray i):
-    return sp.special.poch(i - k + 1, k)
+cpdef np.ndarray[np.double_t, ndim=1] falling_factorial_vec_cython(double k,
+                                                                   np.ndarray[np.double_t, ndim=1] i):
+    cdef:
+        int                             index
+        int                             d   = i.shape[0]
+        np.ndarray[np.double_t, ndim=1] out = np.empty_like(i, dtype=np.double)
+    for index in range(d):
+        out[index] = poch(i[index] - k + 1, k)
 
+    return out
+    #return scipy.special.poch(i - k + 1, k)
 
 cpdef np.ndarray[np.double_t, ndim=1] utpvec_compose_cython(np.ndarray[np.double_t, ndim=1] G,
                                                           np.ndarray[np.double_t, ndim=1] F):
@@ -44,6 +53,8 @@ cpdef np.ndarray[np.double_t, ndim=1] utpvec_compose_cython(np.ndarray[np.double
     out[0] = G[d - 1]
     for i in range(d - 2, -1, -1):
         out = np.convolve(out, F)[:d]
+        #out = scipy.signal.fftconvolve(out, F)[:d]
+        #out = np.fft.ifft(np.multiply(np.fft.fft(out, 2*d - 1), np.fft.fft(F, 2*d - 1)))[:d]
         out[0] += G[i]
 
     out[0] = g_scalar
@@ -78,6 +89,8 @@ cpdef np.ndarray[np.double_t, ndim=1] utpvec_mul_cython(np.ndarray[np.double_t, 
         int d          = max(F.shape[0], G.shape[0])
 
     return np.convolve(F, G)[:d]
+    #return scipy.signal.fftconvolve(F, G)[:d]
+    #return np.fft.ifft(np.multiply(np.fft.fft(F, 2*d - 1), np.fft.fft(G, 2*d - 1)))[:d].astype(np.double)
 
 
 cpdef np.ndarray[np.double_t, ndim=1] new_utpvec_cython(np.double_t x, int d):
@@ -95,7 +108,7 @@ cpdef np.ndarray[np.double_t, ndim=1] utpvec_deriv_cython(np.ndarray[np.double_t
                                                         int k):
     cdef:
         int d = len(x)
-        np.ndarray[np.double_t, ndim=1] fact = falling_factorial_vec_cython(k, np.arange(d))
+        np.ndarray[np.double_t, ndim=1] fact = falling_factorial_vec_cython(k, np.arange(d, dtype=np.double))
         np.ndarray[np.double_t, ndim=1] out  = np.array(x * fact, copy=True)
 
     # shift by k places

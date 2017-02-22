@@ -14,7 +14,8 @@ from distributions_cython import *
 import numpy as np
 cimport numpy as np
 
-import scipy as sp
+#import scipy as sp
+from libc.math cimport lgamma
 
 cpdef tuple utppgffa_cython(int[::1] y,
                             str arrival_pgf_cython_name,
@@ -142,7 +143,8 @@ cpdef np.ndarray[np.double_t, ndim=1] lift_A(np.ndarray[np.double_t, ndim=1] s,
     alpha = utpvec_mul_cython(alpha, utpvec_pow_cython(s_ds * theta_observ[k], y[k]))
 
     # divide by y_k! (incorporate into Z immediately)
-    logZ[k] = -sp.special.gammaln(y[k] + 1)
+    #logZ[k] = -sp.special.gammaln(y[k] + 1)
+    logZ[k] = -lgamma(y[k] + 1)
 
     # normalize the alpha messages
     if np.any(alpha):

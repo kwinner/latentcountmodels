@@ -92,7 +92,7 @@ def runtime_hmm(
 
         attempt = 1
         while True:
-            try:
+            # try:
                 # sample data
                 for i in range(0, K):
                     if i == 0:
@@ -156,9 +156,9 @@ def runtime_hmm(
                     attempt += 1
                 else:
                     break
-            except Exception as inst:
-                print "Attempt #%d failed, Error: " % attempt, inst
-                attempt += 1
+            # except Exception as inst:
+            #     print "Attempt #%d failed, Error: " % attempt, inst
+            #     attempt += 1
     return runtime_utppgffa, runtime_pgffa, runtime_trunc_final, runtime_trunc_total, n_max, y, N
 
 
@@ -402,18 +402,18 @@ def runtime_experiment_plot(resultdir):
     # plt.ylim(0, max((np.max(runtime_utppgffa), np.max(runtime_pgffa), np.max(runtime_trunc))))
 
     ### plot runtime vs rho*Lambda
-    # plotalpha = 1.0
-    # rhoLambda = np.multiply(rho_val, N_val)
-    # handle_utppgffa = plt.scatter(np.ravel(rhoLambda), np.ravel(mean_runtime_utppgffa), color="#352A87", label="UTPPGFFA", alpha=plotalpha)
-    # handle_pgffa = plt.scatter(np.ravel(rhoLambda), np.ravel(mean_runtime_pgffa), color="#33B8A1", label="PGFFA", alpha=plotalpha)
-    # handle_trunc = plt.scatter(np.ravel(rhoLambda), np.ravel(mean_runtime_trunc), color="#F9FB0E", label="Trunc", alpha=plotalpha)
-    #
-    # plt.legend(handles=[handle_trunc, handle_pgffa, handle_utppgffa], loc=2)
-    # plt.ylabel('Runtime (s)')
-    # plt.xlabel(r'$\rho\Lambda$')
-    # plt.title(r'Runtime as a function of $\rho\Lambda$')
-    # plt.xlim(np.min(rhoLambda), np.max(rhoLambda))
-    # plt.ylim(0, max((np.max(runtime_utppgffa), np.max(runtime_pgffa), np.max(runtime_trunc))))
+    plotalpha = 1.0
+    rhoLambda = np.multiply(rho_val, N_val)
+    handle_utppgffa = plt.scatter(np.ravel(rhoLambda), np.ravel(mean_runtime_utppgffa), color="#352A87", label="UTPPGFFA", alpha=plotalpha)
+    handle_pgffa = plt.scatter(np.ravel(rhoLambda), np.ravel(mean_runtime_pgffa), color="#33B8A1", label="PGFFA", alpha=plotalpha)
+    handle_trunc = plt.scatter(np.ravel(rhoLambda), np.ravel(mean_runtime_trunc), color="#F9FB0E", label="Trunc", alpha=plotalpha)
+
+    plt.legend(handles=[handle_trunc, handle_pgffa, handle_utppgffa], loc=2)
+    plt.ylabel('Runtime (s)')
+    plt.xlabel(r'$\rho\Lambda$')
+    plt.title(r'Runtime as a function of $\rho\Lambda$')
+    plt.xlim(np.min(rhoLambda), np.max(rhoLambda))
+    plt.ylim(0, max((np.max(runtime_utppgffa), np.max(runtime_pgffa), np.max(runtime_trunc))))
 
     ### plot runtime vs rho*Lambda (only for K = 5)
     # plotalpha = 0.5
@@ -439,33 +439,33 @@ def runtime_experiment_plot(resultdir):
     # plt.title(r'Runtime difference as a function of $\rho$')
 
     ### plot runtime vs Lambda (for some fixed rho)
-    rho_target = 0.5
-    plotalpha = 1.0
-
-    N_val                 = N_val[rho_val == rho_target]
-    mean_runtime_utppgffa = mean_runtime_utppgffa[rho_val == rho_target]
-    mean_runtime_pgffa    = mean_runtime_pgffa[rho_val == rho_target]
-    mean_runtime_trunc    = mean_runtime_trunc[rho_val == rho_target]
-
-    lists = sorted(itertools.izip(*[N_val, mean_runtime_utppgffa, mean_runtime_pgffa, mean_runtime_trunc]))
-    N_val, mean_runtime_utppgffa, mean_runtime_pgffa, mean_runtime_trunc = list(itertools.izip(*lists))
-
-    handle_trunc    = plt.plot(np.ravel(N_val),
-                               np.ravel(mean_runtime_trunc),
-                               color="#fabf0e", label="Trunc", alpha=plotalpha)
-    handle_pgffa    = plt.plot(np.ravel(N_val),
-                               np.ravel(mean_runtime_pgffa),
-                               color="#33B8A1", label="PGFFA", alpha=plotalpha)
-    handle_utppgffa = plt.plot(np.ravel(N_val),
-                               np.ravel(mean_runtime_utppgffa),
-                               color="#352A87", label="UTPPGFFA", alpha=plotalpha)
-
-    plt.legend(loc=2)
-    plt.ylabel('Runtime (s)')
-    plt.xlabel(r'$\Lambda$')
-    plt.title(r'Runtime vs $\Lambda$ for $\rho = %s$' % str(rho_target))
-    plt.xlim(np.min(N_val), np.max(N_val))
-    plt.ylim(0, max((np.max(runtime_utppgffa), np.max(runtime_pgffa), np.max(runtime_trunc))))
+    # rho_target = 0.8
+    # plotalpha = 1.0
+    #
+    # N_val                 = N_val[rho_val == rho_target]
+    # mean_runtime_utppgffa = mean_runtime_utppgffa[rho_val == rho_target]
+    # mean_runtime_pgffa    = mean_runtime_pgffa[rho_val == rho_target]
+    # mean_runtime_trunc    = mean_runtime_trunc[rho_val == rho_target]
+    #
+    # lists = sorted(itertools.izip(*[N_val, mean_runtime_utppgffa, mean_runtime_pgffa, mean_runtime_trunc]))
+    # N_val, mean_runtime_utppgffa, mean_runtime_pgffa, mean_runtime_trunc = list(itertools.izip(*lists))
+    #
+    # handle_trunc    = plt.plot(np.ravel(N_val),
+    #                            np.ravel(mean_runtime_trunc),
+    #                            color="#fabf0e", label="Trunc", alpha=plotalpha)
+    # handle_pgffa    = plt.plot(np.ravel(N_val),
+    #                            np.ravel(mean_runtime_pgffa),
+    #                            color="#33B8A1", label="PGFFA", alpha=plotalpha)
+    # handle_utppgffa = plt.plot(np.ravel(N_val),
+    #                            np.ravel(mean_runtime_utppgffa),
+    #                            color="#352A87", label="UTPPGFFA", alpha=plotalpha)
+    #
+    # plt.legend(loc=2)
+    # plt.ylabel('Runtime (s)')
+    # plt.xlabel(r'$\Lambda$')
+    # plt.title(r'Runtime vs $\Lambda$ for $\rho = %s$' % str(rho_target))
+    # plt.xlim(np.min(N_val), np.max(N_val))
+    # plt.ylim(0, max((np.max(runtime_utppgffa), np.max(runtime_pgffa), np.max(runtime_trunc))))
 
     plt.show(block=True)
 
@@ -625,12 +625,20 @@ if __name__ == "__main__":
     # runtime_utppgffa, runtime_pgffa, runtime_trunc_final, runtime_trunc_total, n_max, y, N = runtime_hmm_zonn(verbose="full")
     # runtime_nmix()
 
+    resultdir = runtime_experiment_zonn(verbose="partial",
+                                        sigma = 4.,
+                                        # N_space=np.append(np.arange(10,101,10), np.arange(125, 501, 25)),
+                                        N_space=np.arange(25,501,100),
+                                        K_space=np.array([5]),
+                                        rho_space=np.arange(0.05,0.95,0.25),
+                                        n_reps=5,
+                                        epsilon=1e-5)
     # resultdir = runtime_experiment_zonn(verbose="partial",
-    #                                     sigma = 2.,
+    #                                     sigma=2.,
     #                                     # N_space=np.append(np.arange(10,101,10), np.arange(125, 501, 25)),
-    #                                     N_space=np.arange(25,501,50),
+    #                                     N_space=np.arange(25, 501, 50),
     #                                     K_space=np.array([5]),
-    #                                     rho_space=np.arange(0.05,0.95,0.05),
+    #                                     rho_space=np.arange(0.05, 0.95, 0.05),
     #                                     n_reps=20,
     #                                     epsilon=1e-5)
     # resultdir = runtime_experiment_gen(verbose="partial",
@@ -649,8 +657,9 @@ if __name__ == "__main__":
     # resultdir = "/Users/kwinner/Work/Data/Results/20170219T004331426"
     # resultdir = "/Users/kwinner/Work/Data/Results/20170219T011553514"
     # resultdir = "/Users/kwinner/Work/Data/Results/20170219T151119276"
-    resultdir = "/Users/kwinner/Work/Data/Results/20170219T153853790"
-    runtime_experiment_plot(resultdir)
+    # resultdir = "/Users/kwinner/Work/Data/Results/20170219T153853790"
+    # resultdir = "/Users/kwinner/Work/Data/Results/20170219T215018111"
+    # runtime_experiment_plot(resultdir)
 
     # nmax_vs_runtime()
 
