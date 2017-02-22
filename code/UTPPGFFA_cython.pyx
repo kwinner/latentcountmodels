@@ -113,7 +113,7 @@ cpdef np.ndarray[np.double_t, ndim=1] lift_A(np.ndarray[np.double_t, ndim=1] s,
                                         #Alpha,
                                         logZ),
                                  F)
-    
+
     # lifted arrival GF @ u
     if   arrival_pgf_cython_name == 'poisson':
         G = poisson_utppgf_cython(u_du, theta_arrival[k,:])
@@ -148,7 +148,7 @@ cpdef np.ndarray[np.double_t, ndim=1] lift_A(np.ndarray[np.double_t, ndim=1] s,
 
     # normalize the alpha messages
     if np.any(alpha):
-        Z = np.max(alpha)
+        Z = np.max(np.abs(alpha))
         logZ[k] += np.log(Z)
         alpha /= Z
 

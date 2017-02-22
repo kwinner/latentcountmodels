@@ -10,7 +10,6 @@ from cython cimport boundscheck, cdivision, nonecheck, wraparound
 
 import numpy as np
 cimport numpy as np
-import scipy
 
 from algopy import UTPM
 
