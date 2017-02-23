@@ -14,7 +14,8 @@ from scipy import stats, integrate
 # from distributions import *
 from distributions_cython import *
 
-import UTPPGFFA
+# import UTPPGFFA
+import UTPPGFFA_cython
 import pgffa_kev as pgffa
 # import pgffa
 import truncatedfa
@@ -37,8 +38,8 @@ def runtime_hmm(
     K = len(Lambda)
 
     # sample record
-    N = np.zeros((n_reps, K)).astype(int)
-    y = np.zeros((n_reps, K)).astype(int)
+    N = np.zeros((n_reps, K), dtype=np.int32)
+    y = np.zeros((n_reps, K), dtype=np.int32)
 
     # runtime record
     runtime_trunc_final = np.zeros(n_reps)
@@ -62,10 +63,12 @@ def runtime_hmm(
         arrival_pmf = stats.poisson
         # arrival_pgf = lambda s, theta: poisson_pgf(s, theta)
         arrival_pgf = poisson_utppgf_cython
+        arrival_pgf_name = 'poisson'
     elif arrival == 'negbin':
         arrival_pmf = stats.nbinom
         # arrival_pgf = lambda s, theta: negbin_pgf(s, theta)
         arrival_pgf = negbin_utppgf_cython
+        arrival_pgf_name = 'negbin'
     elif arrival == 'logser':
         arrival_pmf = stats.logser
         # arrival_pgf = lambda s, theta: logarithmic_pgf(s, theta)
@@ -79,10 +82,12 @@ def runtime_hmm(
         branch_fun  = truncatedfa.binomial_branching
         # branch_pgf  = lambda s, theta: bernoulli_pgf(s, theta)
         branch_pgf = bernoulli_utppgf_cython
+        branch_pgf_name = 'bernoulli'
     elif branch == 'poisson':
         branch_fun  = truncatedfa.poisson_branching
         # branch_pgf  = lambda s, theta: poisson_pgf(s, theta)
         branch_pgf = poisson_utppgf_cython
+        branch_pgf_name = 'poisson'
 
     if observ  == 'binomial':
         observ_pgf  = None
@@ -98,21 +103,32 @@ def runtime_hmm(
                     if i == 0:
                         N[iter, i] = arrival_pmf.rvs(Lambda[i])
                     else:
-                        N[iter, i] = arrival_pmf.rvs(Lambda[i]) + stats.binom.rvs(N[iter, i-1], Delta[i-1])
+                        if branch == 'binomial':
+                            N[iter, i] = arrival_pmf.rvs(Lambda[i]) + stats.binom.rvs(N[iter, i-1], Delta[i-1])
+                        elif branch == 'poisson':
+                            N[iter, i] = arrival_pmf.rvs(Lambda[i]) + stats.poisson.rvs(N[iter, i - 1], Delta[i - 1])
                     y[iter, i] = stats.binom.rvs(N[iter, i], Rho[i])
 
                 if verbose == "full": print y[iter,:]
 
                 # likelihood from UTPPGFFA
                 t_start = time.clock()
-                Alpha_utppgffa, logZ_utppgffa = UTPPGFFA.utppgffa(y[iter, :],
-                                                               Theta,
-                                                               arrival_pgf,
-                                                               branch_pgf,
-                                                               observ_pgf,
-                                                               d=1,
-                                                               normalized=True)
-                loglikelihood_utppgffa = np.log(Alpha_utppgffa[-1][0]) + np.sum(logZ_utppgffa)
+                # Alpha_utppgffa, logZ_utppgffa = UTPPGFFA.utppgffa(y[iter, :],
+                #                                                Theta,
+                #                                                arrival_pgf,
+                #                                                branch_pgf,
+                #                                                observ_pgf,
+                #                                                d=1,
+                #                                                normalized=True)
+                alpha_utppgffa, logZ_utppgffa = UTPPGFFA_cython.utppgffa_cython(y[iter, :],
+                                                                  arrival_pgf_name,
+                                                                  Lambda_trunc,
+                                                                  branch_pgf_name,
+                                                                  Delta_trunc,
+                                                                  Rho,
+                                                                  d=3)
+                # loglikelihood_utppgffa = np.log(Alpha_utppgffa[-1][0]) + np.sum(logZ_utppgffa)
+                loglikelihood_utppgffa = np.log(alpha_utppgffa[0]) + np.sum(logZ_utppgffa)
                 runtime_utppgffa[iter] = time.clock() - t_start
                 if verbose == "full": print "UTPPGFFA: %0.4f" % runtime_utppgffa[iter]
 
@@ -621,6 +637,104 @@ def nmax_vs_runtime(nmax_space = np.arange(42, 250),
     plt.show(block=True)
 
 
+def runtime_trunc_vs_params(true_N    = 50,
+                            N_space   = np.arange(10,100,10),
+                            true_rho  = 0.5,
+                            rho_space = np.arange(0.05, 1.00, 0.05),
+                            Lambda    = np.array([0.0257, 0.1163, 0.2104, 0.1504, 0.0428], dtype=np.float64), # unscaled Lambda
+                            true_delta = 0.25,
+                            delta_space = np.arange(0.05, 1.00, 0.05),
+                            epsilon = 1e-6,              # error tolerance in truncated fa
+                            n_samples = 10,                # number of times to repeat the experiment
+                            N_LIMIT = 1000,              # hard cap on the max value for the truncated algorithm
+                            verbose = "silent",
+                            arrival = 'poisson',
+                            branch  = 'binomial',
+                            observ  = 'binomial'):
+    K = Lambda.shape[0]
+
+    if arrival == 'poisson':
+        arrival_pmf = stats.poisson
+    elif arrival == 'negbin':
+        arrival_pmf = stats.nbinom
+    elif arrival == 'logser':
+        arrival_pmf = stats.logser
+    elif arrival == 'geom':
+        arrival_pmf = stats.geom
+
+    if branch  == 'binomial':
+        branch_fun  = truncatedfa.binomial_branching
+    elif branch == 'poisson':
+        branch_fun  = truncatedfa.poisson_branching
+
+    if np.isscalar(true_rho):
+        true_rho = true_rho * np.ones((K, 1))
+    if np.isscalar(true_delta):
+        true_delta = true_delta * np.ones((K-1, 1))
+
+    for iSample in xrange(n_samples):
+        N = np.empty(K)
+        y = np.empty(K)
+
+        for i in range(0, K):
+            if i == 0:
+                N[i] = arrival_pmf.rvs(Lambda[i])
+            else:
+                if branch == 'binomial':
+                    N[i] = arrival_pmf.rvs(Lambda[i]) + stats.binom.rvs(N[i - 1], true_delta[i - 1])
+                elif branch == 'poisson':
+                    N[i] = arrival_pmf.rvs(Lambda[i]) + stats.poisson.rvs(N[i - 1], true_delta[i - 1])
+            y[i] = stats.binom.rvs(N[i], true_rho[i])
+
+        for iN in xrange(len(N_space)):
+            for iRho in xrange(len(rho_space)):
+                for iDelta in xrange(len(delta_space)):# likelihood from UTPPGFFA
+                    t_start = time.clock()
+                    Alpha_utppgffa, logZ_utppgffa = UTPPGFFA.utppgffa(y[iter, :],
+                                                                   Theta,
+                                                                   arrival_pgf,
+                                                                   branch_pgf,
+                                                                   observ_pgf,
+                                                                   d=1,
+                                                                   normalized=True)
+                    loglikelihood_utppgffa = np.log(Alpha_utppgffa[-1][0]) + np.sum(logZ_utppgffa)
+                    runtime_utppgffa[iter] = time.clock() - t_start
+                    if verbose == "full": print "UTPPGFFA: %0.4f" % runtime_utppgffa[iter]
+
+                    # likelihood from PGFFA
+                    t_start = time.clock()
+                    a, b, f = pgffa.pgf_forward(Lambda,
+                                                    Rho,
+                                                    Delta,
+                                                    y[iter, :])
+                    runtime_pgffa[iter] = time.clock() - t_start
+                    if verbose == "full": print "PGFFA: %0.4f" % runtime_pgffa[iter]
+
+                    # likelihood from truncated forward algorithm
+                    n_max[iter] = max(y[iter, :])
+                    t_start = time.clock()
+                    loglikelihood_trunc = float('inf')
+                    loglikelihood_diff  = float('inf')
+                    while abs(loglikelihood_trunc - loglikelihood_utppgffa) >= epsilon and \
+                          loglikelihood_diff >= CONV_LIMIT and \
+                          n_max[iter] < N_LIMIT:
+                    # while abs(1 - (loglikelihood_trunc / loglikelihood_utppgffa)) >= epsilon and n_max[iter] < N_LIMIT:
+                        n_max[iter] += 1
+                        t_loop = time.clock()
+                        Alpha_trunc, z = truncatedfa.truncated_forward(arrival_pmf,
+                                                                       Lambda_trunc,
+                                                                       branch_fun,
+                                                                       Delta_trunc,
+                                                                       Rho,
+                                                                       y[iter, :],
+                                                                       n_max=n_max[iter])
+                        loglikelihood_iter = truncatedfa.likelihood(z, log=True)
+                        loglikelihood_diff = abs(loglikelihood_trunc - loglikelihood_iter)
+                        loglikelihood_trunc = loglikelihood_iter
+                        runtime_trunc_final[iter] = time.clock() - t_loop
+                    runtime_trunc_total[iter] = time.clock() - t_start
+
+
 if __name__ == "__main__":
     # runtime_utppgffa, runtime_pgffa, runtime_trunc_final, runtime_trunc_total, n_max, y, N = runtime_hmm_zonn(verbose="full")
     # runtime_nmix()
@@ -628,7 +742,7 @@ if __name__ == "__main__":
     resultdir = runtime_experiment_zonn(verbose="partial",
                                         sigma = 4.,
                                         # N_space=np.append(np.arange(10,101,10), np.arange(125, 501, 25)),
-                                        N_space=np.arange(25,501,100),
+                                        N_space=np.arange(525,1001,100),
                                         K_space=np.array([5]),
                                         rho_space=np.arange(0.05,0.95,0.25),
                                         n_reps=5,
@@ -649,7 +763,7 @@ if __name__ == "__main__":
     #                                    n_reps=50,
     #                                    epsilon=1e-5,
     #                                    )
-    # print resultdir
+    print resultdir
 
     # resultdir = "/Users/kwinner/Work/Data/Results/20170215T115245506"
     # resultdir = "/Users/kwinner/Work/Data/Results/20170213T232631920"

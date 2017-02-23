@@ -156,6 +156,8 @@ def utppgffa(y, Theta, arrival_pgf_cython, branch_pgf_cython, observ_pgf, d=1, n
 
         # normalize the alpha messages
         if np.any(alpha):
+            if np.any(alpha < 0):
+                print 'negval'
 
             # Z[k] = np.max(alpha / scipy.misc.factorial(np.arange(0,len(alpha))))
             Z = np.max(alpha)
