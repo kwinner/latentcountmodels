@@ -54,16 +54,15 @@ def run_experiment(mode, min_delta, n, out_dir, out_mode):
     if not os.path.exists(path):
         os.makedirs(path)
 
-    log = out_dir + 'warnings.log'
-
     # MLE for each delta
     for delta in deltas:
         print 'delta =', delta
         true_params['branch'] = delta
         out = '{}/{}.csv'.format(path, delta)
+        log = '{}/warnings.log'.format(path)
         print out
 
-        run_mle(T, arrival, branch, observ, fa, log=log,
+        run_mle(T, arrival, branch, observ, fa, log=log, max_iters=n,
                 n=n, out=out, out_mode=out_mode, true_params=true_params)
 
 if __name__ == "__main__":
@@ -77,7 +76,7 @@ if __name__ == "__main__":
     6. Negative binomial arrival, negative binomial branching
     """
     mode = int(sys.argv[1]) - 1
-    min_delta = 0.2
+    min_delta = 0.3
     n = 50
     out_dir = '../data/mle_cython_gtol1e-15/'
     out_mode = 'w'

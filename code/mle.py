@@ -43,8 +43,15 @@ def run_mle(T, arrival, branch, observ, fa, y=None, true_params=None, n=20,
         if true_params is not None: y = generate_data(true_params, T, arrival, branch, observ)
         #print y
 
-        res = mle(y, T, arrival, branch, observ, fa, fa_args, flog)
-        if res.success:
+        success, n_restarts = False, 0
+        while (not success) and n_restarts < 3:
+            res = mle(y, T, arrival, branch, observ, fa, fa_args, flog)
+            success = res.success
+            n_restarts += 1
+
+        if n_restarts > 1 and success: print 'Restart successful'
+
+        if success:
             #print res.success, res.message
             theta_hat = res.x
     
@@ -59,15 +66,18 @@ def run_mle(T, arrival, branch, observ, fa, y=None, true_params=None, n=20,
             if out: writer.writerow(np.concatenate((y, theta_hat, ci_left, ci_right)))
             n_conv += 1
         else:
-            print n_conv, 'out of', i, res.success, res.message
+            print res.message, n_conv, 'successes out of', i + 1, 'trials'
 
         i += 1
 
-    print 'Number of iters:', i
     print 'Number of successes:', n_conv
+    print 'Number of trials:', i
 
     if out: fout.close()
-    if log: flog.close()
+    if log:
+        flog.write('Number of successes: ' + str(n_conv) + '\n')
+        flog.write('Number of trials: ' + str(i) + '\n')
+        flog.close()
 
     try:
         return theta_hat, ci_left, ci_right
