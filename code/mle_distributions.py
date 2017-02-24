@@ -19,7 +19,7 @@ constant_poisson_arrival = {
     'sample': stats.poisson.rvs,
     'hyperparam2param': lambda x, T: np.tile(x, (len(T), 1)),
     'init': lambda y: np.mean(y),
-    'bounds': lambda y: (1e-6, None)
+    'bounds': lambda y: (1e-6, 1000)
 }
 
 constant_nbinom_arrival = {
@@ -28,8 +28,8 @@ constant_nbinom_arrival = {
     'pgf': 'negbin',
     'sample': stats.nbinom.rvs,
     'hyperparam2param': lambda x, T: np.tile(x, (len(T), 1)),
-    'init': lambda y: [np.var(y), 0.5],
-    'bounds': lambda y: [(1e-6, None), (1e-6, 1 - 1e-6)]
+    'init': lambda y: [np.mean(y), 0.5],
+    'bounds': lambda y: [(1e-6, 1000), (1e-6, 1 - 1e-6)]
 }
 
 # N-mixture (parameter for the first time step, no subsequent new arrivals)
@@ -52,8 +52,8 @@ constant_poisson_branch = {
     'pgf': 'poisson',
     'sample': lambda n, lmbda: stats.poisson.rvs(n * lmbda),
     'hyperparam2param': lambda x, T: np.tile(x, (len(T)-1, 1)),
-    'init': lambda y: 1.5, #1/np.std(y),
-    'bounds': lambda y: (0.1, None)
+    'init': lambda y: 1, #1/np.std(y),
+    'bounds': lambda y: (1e-6, None)
 }
 
 constant_nbinom_branch = {
