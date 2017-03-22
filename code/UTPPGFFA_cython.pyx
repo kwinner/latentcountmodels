@@ -30,13 +30,13 @@ cpdef tuple utppgffa_cython(int[::1] y,
         double[::1] logZ = np.zeros(K)
         np.ndarray[np.double_t, ndim=1] alpha
 
-    print 'y = ', str(np.asarray(y))
-    print 'arrival = ', arrival_pgf_cython_name
-    print 'thetaarr = ', str(theta_arrival)
-    print 'branch = ', branch_pgf_cython_name
-    print 'thetabra = ', str(theta_branch)
-    print 'rho = ', theta_observ
-    print 'd = ', d
+    #print 'y = ', str(np.asarray(y))
+    #print 'arrival = ', arrival_pgf_cython_name
+    #print 'thetaarr = ', str(theta_arrival)
+    #print 'branch = ', branch_pgf_cython_name
+    #print 'thetabra = ', str(theta_branch)
+    #print 'rho = ', theta_observ
+    #print 'd = ', d
 
     alpha = lift_A(new_utpvec_cython(1., 1),
            K - 1,
@@ -68,7 +68,7 @@ cpdef np.ndarray[np.double_t, ndim=1] lift_A(np.ndarray[np.double_t, ndim=1] s,
     cdef:
         np.ndarray[np.double_t, ndim=1] alpha
 
-    print '\n---begin iter ', k
+    #print '\n---begin iter ', k
 
     # base case for k = -1, a constant utppgf = [1]
     if k < 0:
@@ -89,12 +89,12 @@ cpdef np.ndarray[np.double_t, ndim=1] lift_A(np.ndarray[np.double_t, ndim=1] s,
         np.ndarray[np.double_t, ndim=1] s_ds
         double Z
 
-    print 's = ', s
+    #print 's = ', s
 
     # scalar mul
     u = s * (1 - theta_observ[k])
 
-    print 'u = ', u
+    #print 'u = ', u
 
     # lifted branch GF @ u
     u_du = new_utpvec_cython(u, d_k + y[k])
@@ -113,8 +113,8 @@ cpdef np.ndarray[np.double_t, ndim=1] lift_A(np.ndarray[np.double_t, ndim=1] s,
     #elif branch_pgf_cython_name == 'geometric2':
     #    F = geometric2_utppgf_cython(u_du, theta_branch[k-1,:])
 
-    print 'u_du = ', u_du
-    print 'F = ', F
+    #print 'u_du = ', u_du
+    #print 'F = ', F
 
     s_prev = new_utpvec_cython(F[0], 1)
     # recurse
@@ -130,9 +130,9 @@ cpdef np.ndarray[np.double_t, ndim=1] lift_A(np.ndarray[np.double_t, ndim=1] s,
                                         #Alpha,
                                         logZ),
                                  F)
-    print '\n---return to iter ', k
+    #print '\n---return to iter ', k
 
-    print 'beta = ', beta
+    #print 'beta = ', beta
 
     # lifted arrival GF @ u
     #if   arrival_pgf_cython_name == 'poisson':

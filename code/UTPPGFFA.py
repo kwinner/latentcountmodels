@@ -2,8 +2,8 @@ import numpy as np
 import scipy.misc
 from algopy import UTPM
 
-from UTPPGF_util import lift_generating_function_utpm
-from UTPPGF_cython import *
+from UTPPGF_util import *
+# from UTPPGF_cython import *
 
 
 # algopy utppgffa
@@ -38,14 +38,16 @@ from UTPPGF_cython import *
 #
 #         s_ds = new_utp(s, d_k)
 #         # alpha = utp_compose(utp_deriv(beta, y[k]), (s_ds * (1 - Theta['observ'][k]))) / scipy.misc.factorial(y[k]) * np.power(s_ds * Theta['observ'][k], y[k])
-#         alpha = utp_compose_utpm(utp_deriv(beta, y[k]), (s_ds * (1 - Theta['observ'][k]))) / scipy.misc.factorial(y[k]) * np.power(s_ds * Theta['observ'][k], y[k])
+#         alpha = utp_compose_utpm(utp_deriv(beta, y[k]), (s_ds * (1 - Theta['observ'][k]))) * np.power(s_ds * Theta['observ'][k], y[k])
 #         # alpha = utp_compose(utp_deriv(beta, y[k]).data.squeeze(axis=(1,)), (s_ds * (1 - Theta['observ'][k])).data.squeeze(axis=(1,))) / scipy.misc.factorial(y[k]) * np.power(s_ds * Theta['observ'][k], y[k])
+#
+#         alpha.data /= np.max(alpha.data)
 #
 #         Alpha[k] = alpha
 #         return alpha
 #
 #     # call the top level lift_A (which records all the Alpha messages as it goes)
-#     lift_A(1, K-1, d)
+#     lift_A(0, K-1, d)
 #
 #     return Alpha
 
@@ -148,8 +150,13 @@ def utppgffa(y, Theta, arrival_pgf_cython, branch_pgf_cython, observ_pgf, d=1, n
         s_ds = new_utpvec_cython(s, d_k)
         # derivative, scalar mul, and compose
         alpha = utpvec_compose_affine_cython(utpvec_deriv_cython(beta, y[k]), (s_ds * (1 - Theta['observ'][k])))
+        # if np.any(np.isnan(alpha)):
+        #     True
         # scalar mul
-        alpha = utpvec_mul_cython(alpha, utpvec_pow_cython(s_ds * Theta['observ'][k], y[k]))
+        # alpha = utpvec_mul_cython(alpha, utpvec_pow_cython(s_ds * Theta['observ'][k], y[k]))
+        alpha = utpvec_mul_cython(alpha, lift_generating_function_utpm(np.power,s_ds * Theta['observ'][k], y[k]))
+        # if np.any(np.isnan(alpha)):
+        #     True
 
         # incorporate y_k factorial into logZ
         logZ[k] = -scipy.special.gammaln(y[k] + 1)
@@ -163,6 +170,9 @@ def utppgffa(y, Theta, arrival_pgf_cython, branch_pgf_cython, observ_pgf, d=1, n
             Z = np.max(alpha)
             logZ[k] += np.log(Z)
             alpha /= Z
+
+        # if np.any(np.isnan(alpha)):
+        #     True
 
         Alpha[k] = alpha
         return alpha

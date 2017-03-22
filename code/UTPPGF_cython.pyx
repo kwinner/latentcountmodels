@@ -11,8 +11,6 @@ from cython cimport boundscheck, cdivision, nonecheck, wraparound
 import numpy as np
 cimport numpy as np
 
-from algopy import UTPM
-
 from libc.math cimport lgamma, exp
 
 cdef double poch(double x, double n):
