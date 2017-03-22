@@ -1,5 +1,5 @@
 import numpy as np
-import scipy.misc
+import scipy.misc, scipy.special
 from algopy import UTPM
 
 from UTPPGF_util import *
@@ -50,7 +50,6 @@ from UTPPGF_util import *
 #     lift_A(0, K-1, d)
 #
 #     return Alpha
-
 
 # vector form utppgffa
 # def utppgffa(y, Theta, arrival_pgf, branch_pgf, observ_pgf, d=1):
@@ -247,3 +246,5 @@ def utppgffa(y, Theta, arrival_pgf_cython, branch_pgf_cython, observ_pgf, d=1, n
 #     log_lift_A(1, K-1, d)
 #
 #     return Alpha
+
+
