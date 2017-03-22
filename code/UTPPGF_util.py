@@ -61,8 +61,8 @@ def utp_compose(G, F):
     # require G and F to have same dimension, and always output something of same size
     assert G.data.shape[0] == F.data.shape[0]
 
-    g = G.data.copy().squeeze(axis=(1,))
-    f = F.data.copy().squeeze(axis=(1,))
+    g = G.data.copy().reshape(-1)
+    f = F.data.copy().reshape(-1)
     g_scalar = g[0]
     g[0], f[0] = 0, 0
 
@@ -83,8 +83,9 @@ def utp_compose(G, F):
 def utp_compose_utpm(G, F):
     assert G.data.shape[0] == F.data.shape[0]
 
+    return utp_compose(G,F)
     # return UTPM(np.asarray(utp_compose_vec(G.data[:,0], F.data[:,0])).reshape(-1,1))
-    return UTPM(utpvec_compose_cython(G.data[:,0], F.data[:,0]).reshape(-1,1))
+    # return UTPM(utpvec_compose_cython(G.data[:,0], F.data[:,0]).reshape(-1,1))
 
 
 def utp_compose_vec(G, F):

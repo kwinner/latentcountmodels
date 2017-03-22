@@ -11,8 +11,6 @@ from cython cimport boundscheck, cdivision, nonecheck, wraparound
 import numpy as np
 cimport numpy as np
 
-from algopy import UTPM
-
 from libc.math cimport lgamma, exp
 
 cdef double poch(double x, double n):
@@ -130,12 +128,20 @@ cpdef np.ndarray[np.double_t, ndim=1] utpvec_exp_cython(np.ndarray[np.double_t, 
         np.ndarray[np.double_t, ndim=1] out    = np.empty_like(F, dtype=np.double)
         np.ndarray[np.double_t, ndim=1] Ftilde = F[1:].copy()
 
+    #print "exp"
+    #print "in:"
+    #print F
+
     out[0] = np.exp(F[0])
     # for i in range(1, d):
     #     Ftilde[i - 1] *= i
     Ftilde *= range(1, d) # equivalent to previous two lines
     for i in range(1, d):
         out[i] = np.sum(out[:i][::-1]*Ftilde[:i], axis=0) / i
+
+    #print "out:"
+    #print out
+    #print ""
 
     return out
 
@@ -145,6 +151,10 @@ cpdef np.ndarray[np.double_t, ndim=1] utpvec_log_cython(np.ndarray[np.double_t, 
         int d = F.shape[0]
         np.ndarray[np.double_t, ndim=1] out = np.empty_like(F, dtype=np.double)
 
+    #print "log"
+    #print "in:"
+    #print F
+
     out[0] = np.log(F[0])
 
     for i in range(1, d):
@@ -152,6 +162,10 @@ cpdef np.ndarray[np.double_t, ndim=1] utpvec_log_cython(np.ndarray[np.double_t, 
         out[i] /= F[0]
     for i in range(1, d):
         out[i] /= i
+
+    #print "out:"
+    #print out
+    #print ""
 
     return out
 

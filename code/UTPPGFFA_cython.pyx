@@ -30,6 +30,14 @@ cpdef tuple utppgffa_cython(int[::1] y,
         double[::1] logZ = np.zeros(K)
         np.ndarray[np.double_t, ndim=1] alpha
 
+    #print 'y = ', str(np.asarray(y))
+    #print 'arrival = ', arrival_pgf_cython_name
+    #print 'thetaarr = ', str(theta_arrival)
+    #print 'branch = ', branch_pgf_cython_name
+    #print 'thetabra = ', str(theta_branch)
+    #print 'rho = ', theta_observ
+    #print 'd = ', d
+
     alpha = lift_A(new_utpvec_cython(1., 1),
            K - 1,
            d,
@@ -60,6 +68,8 @@ cpdef np.ndarray[np.double_t, ndim=1] lift_A(np.ndarray[np.double_t, ndim=1] s,
     cdef:
         np.ndarray[np.double_t, ndim=1] alpha
 
+    #print '\n---begin iter ', k
+
     # base case for k = -1, a constant utppgf = [1]
     if k < 0:
         alpha = np.zeros(d_k)
@@ -79,25 +89,32 @@ cpdef np.ndarray[np.double_t, ndim=1] lift_A(np.ndarray[np.double_t, ndim=1] s,
         np.ndarray[np.double_t, ndim=1] s_ds
         double Z
 
+    #print 's = ', s
+
     # scalar mul
     u = s * (1 - theta_observ[k])
 
+    #print 'u = ', u
+
     # lifted branch GF @ u
     u_du = new_utpvec_cython(u, d_k + y[k])
-    if   branch_pgf_cython_name == 'poisson':
-        F = poisson_utppgf_cython(u_du, theta_branch[k-1,:])
-    elif branch_pgf_cython_name == 'bernoulli':
-        F = bernoulli_utppgf_cython(u_du, theta_branch[k-1,:])
-    elif branch_pgf_cython_name == 'binomial':
-        F = binomial_utppgf_cython(u_du, theta_branch[k-1,:])
-    elif branch_pgf_cython_name == 'negbin':
-        F = negbin_utppgf_cython(u_du, theta_branch[k-1,:])
-    elif branch_pgf_cython_name == 'logarithmic':
-        F = logarithmic_utppgf_cython(u_du, theta_branch[k-1,:])
-    elif branch_pgf_cython_name == 'geometric':
-        F = geometric_utppgf_cython(u_du, theta_branch[k-1,:])
-    elif branch_pgf_cython_name == 'geometric2':
-        F = geometric2_utppgf_cython(u_du, theta_branch[k-1,:])
+    #if   branch_pgf_cython_name == 'poisson':
+    #    F = poisson_utppgf_cython(u_du, theta_branch[k-1,:])
+    #elif branch_pgf_cython_name == 'bernoulli':
+    F = bernoulli_utppgf_cython(u_du, theta_branch[k-1,:])
+    #elif branch_pgf_cython_name == 'binomial':
+    #    F = binomial_utppgf_cython(u_du, theta_branch[k-1,:])
+    #elif branch_pgf_cython_name == 'negbin':
+    #    F = negbin_utppgf_cython(u_du, theta_branch[k-1,:])
+    #elif branch_pgf_cython_name == 'logarithmic':
+    #    F = logarithmic_utppgf_cython(u_du, theta_branch[k-1,:])
+    #elif branch_pgf_cython_name == 'geometric':
+    #    F = geometric_utppgf_cython(u_du, theta_branch[k-1,:])
+    #elif branch_pgf_cython_name == 'geometric2':
+    #    F = geometric2_utppgf_cython(u_du, theta_branch[k-1,:])
+
+    #print 'u_du = ', u_du
+    #print 'F = ', F
 
     s_prev = new_utpvec_cython(F[0], 1)
     # recurse
@@ -113,45 +130,66 @@ cpdef np.ndarray[np.double_t, ndim=1] lift_A(np.ndarray[np.double_t, ndim=1] s,
                                         #Alpha,
                                         logZ),
                                  F)
+    #print '\n---return to iter ', k
+
+    #print 'beta = ', beta
 
     # lifted arrival GF @ u
-    if   arrival_pgf_cython_name == 'poisson':
-        G = poisson_utppgf_cython(u_du, theta_arrival[k,:])
-    elif arrival_pgf_cython_name == 'bernoulli':
-        G = bernoulli_utppgf_cython(u_du, theta_arrival[k,:])
-    elif arrival_pgf_cython_name == 'binomial':
-        G = binomial_utppgf_cython(u_du, theta_arrival[k,:])
-    elif arrival_pgf_cython_name == 'negbin':
-        G = negbin_utppgf_cython(u_du, theta_arrival[k,:])
-    elif arrival_pgf_cython_name == 'logarithmic':
-        G = logarithmic_utppgf_cython(u_du, theta_arrival[k,:])
-    elif arrival_pgf_cython_name == 'geometric':
-        G = geometric_utppgf_cython(u_du, theta_arrival[k,:])
-    elif arrival_pgf_cython_name == 'geometric2':
-        G = geometric2_utppgf_cython(u_du, theta_arrival[k,:])
+    #if   arrival_pgf_cython_name == 'poisson':
+    G = poisson_utppgf_cython(u_du, theta_arrival[k,:])
+    #elif arrival_pgf_cython_name == 'bernoulli':
+    #    G = bernoulli_utppgf_cython(u_du, theta_arrival[k,:])
+    #elif arrival_pgf_cython_name == 'binomial':
+    #    G = binomial_utppgf_cython(u_du, theta_arrival[k,:])
+    #elif arrival_pgf_cython_name == 'negbin':
+    #    G = negbin_utppgf_cython(u_du, theta_arrival[k,:])
+    #elif arrival_pgf_cython_name == 'logarithmic':
+    #    G = logarithmic_utppgf_cython(u_du, theta_arrival[k,:])
+    #elif arrival_pgf_cython_name == 'geometric':
+    #    G = geometric_utppgf_cython(u_du, theta_arrival[k,:])
+    #elif arrival_pgf_cython_name == 'geometric2':
+    #    G = geometric2_utppgf_cython(u_du, theta_arrival[k,:])
+
+    #print 'G = ', G
 
     # utp mul
     beta = utpvec_mul_cython(beta, G)
+
+    #print 'beta2 = ', beta
 
     # observe
     s_ds = new_utpvec_cython(s, d_k)
     # deriv
     alpha = utpvec_deriv_cython(beta, y[k])
+
+    #print 'alpha = ', alpha
+
     # correct dual
     alpha = utpvec_compose_affine_cython(alpha, (s_ds * (1 - theta_observ[k])))
+
+    #print 'alpha2 = ', alpha
+    if np.any(alpha) and not np.any(np.isinf(alpha)):
+        Z = np.max(np.abs(alpha))
+        logZ[k] += np.log(Z)
+        alpha /= Z
+
     # mul by (s*rho) ^ y_k
     alpha = utpvec_mul_cython(alpha, utpvec_pow_cython(s_ds * theta_observ[k], y[k]))
+
+    #print 'alpha3 = ', alpha
 
     # divide by y_k! (incorporate into Z immediately)
     #logZ[k] = -sp.special.gammaln(y[k] + 1)
     logZ[k] = -lgamma(y[k] + 1)
 
     # normalize the alpha messages
-    if np.any(alpha):
+    if np.any(alpha) and not np.any(np.isinf(alpha)):
         Z = np.max(np.abs(alpha))
         logZ[k] += np.log(Z)
         alpha /= Z
 
     #Alpha[k] = alpha
+
+    #print 'alpha4 = ', alpha
 
     return alpha

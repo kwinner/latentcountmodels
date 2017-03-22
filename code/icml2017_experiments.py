@@ -14,7 +14,8 @@ from scipy import stats, integrate
 # from distributions import *
 from distributions_cython import *
 
-import UTPPGFFA
+# import UTPPGFFA
+import UTPPGFFA_cython
 import pgffa_kev as pgffa
 # import pgffa
 import truncatedfa
@@ -37,8 +38,8 @@ def runtime_hmm(
     K = len(Lambda)
 
     # sample record
-    N = np.zeros((n_reps, K)).astype(int)
-    y = np.zeros((n_reps, K)).astype(int)
+    N = np.zeros((n_reps, K), dtype=np.int32)
+    y = np.zeros((n_reps, K), dtype=np.int32)
 
     # runtime record
     runtime_trunc_final = np.zeros(n_reps)
@@ -62,10 +63,12 @@ def runtime_hmm(
         arrival_pmf = stats.poisson
         # arrival_pgf = lambda s, theta: poisson_pgf(s, theta)
         arrival_pgf = poisson_utppgf_cython
+        arrival_pgf_name = 'poisson'
     elif arrival == 'negbin':
         arrival_pmf = stats.nbinom
         # arrival_pgf = lambda s, theta: negbin_pgf(s, theta)
         arrival_pgf = negbin_utppgf_cython
+        arrival_pgf_name = 'negbin'
     elif arrival == 'logser':
         arrival_pmf = stats.logser
         # arrival_pgf = lambda s, theta: logarithmic_pgf(s, theta)
@@ -79,10 +82,12 @@ def runtime_hmm(
         branch_fun  = truncatedfa.binomial_branching
         # branch_pgf  = lambda s, theta: bernoulli_pgf(s, theta)
         branch_pgf = bernoulli_utppgf_cython
+        branch_pgf_name = 'bernoulli'
     elif branch == 'poisson':
         branch_fun  = truncatedfa.poisson_branching
         # branch_pgf  = lambda s, theta: poisson_pgf(s, theta)
         branch_pgf = poisson_utppgf_cython
+        branch_pgf_name = 'poisson'
 
     if observ  == 'binomial':
         observ_pgf  = None
@@ -98,21 +103,32 @@ def runtime_hmm(
                     if i == 0:
                         N[iter, i] = arrival_pmf.rvs(Lambda[i])
                     else:
-                        N[iter, i] = arrival_pmf.rvs(Lambda[i]) + stats.binom.rvs(N[iter, i-1], Delta[i-1])
+                        if branch == 'binomial':
+                            N[iter, i] = arrival_pmf.rvs(Lambda[i]) + stats.binom.rvs(N[iter, i-1], Delta[i-1])
+                        elif branch == 'poisson':
+                            N[iter, i] = arrival_pmf.rvs(Lambda[i]) + stats.poisson.rvs(N[iter, i - 1] * Delta[i - 1])
                     y[iter, i] = stats.binom.rvs(N[iter, i], Rho[i])
 
                 if verbose == "full": print y[iter,:]
 
                 # likelihood from UTPPGFFA
                 t_start = time.clock()
-                Alpha_utppgffa, logZ_utppgffa = UTPPGFFA.utppgffa(y[iter, :],
-                                                               Theta,
-                                                               arrival_pgf,
-                                                               branch_pgf,
-                                                               observ_pgf,
-                                                               d=1,
-                                                               normalized=True)
-                loglikelihood_utppgffa = np.log(Alpha_utppgffa[-1][0]) + np.sum(logZ_utppgffa)
+                # Alpha_utppgffa, logZ_utppgffa = UTPPGFFA.utppgffa(y[iter, :],
+                #                                                Theta,
+                #                                                arrival_pgf,
+                #                                                branch_pgf,
+                #                                                observ_pgf,
+                #                                                d=1,
+                #                                                normalized=True)
+                alpha_utppgffa, logZ_utppgffa = UTPPGFFA_cython.utppgffa_cython(y[iter, :],
+                                                                  arrival_pgf_name,
+                                                                  Lambda_trunc,
+                                                                  branch_pgf_name,
+                                                                  Delta_trunc,
+                                                                  Rho,
+                                                                  d=3)
+                # loglikelihood_utppgffa = np.log(Alpha_utppgffa[-1][0]) + np.sum(logZ_utppgffa)
+                loglikelihood_utppgffa = np.log(alpha_utppgffa[0]) + np.sum(logZ_utppgffa)
                 runtime_utppgffa[iter] = time.clock() - t_start
                 if verbose == "full": print "UTPPGFFA: %0.4f" % runtime_utppgffa[iter]
 
@@ -347,10 +363,18 @@ def runtime_experiment_plot(resultdir):
         # if N_val[iResult] == 200 and K_val[iResult] == 5 and rho_val[iResult] == 0.8:
         #     True
 
+    N_space = np.unique(N_val); nN = N_space.shape[0]
+    Rho_space = np.unique(rho_val); nRho = Rho_space.shape[0]
+    K_space = np.unique(K_val); nK = K_space.shape[0]
+
     # take the mean over all repetitions of the experiment
     mean_runtime_utppgffa = np.mean(runtime_utppgffa, axis=1)
     mean_runtime_pgffa    = np.mean(runtime_pgffa, axis=1)
     mean_runtime_trunc    = np.mean(runtime_trunc, axis=1)
+
+    var_runtime_utppgffa  = np.var(runtime_utppgffa, axis=1)
+    var_runtime_pgffa = np.var(runtime_pgffa, axis=1)
+    var_runtime_trunc = np.var(runtime_trunc, axis=1)
 
     # setup latex
     plt.rc('text', usetex=True)
@@ -402,18 +426,18 @@ def runtime_experiment_plot(resultdir):
     # plt.ylim(0, max((np.max(runtime_utppgffa), np.max(runtime_pgffa), np.max(runtime_trunc))))
 
     ### plot runtime vs rho*Lambda
-    plotalpha = 1.0
-    rhoLambda = np.multiply(rho_val, N_val)
-    handle_utppgffa = plt.scatter(np.ravel(rhoLambda), np.ravel(mean_runtime_utppgffa), color="#352A87", label="UTPPGFFA", alpha=plotalpha)
-    handle_pgffa = plt.scatter(np.ravel(rhoLambda), np.ravel(mean_runtime_pgffa), color="#33B8A1", label="PGFFA", alpha=plotalpha)
-    handle_trunc = plt.scatter(np.ravel(rhoLambda), np.ravel(mean_runtime_trunc), color="#F9FB0E", label="Trunc", alpha=plotalpha)
-
-    plt.legend(handles=[handle_trunc, handle_pgffa, handle_utppgffa], loc=2)
-    plt.ylabel('Runtime (s)')
-    plt.xlabel(r'$\rho\Lambda$')
-    plt.title(r'Runtime as a function of $\rho\Lambda$')
-    plt.xlim(np.min(rhoLambda), np.max(rhoLambda))
-    plt.ylim(0, max((np.max(runtime_utppgffa), np.max(runtime_pgffa), np.max(runtime_trunc))))
+    # plotalpha = 1.0
+    # rhoLambda = np.multiply(rho_val, N_val)
+    # handle_utppgffa = plt.scatter(np.ravel(rhoLambda), np.ravel(mean_runtime_utppgffa), color="#352A87", label="UTPPGFFA", alpha=plotalpha)
+    # handle_pgffa = plt.scatter(np.ravel(rhoLambda), np.ravel(mean_runtime_pgffa), color="#33B8A1", label="PGFFA", alpha=plotalpha)
+    # handle_trunc = plt.scatter(np.ravel(rhoLambda), np.ravel(mean_runtime_trunc), color="#F9FB0E", label="Trunc", alpha=plotalpha)
+    #
+    # plt.legend(handles=[handle_trunc, handle_pgffa, handle_utppgffa], loc=2)
+    # plt.ylabel('Runtime (s)')
+    # plt.xlabel(r'$\rho\Lambda$')
+    # plt.title(r'Runtime as a function of $\rho\Lambda$')
+    # plt.xlim(np.min(rhoLambda), np.max(rhoLambda))
+    # plt.ylim(0, max((np.max(runtime_utppgffa), np.max(runtime_pgffa), np.max(runtime_trunc))))
 
     ### plot runtime vs rho*Lambda (only for K = 5)
     # plotalpha = 0.5
@@ -433,10 +457,19 @@ def runtime_experiment_plot(resultdir):
     # plt.ylim(0, max((np.max(runtime_utppgffa[K_val == 5]), np.max(runtime_pgffa[K_val == 5]), np.max(runtime_trunc[K_val == 5]))))
 
     ### plot difference in runtime between trunc, utppgffa vs rho
-    # plt.scatter(np.ravel(rho_val), np.ravel(mean_runtime_utppgffa - mean_runtime_trunc), color="#352A87")
+    # for iN in range(nN):
+    #     x = rho_val[N_val == N_space[iN]]
+    #     y = mean_runtime_utppgffa - mean_runtime_trunc
+    #     y = y[N_val == N_space[iN]]
+    #
+    #     lists = sorted(itertools.izip(*[x, y]))
+    #     x, y = list(itertools.izip(*lists))
+    #
+    #     plt.plot(x, y, label=str(N_space[iN]))
     # plt.ylabel('T(utppgffa) - T(trunc)')
     # plt.xlabel(r'$\rho$')
     # plt.title(r'Runtime difference as a function of $\rho$')
+    # plt.legend(loc=4)
 
     ### plot runtime vs Lambda (for some fixed rho)
     # rho_target = 0.8
@@ -467,7 +500,60 @@ def runtime_experiment_plot(resultdir):
     # plt.xlim(np.min(N_val), np.max(N_val))
     # plt.ylim(0, max((np.max(runtime_utppgffa), np.max(runtime_pgffa), np.max(runtime_trunc))))
 
+    ### plot runtime vs rho (for some fixed lambda)
+    lambda_target = 200
+    # lambda_target = 64
+    plotalpha = 1.0
+    linewidth = 5.0
+    elinewidth = 2.0
+    capsize = 3.0
+
+    plt.rc('xtick', labelsize=16)
+    plt.rc('ytick', labelsize=16)
+
+    rho_val                 = rho_val[N_val == lambda_target]
+    mean_runtime_utppgffa = mean_runtime_utppgffa[N_val == lambda_target]
+    mean_runtime_pgffa    = mean_runtime_pgffa[N_val == lambda_target]
+    mean_runtime_trunc    = mean_runtime_trunc[N_val == lambda_target]
+    var_runtime_utppgffa = var_runtime_utppgffa[N_val == lambda_target]
+    var_runtime_pgffa    = var_runtime_pgffa[N_val == lambda_target]
+    var_runtime_trunc    = var_runtime_trunc[N_val == lambda_target]
+
+    lists = sorted(itertools.izip(*[rho_val, mean_runtime_utppgffa, mean_runtime_pgffa, mean_runtime_trunc, var_runtime_utppgffa, var_runtime_pgffa, var_runtime_trunc]))
+    rho_val, mean_runtime_utppgffa, mean_runtime_pgffa, mean_runtime_trunc, var_runtime_utppgffa, var_runtime_pgffa, var_runtime_trunc = list(itertools.izip(*lists))
+
+    handle_trunc    = plt.errorbar(np.ravel(rho_val),
+                               np.ravel(mean_runtime_trunc),
+                               yerr=1.96 * np.sqrt(np.ravel(var_runtime_trunc)) / 10,
+                               color="#EEB220", label=r"\texttt{Trunc}", alpha=plotalpha,
+                               linewidth=linewidth, dashes=(3,2),
+                               elinewidth=elinewidth, capsize=capsize, capthick=elinewidth)#,linestyle=':')
+    handle_pgffa    = plt.errorbar(np.ravel(rho_val),
+                               np.ravel(mean_runtime_pgffa),
+                               yerr=1.96 * np.sqrt(np.ravel(var_runtime_trunc)) / 10,
+                               color="#DA5319", label=r"\texttt{PGFFA}", alpha=plotalpha,
+                               linewidth=linewidth, linestyle='--',
+                               elinewidth=elinewidth, capsize=capsize, capthick=elinewidth)
+    handle_utppgffa = plt.errorbar(np.ravel(rho_val),
+                               np.ravel(mean_runtime_utppgffa),
+                               yerr=1.96 * np.sqrt(np.ravel(var_runtime_trunc)) / 10,
+                               color="#0072BE", label=r"\texttt{GDUAL-FORWARD}", alpha=plotalpha,
+                               linewidth=linewidth, linestyle='-',
+                               elinewidth=elinewidth, capsize=capsize, capthick=elinewidth)
+
+    plt.legend(loc=2, fontsize=15)
+    # plt.legend(loc=6, fontsize=15)
+    plt.ylabel('Runtime (s)', fontsize=18)
+    plt.xlabel(r'$\rho$', fontsize=20)
+    # plt.title(r'Runtime vs $\rho$ for $\Lambda = %s$' % str(lambda_target), fontsize=18)
+    plt.title(r'Runtime vs $\rho$ in PHMM: $\Lambda = %s, \sigma = %s$' % (str(lambda_target), 4), fontsize=18)
+    # plt.title(r'Runtime vs $\rho$ in PHMM: $\Lambda = %s, \sigma = %s$' % (str(lambda_target), 2), fontsize=18)
+    # plt.title(r'Runtime vs $\rho$ in Branching NMix: $\Lambda = %s, \delta = %s$' % (str(lambda_target), 0.4), fontsize=18)
+    plt.xlim(np.min(rho_val), np.max(rho_val))
+    plt.ylim(0, max((np.max(mean_runtime_utppgffa), np.max(mean_runtime_pgffa), np.max(mean_runtime_trunc))))
+
     plt.show(block=True)
+
 
 def runtime_experiment_gen(N_space   = np.arange(10,100,10),
                            rho_space = np.arange(0.05, 1.00, 0.05),
@@ -621,18 +707,223 @@ def nmax_vs_runtime(nmax_space = np.arange(42, 250),
     plt.show(block=True)
 
 
+def runtime_trunc_vs_params(true_N    = 50,
+                            N_space   = np.arange(10,100,10),
+                            true_rho  = 0.5,
+                            rho_space = np.arange(0.10, 1.00, 0.10),
+                            Lambda    = np.array([0.0257, 0.1163, 0.2104, 0.1504, 0.0428], dtype=np.float64), # unscaled Lambda
+                            true_delta = 0.25,
+                            # delta_space = np.arange(0.05, 1.00, 0.05),
+                            delta_space = [0.25],
+                            epsilon = 1e-6,              # error tolerance in truncated fa
+                            n_samples = 10,                # number of times to repeat the experiment
+                            N_LIMIT = 300,              # hard cap on the max value for the truncated algorithm
+                            verbose = "full",
+                            arrival = 'poisson',
+                            branch  = 'binomial',
+                            observ  = 'binomial'):
+    CONV_LIMIT = 1e-10
+    K = Lambda.shape[0]
+
+    if arrival == 'poisson':
+        arrival_pmf = stats.poisson
+        arrival_name = 'poisson'
+    elif arrival == 'negbin':
+        arrival_pmf = stats.nbinom
+        arrival_name = 'negbin'
+    elif arrival == 'logser':
+        arrival_pmf = stats.logser
+    elif arrival == 'geom':
+        arrival_pmf = stats.geom
+
+    if branch  == 'binomial':
+        branch_fun  = truncatedfa.binomial_branching
+        branch_name = 'bernoulli'
+    elif branch == 'poisson':
+        branch_fun  = truncatedfa.poisson_branching
+        branch_name = 'poisson'
+
+    if np.isscalar(true_rho):
+        true_rho = true_rho * np.ones((K, 1))
+    if np.isscalar(true_delta):
+        true_delta = true_delta * np.ones((K-1, 1))
+
+    runtime_utppgffa = np.zeros((len(N_space), len(rho_space), len(delta_space)))
+    runtime_trunc = np.zeros((len(N_space), len(rho_space), len(delta_space)))
+
+    for iSample in xrange(n_samples):
+        N = np.zeros(K, dtype=np.int32)
+        y = np.zeros(K, dtype=np.int32)
+
+        for i in range(0, K):
+            if i == 0:
+                N[i] = arrival_pmf.rvs(Lambda[i] * true_N)
+            else:
+                if branch == 'binomial':
+                    N[i] = arrival_pmf.rvs(Lambda[i] * true_N) + stats.binom.rvs(N[i - 1], true_delta[i-1])
+                elif branch == 'poisson':
+                    N[i] = arrival_pmf.rvs(Lambda[i] * true_N) + stats.poisson.rvs(N[i - 1] * true_delta[i-1])
+            y[i] = stats.binom.rvs(N[i], true_rho[i])
+
+        for iN in xrange(len(N_space)):
+            Lambda_iter = Lambda * N_space[iN]
+            Lambda_iter = Lambda_iter.reshape((-1,1))
+
+            for iRho in xrange(len(rho_space)):
+                Rho_iter = rho_space[iRho] * np.ones(K)
+
+                for iDelta in xrange(len(delta_space)):
+                    Delta_iter = delta_space[iDelta] * np.ones(K-1)
+                    Delta_iter = Delta_iter.reshape((-1, 1))
+
+                    if verbose != "silent": print 'i: %d, N: %d, R: %f, D: %f' % (iSample, N_space[iN], rho_space[iRho], delta_space[iDelta])
+
+                    # likelihood from UTPPGFFA
+                    t_start = time.clock()
+                    alpha_utppgffa, logZ_utppgffa = UTPPGFFA_cython.utppgffa_cython(y,
+                                                                                    arrival_name,
+                                                                                    Lambda_iter,
+                                                                                    branch_name,
+                                                                                    Delta_iter,
+                                                                                    Rho_iter,
+                                                                                    d=1)
+                    # loglikelihood_utppgffa = np.log(Alpha_utppgffa[-1][0]) + np.sum(logZ_utppgffa)
+                    loglikelihood_utppgffa = np.log(alpha_utppgffa[0]) + np.sum(logZ_utppgffa)
+                    runtime_utppgffa[iN, iRho, iDelta] += time.clock() - t_start
+                    if verbose != "silent": print "UTPPGFFA: %0.4f" % (time.clock() - t_start)
+
+                    # likelihood from truncated forward algorithm
+                    n_max = max(y)
+                    t_start = time.clock()
+                    loglikelihood_trunc = float('inf')
+                    loglikelihood_diff  = float('inf')
+                    while abs(loglikelihood_trunc - loglikelihood_utppgffa) >= epsilon and \
+                          loglikelihood_diff >= CONV_LIMIT and \
+                          n_max < N_LIMIT:
+                        n_max += 1
+                        t_loop = time.clock()
+                        Alpha_trunc, z = truncatedfa.truncated_forward(arrival_pmf,
+                                                                       Lambda_iter,
+                                                                       branch_fun,
+                                                                       Delta_iter,
+                                                                       Rho_iter,
+                                                                       y,
+                                                                       n_max=n_max)
+                        loglikelihood_iter = truncatedfa.likelihood(z, log=True)
+                        loglikelihood_diff = abs(loglikelihood_trunc - loglikelihood_iter)
+                        loglikelihood_trunc = loglikelihood_iter
+                        t_loop = time.clock() - t_loop
+                    runtime_trunc[iN, iRho, iDelta] += t_loop
+                    if verbose != "silent": print "Trunc: %0.4f" % (t_loop)
+
+    runtime_trunc /= n_samples
+    runtime_utppgffa /= n_samples
+
+    resultdir = default_result_directory()
+    os.mkdir(resultdir)
+
+    f = open(os.path.join(resultdir, "meta.txt"), 'w')
+    f.write("Experiment parameters:\n")
+    f.write("Arrivals: %s\n" % arrival)
+    f.write("Branching: %s\n" % branch)
+    f.write("Observations: %s\n" % observ)
+    f.write("Repetitions: %d\n" % n_samples)
+    f.write("True N: %d\n" % true_N)
+    f.write("True rho: %d\n" % true_rho[0])
+    f.write("True delta: %d\n" % true_delta[0])
+    f.write("N values: %s\n" % str(N_space))
+    f.write("rho values: %s\n" % str(rho_space))
+    f.write("delta values: %s\n" % str(delta_space))
+    f.write("epsilon: %f\n" % epsilon)
+    f.close()
+
+    record = {
+        "N_space": N_space,
+        "rho_space": rho_space,
+        "delta_space": delta_space,
+        "mean_runtime_utppgffa": runtime_utppgffa,
+        "mean_runtime_trunc": runtime_trunc,
+    }
+
+    filename = "data.pickle"
+    pickle.dump(record, open(os.path.join(resultdir, filename), 'wb'))
+
+    return resultdir
+
+
+def trunc_experiment_plot(resultdir):
+    # read in experiment metadata
+    metafile = open(os.path.join(resultdir, "meta.txt"))
+    for line in metafile:
+        if line.startswith("Repetitions:"):
+            nReps = int(line[len("Repetitions:"):].strip())
+        elif line.startswith("epsilon:"):
+            epsilon = float(line[len("epsilon:"):].strip())
+        elif line.startswith("Arrivals:"):
+            arrival = line[len("Arrivals:"):].strip()
+        elif line.startswith("Branching:"):
+            branch = line[len("Branching:"):].strip()
+        elif line.startswith("Observations:"):
+            observ = line[len("Observations:"):].strip()
+        elif line.startswith("True N:"):
+            true_n = int(line[len("True N:"):].strip())
+        elif line.startswith("True rho:"):
+            true_rho = float(line[len("True rho:"):].strip())
+        elif line.startswith("True delta:"):
+            true_delta = float(line[len("True delta:"):].strip())
+    metafile.close()
+
+    # read in the results in resultdir
+    data = pickle.load(open(os.path.join(resultdir, "data.pickle"), 'rb'))
+
+    N_space = data['N_space']
+    rho_space = data['rho_space']
+    delta_space = data['delta_space']
+    mean_runtime_utppgffa = data['mean_runtime_utppgffa']
+    mean_runtime_trunc = data['mean_runtime_trunc']
+
+    nN = N_space.shape[0]
+    nRho = rho_space.shape[0]
+
+    mean_runtime_utppgffa.resize((nN, nRho))
+    mean_runtime_trunc.resize((nN, nRho))
+
+    # setup latex
+    plt.rc('text', usetex=True)
+    plt.rc('font', family='serif')
+
+    rho_space = rho_space[1:]
+    mean_runtime_utppgffa = mean_runtime_utppgffa[:, 1:]
+    mean_runtime_trunc = mean_runtime_trunc[:, 1:]
+
+    ### plot runtime vs rho*Lambda
+    plotalpha = 1.0
+    for iN in range(nN):
+        plt.plot(rho_space, mean_runtime_utppgffa[iN, :] - mean_runtime_trunc[iN, :],
+                 label=str(N_space[iN]), alpha=plotalpha)
+
+    plt.legend(loc=4)
+    plt.ylabel('Runtime diff (s)')
+    plt.xlabel(r'$\rho$')
+    plt.title(r'Runtime as a function of $\rho$, fixed y')
+    plt.xlim(np.min(rho_space), np.max(rho_space))
+    plt.ylim(np.min(mean_runtime_utppgffa - mean_runtime_trunc),
+             np.max(mean_runtime_utppgffa - mean_runtime_trunc))
+
+    plt.show(block=True)
+
 if __name__ == "__main__":
     # runtime_utppgffa, runtime_pgffa, runtime_trunc_final, runtime_trunc_total, n_max, y, N = runtime_hmm_zonn(verbose="full")
     # runtime_nmix()
 
-    resultdir = runtime_experiment_zonn(verbose="partial",
-                                        sigma = 4.,
-                                        # N_space=np.append(np.arange(10,101,10), np.arange(125, 501, 25)),
-                                        N_space=np.arange(25,501,100),
-                                        K_space=np.array([5]),
-                                        rho_space=np.arange(0.05,0.95,0.25),
-                                        n_reps=5,
-                                        epsilon=1e-5)
+    # resultdir = runtime_experiment_zonn(verbose="partial",
+    #                                     sigma = 4.,
+    #                                     # N_space=np.append(np.arange(10,101,10), np.arange(125, 501, 25)),
+    #                                     N_space=np.arange(525,1001,100),
+    #                                     K_space=np.array([5]),
+    #                                     rho_space=np.arange(0.05,0.95,0.25),
+    #                                     n_reps=5,
+    #                                     epsilon=1e-5)
     # resultdir = runtime_experiment_zonn(verbose="partial",
     #                                     sigma=2.,
     #                                     # N_space=np.append(np.arange(10,101,10), np.arange(125, 501, 25)),
@@ -649,7 +940,11 @@ if __name__ == "__main__":
     #                                    n_reps=50,
     #                                    epsilon=1e-5,
     #                                    )
+
+    # resultdir = runtime_trunc_vs_params(n_samples=10)
+    #
     # print resultdir
+
 
     # resultdir = "/Users/kwinner/Work/Data/Results/20170215T115245506"
     # resultdir = "/Users/kwinner/Work/Data/Results/20170213T232631920"
@@ -659,7 +954,16 @@ if __name__ == "__main__":
     # resultdir = "/Users/kwinner/Work/Data/Results/20170219T151119276"
     # resultdir = "/Users/kwinner/Work/Data/Results/20170219T153853790"
     # resultdir = "/Users/kwinner/Work/Data/Results/20170219T215018111"
-    # runtime_experiment_plot(resultdir)
+    # resultdir = "/Users/kwinner/results-shannon/20170223T144253339"
+    # resultdir = "/Users/kwinner/results-shannon/20170223T145127871"
+    # resultdir = "/Users/kwinner/results-shannon/20170223T145505438"
+    resultdir = "/Users/kwinner/results-shannon/20170224T021109748"
+    # resultdir = "/Users/kwinner/results-shannon/20170224T021111745"
+    # resultdir = "/Users/kwinner/results-shannon/20170224T021140551"
+    runtime_experiment_plot(resultdir)
+
+    # resultdir = "/Users/kwinner/Work/Data/Results/20170223T213952728"
+    # trunc_experiment_plot(resultdir)
 
     # nmax_vs_runtime()
 
