@@ -32,7 +32,11 @@ def gdualforward(y,
 
         u_du = gdual.gdual_new(u, q_k + y[k])
 
+        assert np.all(np.isfinite(u_du))
+
         F = branch_pgf_gdual(u_du, theta_branch[k-1,:])
+
+        assert np.all(np.isfinite(F))
 
         s_prev = gdual.gdual_new(F[0], 1)
 
@@ -42,15 +46,25 @@ def gdualforward(y,
                                           q_k + y[k]),
                                    F)
 
+        assert np.all(np.isfinite(beta))
+
         G = arrival_pgf_gdual(u_du, theta_arrival[k,:])
 
+        assert np.all(np.isfinite(G))
+
         beta = gdual.gdual_mul(beta, G)
+
+        assert np.all(np.isfinite(beta))
 
         # observe
         s_ds = gdual.gdual_new(s, q_k)
         alpha = gdual.gdual_deriv(beta, y[k])
 
+        assert np.all(np.isfinite(alpha))
+
         alpha = gdual.gdual_compose_affine(alpha, (s_ds * (1 - theta_observ[k])))
+
+        assert np.all(np.isfinite(alpha))
 
         # normalize the alpha messages
         if np.any(alpha) and not np.any(np.isinf(alpha)):
@@ -58,16 +72,25 @@ def gdualforward(y,
             logZ[k] += np.log(Z)
             alpha /= Z
 
+        assert np.all(np.isfinite(alpha))
+
         alpha = gdual.gdual_mul(alpha, gdual.gdual_pow(s_ds * theta_observ[k], y[k]))
+
+        assert np.all(np.isfinite(alpha))
 
         # divide by y_k! (incorporating directly into logZ)
         logZ[k] = -gammaln(y[k] + 1)
+
+        assert np.isfinite(logZ[k])
 
         # normalize the alpha messages again
         if np.any(alpha) and not np.any(np.isinf(alpha)):
             Z = np.max(np.abs(alpha))
             logZ[k] += np.log(Z)
             alpha /= Z
+
+        assert np.all(np.isfinite(alpha))
+        assert np.isfinite(logZ[k])
 
         Alpha[k] = alpha
         return alpha
