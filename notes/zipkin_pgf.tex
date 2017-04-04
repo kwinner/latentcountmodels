@@ -3,6 +3,9 @@
 \usepackage{amsmath}
 \usepackage{amsthm}
 \usepackage{amsfonts}
+\usepackage{graphicx}
+
+\newcommand{\indep}{\rotatebox[origin=c]{90}{$\models$}}
 
 \title{PGF operations for the Zipkin model}
 
@@ -66,7 +69,7 @@ F_{\mathbf{N}, \mathbf{Y} = \mathbf{y}}(\mathbf{s})
 \end{align*}
 where $\mathbf{b} = [a_d(1-p_d)]_{d=1}^D$ and $b_0 = a_0$.
 
-Line 3 uses the product rule for mixed partial derivatives \cite{hardy2006combinatorics}. Since the mixed partial derivative of a polynomial of $n$ variables of degree $d$ is also a polynomial of $n$ variables of degree at most $d$, and the scalar $\prod_d \frac{(a_dp_d)^{y_d}}{l_d! (y_d - l_d)! a_d^{l_d}}$ can be combined with the coefficient of each monomial of the mixed partial derivative, the term inside the summation is a polynomial of $n$ variables of degree at most $d + \sum_i y_i$. Furthermore, since the sum of polynomials is another polynomial of the same degree as its highest-degree term, the entire summation term must be a polynomial of $n$ variables of degree $d + \sum_i y_i$.
+Line 3 uses the product rule for mixed partial derivatives (proposition 6 of \cite{hardy2006combinatorics}). Since the mixed partial derivative of a polynomial of $n$ variables of degree $d$ is also a polynomial of $n$ variables of degree at most $d$, and the scalar $\prod_d \frac{(a_dp_d)^{y_d}}{l_d! (y_d - l_d)! a_d^{l_d}}$ can be combined with the coefficient of each monomial of the mixed partial derivative, the term inside the summation is a polynomial of $n$ variables of degree at most $d + \sum_i y_i$. Furthermore, since the sum of polynomials is another polynomial of the same degree as its highest-degree term, the entire summation term must be a polynomial of $n$ variables of degree $d + \sum_i y_i$.
 
 \end{proof}
 
@@ -158,8 +161,8 @@ F_{\mathbf{Z}_1, \mathbf{Z}_2, M_1, M_2}(\mathbf{t}_1, \mathbf{t}_2, u_1, u_2)
 
 So the marginal PGF over $M_1, M_2$ is:
 \begin{align*}
-F_{M_1, M_2}(u_1, u_2) &= F_{1, 1, M_1, M_2}(\mathbf{t}_1, \mathbf{t}_2, u_1, u_2) \\
-&= F_{N_1, N_2}(u_1 p{11} + u_2 p_{12}, u_1 p{21} + u_2 p_{22})
+F_{M_1, M_2}(u_1, u_2) &= F_{\mathbf{Z}_1, \mathbf{Z}_2, M_1, M_2}(\mathbf{1}, \mathbf{1}, u_1, u_2) \\
+&= F_{N_1, N_2}(u_1 p_{11} + u_2 p_{12}, u_1 p_{21} + u_2 p_{22})
 \end{align*}
 
 Therefore, $F_{\mathbf{M}}(\mathbf{u}) = F_{\mathbf{N}}(\mathbf{Pu})$.
@@ -208,7 +211,7 @@ The first term, $g(\mathbf{s}) = f \circ h(\mathbf{s})$, is a composition of a b
 \end{proof}
 
 \section{Reproduction}
-Univariate case.
+\subsection{Univariate case}
 \[ X_i =
 \begin{cases} 
     0 & \text{dies} \\
@@ -220,17 +223,133 @@ Univariate case.
 Let $P(X_i = x_i) = p_{x_i}$ and $R = \sum_i^N X_i $. The PGF of $X_i$ is given by $F_{X_i}(v) = p_0 + p_1v + p_2v^2$, therefore:
 $$F_R(v) = F_N(F_{X_i}(v)) = F_N(p_0 + p_1v + p_2v^2)$$.
 
-\subsection{Invariance of the functional form}
+\subsubsection{Invariance of the functional form}
 All PGFs will have the form $e^{f_1(s)}f_2(s)$, where $f_1(s)$ is a polynomial of degree at most $2^K$ and $f_2(s)$ is a polynomial of degree at most $2^K \sum_k y_k$.
 
-\subsubsection{Observation}
+\paragraph{Observation}
 Suppose $F_N(u) = e^{f_1(u)}f_2(u)$, where $f_i(u)$ is a polynomial of degree $d_i$. Then $F_{N, Y=y}(s) = e^{g_1(s)}g_2(s)$, where $g_1(s)$ is a polynomial of degree $d_1$ and $g_2(s)$ is a polynomial of degree $yd_1+d_2$.
 
-\subsubsection{Reproduction}
+\paragraph{Reproduction}
 Suppose $F_N(u) = e^{f_1(u)}f_2(u)$, where $f_i(u)$ is a polynomial of degree $d_i$. Let $R$ be the abundance after the reproduction operation. Then $F_R(s) = e^{g_1(s)}g_2(s)$, where $g_i(s)$ is a polynomial of degree $2d_i$.
 
-\subsubsection{Arrival}
+\paragraph{Arrival}
 Suppose $F_R(u) = e^{f_1(u)}f_2(u)$, where $f_i(u)$ is a polynomial of degree $d_i$. Let $N$ be the abundance after new arrival. Then $F_N(s) = e^{g_1(s)}g_2(s)$, where $g_i(s)$ is a polynomial of degree $d_i$.
+
+\subsection{Multivariate case}
+Define:
+\begin{itemize}
+\item $M_i$: survivors of stage $i$ individuals
+\item $X_{ijk} \stackrel{iid}{\sim} F_{X_{ij}}(t_{ij})$: number of offspring in stage $j$ of one individual in stage $i$
+\item $G_{ij} = \sum_{k=1}^M X_{ijk}$: total number of offspring in stage $j$ of all individuals in stage $i$
+\item $Z_i$: abundance of stage $i$ individuals after the growth operation
+\end{itemize}
+
+Let $Z_j = \sum_i G_{ij}$. The marginal PGF over $\mathbf{Z} = (Z_1, Z_2)$ is:
+\begin{align*}
+F_{\mathbf{Z}}(\mathbf{u})
+&= F_{\mathbf{M}}(F_{X_{11}}(u_1) F_{X_{12}}(u_2), F_{X_{21}}(u_1) F_{X_{22}}(u_2)) \\
+&= F_{\mathbf{M}}(u_1, u_2 F_{X_{21}}(u_1))
+\end{align*}
+
+\begin{proof}
+Conditional PGF of $\mathbf{G}_{i} = (G_{i1}, G_{i2})$ given a single $M_i$:
+\begin{align*}
+F_{\mathbf{G}_{i}|M_i}(\mathbf{t}_i)
+&= E(\prod_j t_{ij}^{G_{ij}}|M_i) = E(\prod_j t_{ij}^{\sum_{k=1}^M X_{ijk}}) \\
+&= E(\prod_{jk} t_{ij}^{X_{ijk}}) = \prod_{jk} E(t_{ij}^{X_{ijk}}) \text{ since $X_{ijk} \indep X_{lmn}$} \\
+&= \prod_{j} [F_{X_{ij}}(t_{ij})]^{M_i} \text{ since $X_{ijk} \stackrel{iid}{\sim} F_{X_{ij}}(t_{ij})$} \\
+&= \big[ \prod_{j} F_{X_{ij}}(t_{ij}) \big]^{M_i}
+\end{align*}
+
+Now we can find the conditional PGF of $\mathbf{G}_1, \mathbf{G}_2|\mathbf{M}$:
+\begin{align*}
+F_{\mathbf{G}_1, \mathbf{G}_2|\mathbf{M}}(\mathbf{t}_1, \mathbf{t}_2)
+&= \sum_{\mathbf{g}_1, \mathbf{g}_2} \prod_{ij} t_{ij}^{g_{ij}} p(\mathbf{g}_1, \mathbf{g}_2|\mathbf{m}) \\
+&= \sum_{\mathbf{g}_1, \mathbf{g}_2} \prod_{ij} t_{ij}^{g_{ij}} p(\mathbf{g}_1|m_1) p(\mathbf{g}_2|m_2) \\
+&= \sum_{\mathbf{g}_1} \prod_j t_{1j}^{g_{1j}} p(\mathbf{g}_1|m_1) \sum_{\mathbf{g}_2} \prod_j t_{2j}^{g_{2j}} p(\mathbf{g}_2|m_2) \\
+&= F_{\mathbf{G}_1|M_1}(\mathbf{t}_1) F_{\mathbf{G}_2|M_2}(\mathbf{t}_2)
+= \prod_i \big[ \prod_j F_{X_{ij}}(t_{ij}) \big]^{M_i}
+\end{align*}
+
+Joint PGF of $\mathbf{M}, \mathbf{G}_1, \mathbf{G}_2$:
+\begin{align*}
+F_{\mathbf{M}, \mathbf{G}_1, \mathbf{G}_2}(\mathbf{s}, \mathbf{t}_1, \mathbf{t}_2)
+&= \sum_{\mathbf{m}, \mathbf{g}_1, \mathbf{g}_2}
+\prod_i s_i^{m_i} \prod_j t_{ij}^{g_{ij}} p(\mathbf{m}, \mathbf{g}_1, \mathbf{g}_2) \\
+&= \sum_{\mathbf{m}, \mathbf{g}_1, \mathbf{g}_2} \prod_i s_i^{m_i}
+\prod_j t_{ij}^{g_{ij}} p(\mathbf{g}_1, \mathbf{g}_2|\mathbf{m}) p(\mathbf{m}) \\
+&= \sum_{\mathbf{m}} prod_i s_i^{m_i} p(\mathbf{m})
+\sum_{\mathbf{g}_1, \mathbf{g}_2} \prod_{ij} t_{ij}^{g_{ij}} p(\mathbf{m}, \mathbf{g}_1, \mathbf{g}_2) \\
+&= \sum_{\mathbf{m}} prod_i s_i^{m_i} p(\mathbf{m})
+F_{\mathbf{G}_1, \mathbf{G}_2|\mathbf{M}}(\mathbf{t}_1, \mathbf{t}_2) \\
+&= \sum_{\mathbf{m}} \prod_i s_i^{m_i} p(\mathbf{m}) \prod_i \big[ \prod_j F_{X_{ij}}(t_{ij}) \big]^{M_i} \\
+&= \sum_{\mathbf{m}} \prod_i \big[ s_i \prod_j F_{X_{ij}}(t_{ij}) \big]^{m_i} p(\mathbf{m}) \\
+&= F_{\mathbf{M}}(s_1 \prod_j F_{X_{1j}}(t_{1j}), s_2 \prod_j F_{X_{2j}}(t_{2j}))
+\end{align*}
+
+Marginalize to find the joint PGF over $\mathbf{G}_1, \mathbf{G}_2$:
+\begin{align*}
+F_{\mathbf{G}_1, \mathbf{G}_2}(\mathbf{t}_1, \mathbf{t}_2)
+&= F_{\mathbf{M}, \mathbf{G}_1, \mathbf{G}_2}(\mathbf{1}, \mathbf{t}_1, \mathbf{t}_2) \\
+&= F_{\mathbf{M}}(\prod_j F_{X_{1j}}(t_{1j}), \prod_j F_{X_{2j}}(t_{2j}))
+\end{align*}
+
+Conditional PGF of a single $Z_j$ given $\mathbf{G}_{j} = (G_{1j}, G_{2j})$:
+\begin{align*}
+F_{Z_j|\mathbf{G}_j}(u_j) = \sum_{z_j} u_j^{z_j} p(z_j|\mathbf{g}_j)
+= u_j^{\sum_i g_{ij}}
+\end{align*}
+since $p(z_j|\mathbf{g}_j) = 1$ if $z_j = \sum_i g_{ij}$ and $0$ otherwise.
+
+Conditional PGF of $\mathbf{Z}|\mathbf{G}_1, \mathbf{G}_2$:
+\begin{align*}
+F_{\mathbf{Z}|\mathbf{G}_1, \mathbf{G}_2}(\mathbf{u})
+&= \sum_{\mathbf{z}} \prod_j u_j^{z_j} p(\mathbf{z}|\mathbf{g}_1, \mathbf{g}_2) \\
+&= \sum_{\mathbf{z}} \prod_j u_j^{z_j} p(z_1|g_{11}, g_{21}) p(z_2|g_{12}, g_{22}) \\
+&= \sum_{z_1} u_1^{z_1} p(z_1|g_{11}, g_{21}) \sum_{z_2} u_2^{z_2} p(z_2|g_{12}, g_{22}) \\
+&= \prod_j u_j^{\sum_i g_{ij}} = \prod_{ij} u_j^{g_{ij}}
+\end{align*}
+
+Joint PGF over $\mathbf{G}_1, \mathbf{G}_2, \mathbf{Z}$:
+\begin{align*}
+F_{\mathbf{G}_1, \mathbf{G}_2, \mathbf{Z}}(\mathbf{t}_1, \mathbf{t}_2, \mathbf{u})
+&= \sum_{\mathbf{g}_1, \mathbf{g}_2, \mathbf{z}} \prod_{j} u_j^{z_j} \prod_i t_{ij}^{g_{ij}} p(\mathbf{g}_1, \mathbf{g}_2, \mathbf{z}) \\
+&= \sum_{\mathbf{g}_1, \mathbf{g}_2, \mathbf{z}} \prod_{j} u_j^{z_j} \prod_i t_{ij}^{g_{ij}} p(\mathbf{z}|\mathbf{g}_1, \mathbf{g}_2)p(\mathbf{g}_1, \mathbf{g}_2) \\
+&= \sum_{\mathbf{g}_1, \mathbf{g}_2} \prod_{ij} t_{ij}^{g_{ij}} p(\mathbf{g}_1, \mathbf{g}_2) \sum_{\mathbf{z}} \prod_j u_j^{z_j} p(\mathbf{z}|\mathbf{g}_1, \mathbf{g}_2) \\
+&= \sum_{\mathbf{g}_1, \mathbf{g}_2} \prod_{ij} t_{ij}^{g_{ij}} p(\mathbf{g}_1, \mathbf{g}_2) \prod_{ij} u_j^{g_{ij}} \\
+&= \sum_{\mathbf{g}_1, \mathbf{g}_2} \prod_{ij} [u_j t_{ij}]^{g_{ij}} p(\mathbf{g}_1, \mathbf{g}_2) \\
+&= F_{\mathbf{G}_1, \mathbf{G}_2}(u_1 t_{11}, u_2 t_{12}, u_1 t_{21}, u_2 t_{22}) \\
+&= F_{\mathbf{M}}(F_{X_{11}}(u_1 t_{11}) F_{X_{12}}(u_2 t_{12}), F_{X_{21}}(u_1 t_{21}) F_{X_{22}}(u_2 t_{22}))
+\end{align*}
+
+By marginalizing over $\mathbf{Z}$:
+\begin{align*}
+F_{\mathbf{Z}}(\mathbf{u})
+&=F_{\mathbf{G}_1, \mathbf{G}_2, \mathbf{Z}}(\mathbf{1}, \mathbf{1}, \mathbf{u}) \\
+&= F_{\mathbf{M}}(F_{X_{11}}(u_1) F_{X_{12}}(u_2), F_{X_{21}}(u_1) F_{X_{22}}(u_2))
+\end{align*}
+
+Finally, if $G_{11}=M_1$, $G_{12}=0$, and $G_{22}=M_2$ then:
+\begin{align*}
+F_{\mathbf{Z}}(\mathbf{u}) = F_{\mathbf{M}}(u_1, u_2 F_{X_{21}}(u_1))
+\end{align*}
+
+\end{proof}
+
+\section{Survival}
+Define:
+\begin{itemize}
+\item $N_i$: abundance of stage $i$ individuals
+\item $\delta_i$: survival probability of each individual in stage $i$
+\item $M_i$: number of survivors in stage $i$
+\end{itemize}
+
+\subsection{Joint PGF over $\mathbf{M}$}
+Let $M_i|N_i \sim Binomial(N_i, \delta_i)$. The marginal PGF over $\mathbf{M} = (M_!, M_2)$ is:
+\begin{align*}
+F_{\mathbf{M}}(\mathbf{t})
+= F_{\mathbf{N}}(1 + \delta_1 t_1 - \delta_1, 1 + \delta_2 t_2 - \delta_2)
+\end{align*}
 
 \medskip
  

@@ -1,0 +1,46 @@
+This is BibTeX, Version 0.99d (TeX Live 2016)
+Capacity: max_strings=35307, hash_size=35307, hash_prime=30011
+The top-level auxiliary file: zipkin_pgf.aux
+The style file: unsrt.bst
+Database file #1: zipkin_pgf.bib
+You've used 1 entry,
+            1791 wiz_defined-function locations,
+            450 strings with 3615 characters,
+and the built_in function-call counts, 184 in all, are:
+= -- 14
+> -- 4
+< -- 0
++ -- 2
+- -- 1
+* -- 13
+:= -- 37
+add.period$ -- 3
+call.type$ -- 1
+change.case$ -- 1
+chr.to.int$ -- 0
+cite$ -- 1
+duplicate$ -- 9
+empty$ -- 20
+format.name$ -- 1
+if$ -- 37
+int.to.chr$ -- 0
+int.to.str$ -- 1
+missing$ -- 1
+newline$ -- 8
+num.names$ -- 1
+pop$ -- 1
+preamble$ -- 1
+purify$ -- 0
+quote$ -- 0
+skip$ -- 3
+stack$ -- 0
+substring$ -- 6
+swap$ -- 1
+text.length$ -- 0
+text.prefix$ -- 0
+top$ -- 0
+type$ -- 0
+warning$ -- 0
+while$ -- 2
+width$ -- 2
+write$ -- 13
