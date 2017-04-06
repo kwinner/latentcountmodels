@@ -117,3 +117,23 @@ def gdual_mean(F):
 
 def gdual_var(F):
     return (2 * F[2]) - np.power(F[1], 2) + F[1]
+
+
+def gdual_normalize(F):
+    Z = np.max(F)
+    F /= Z
+    logZ = np.log(Z)
+    return logZ, F
+
+
+def gdual_renormalize(F, old_logZ):
+    Z = np.max(F)
+    F /= Z
+    logZ = old_logZ + np.log(Z)
+    return logZ, F
+
+
+def gdual_adjust_Z(F, old_logZ, new_logZ):
+    adjustment = np.exp(old_logZ - new_logZ)
+    F *= adjustment
+    return F
