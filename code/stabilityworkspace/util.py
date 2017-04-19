@@ -6,3 +6,9 @@ def poch(x, n):
 
 def fallingfactorial(k, i):
     return poch(i - k + 1, k)
+
+def pochln(x, n):
+    return gammaln(x + n) - gammaln(x)
+
+def fallingfactorialln(k, i):
+    return pochln(i - k + 1, k)

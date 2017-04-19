@@ -160,9 +160,11 @@ def gdualforward2(y,
 
         # observe
         s_ds = gdual.gdual_new(s, q_k)
-        alpha = gdual.gdual_deriv(beta, y[k])
+        # alpha = gdual.gdual_deriv(beta, y[k])
+        logZ_alpha, alpha = gdual.gdual_deriv_safe(beta, y[k])
+        logZ[k] += logZ_alpha
 
-        logZ[k], alpha = gdual.gdual_renormalize(alpha, logZ[k])
+        # logZ[k], alpha = gdual.gdual_renormalize(alpha, logZ[k])
 
         assert np.all(np.isfinite(alpha))
 
@@ -173,9 +175,17 @@ def gdualforward2(y,
         assert np.all(np.isfinite(alpha))
 
         scalar = gdual.gdual_pow(s_ds * theta_observ[k], y[k])
-        scalar = gdual.gdual_adjust_Z(scalar, 0, logZ[k])
+        logZ_scalar, scalar = gdual.gdual_normalize(scalar)
+
+        if logZ_scalar > logZ[k]:
+            # normalize both UTPs to logZ_scalar
+            alpha = gdual.gdual_adjust_Z(alpha, logZ[k], logZ_scalar)
+            logZ[k] = logZ_scalar
+        elif logZ_scalar < logZ[k]:
+            scalar = gdual.gdual_adjust_Z(scalar, logZ_scalar, logZ[k])
 
         alpha = gdual.gdual_mul(alpha, scalar)
+        # logZ[k] += logZ_scalar
         logZ[k], alpha = gdual.gdual_renormalize(alpha, logZ[k])
 
         assert np.all(np.isfinite(alpha))

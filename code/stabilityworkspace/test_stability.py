@@ -5,13 +5,13 @@ import generatingfunctions
 import gdualforward
 
 # true params
-Lambda_gen  = 800 * np.array([0.0257, 0.1163, 0.2104, 0.1504, 0.0428]).reshape(-1,1)
+Lambda_gen  = 100 * np.array([0.0257, 0.1163, 0.2104, 0.1504, 0.0428]).reshape(-1,1)
 Delta_gen   = 2 * np.array([0.2636, 0.2636, 0.2636, 0.2636]).reshape(-1,1)
 Rho_gen     = 0.5 * np.ones(5)
 
 K = Lambda_gen.shape[0]
 
-sample_counts = False
+sample_counts = True
 
 # configure distributions
 arrival   = 'poisson'
@@ -56,10 +56,12 @@ if sample_counts == True:
         # sample observation
         y[k] = stats.binom.rvs(N[k], Rho_gen[k])
 else:
-    N = [22, 104, 214, 240, 162]
-    y = [11, 55,  115, 112, 72]
+    # N = [22, 104, 214, 240, 162]
+    # y = [11, 55,  115, 112, 72]
+    y = [11,  89, 221, 231, 144]
 
 
+print y
 
 # compute LL using test methods
 Lambda_eval = Lambda_gen

@@ -62,6 +62,35 @@ def gdual_deriv(F, k):
     return out
 
 
+def gdual_deriv_safe(F, k):
+    q = F.shape[0]
+
+    factln = util.fallingfactorialln(k, np.arange(q))
+
+    # truncate both vectors
+    factln = factln[k:]
+    out = F[k:]
+
+    if np.any(out == 0):
+        None
+
+    # cache negative signs before dividing by factorial
+    outsigns = np.sign(out)
+    out = np.log(np.abs(out))
+
+    # normalize out * factln before performing the division
+    out = out + factln
+    logZ = np.max(out)
+
+    if ~np.isfinite(logZ):
+        None
+
+    out -= logZ
+
+    # return out to linear space, restore signs
+    return logZ, outsigns * np.exp(out)
+
+
 def gdual_mul(F, G):
     q = max(F.shape[0], G.shape[0])
 
@@ -134,6 +163,8 @@ def gdual_renormalize(F, old_logZ):
 
 
 def gdual_adjust_Z(F, old_logZ, new_logZ):
+    if ~np.isfinite(new_logZ):
+        None
     adjustment = np.exp(old_logZ - new_logZ)
     F *= adjustment
     return F
