@@ -97,6 +97,15 @@ def gdual_mul(F, G):
     return np.convolve(F, G)[:q]
 
 
+def gdual_mul2(F, G):
+    H = np.zeros_like(F)
+    for k in range(0, F.shape[0]):
+        for i in range(0, k+1):
+            H[k] += F[i] * G[k-i]
+
+    return H
+
+
 def gdual_exp(F):
     out = np.empty_like(F)
     q   = out.shape[0]

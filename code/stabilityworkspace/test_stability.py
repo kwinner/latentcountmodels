@@ -11,7 +11,7 @@ Rho_gen     = 0.5 * np.ones(5)
 
 K = Lambda_gen.shape[0]
 
-sample_counts = True
+sample_counts = False
 
 # configure distributions
 arrival   = 'poisson'
@@ -59,7 +59,7 @@ else:
     # N = [22, 104, 214, 240, 162]
     # y = [11, 55,  115, 112, 72]
     y = [11,  89, 221, 231, 144]
-
+    y = [ 2,  9,  12,  14,  9]
 
 print y
 
