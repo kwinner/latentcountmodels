@@ -3,6 +3,7 @@ from scipy import stats
 
 import generatingfunctions
 import gdualforward
+import ngdualforward
 
 # true params
 Lambda_gen  = 100 * np.array([0.0257, 0.1163, 0.2104, 0.1504, 0.0428]).reshape(-1,1)
@@ -20,6 +21,7 @@ if arrival == 'poisson':
     arrival_distn     = stats.poisson
     arrival_pgf       = generatingfunctions.poisson_pgf
     arrival_liftedpgf = generatingfunctions.poisson_gdual
+    arrival_normliftedpgf = generatingfunctions.poisson_ngdual
 elif arrival == 'negbin':
     arrival_distn     = stats.nbinom
     arrival_pgf       = generatingfunctions.negbin_pgf
@@ -37,6 +39,7 @@ if offspring == 'bernoulli':
     offspring_distn     = stats.bernoulli
     offspring_pgf       = generatingfunctions.bernoulli_pgf
     offspring_liftedpgf = generatingfunctions.bernoulli_gdual
+    offspring_normliftedpgf = generatingfunctions.bernoulli_ngdual
 elif offspring == 'poisson':
     offspring_distn     = stats.poisson
     offspring_pgf       = generatingfunctions.poisson_pgf
@@ -88,3 +91,14 @@ Alpha, logZ = gdualforward.gdualforward(y,
 ll = np.log(Alpha[-1][0]) + np.sum(logZ)
 
 print "LL from previous algorithm:  ", ll
+
+Alpha_test = ngdualforward.ngdualforward(y,
+                                         arrival_normliftedpgf,
+                                         Lambda_eval,
+                                         offspring_normliftedpgf,
+                                         Delta_eval,
+                                         Rho_eval,
+                                         d=1)
+
+
+print "LL from newest algorithm:  ", ll

@@ -134,6 +134,7 @@ def gdual_log(F):
     return out
 
 
+#TODO: broken if F[0] < 0, need to handle
 def gdual_pow(F, k):
     return gdual_exp(k * gdual_log(F))
 
