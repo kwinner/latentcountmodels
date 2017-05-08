@@ -4,20 +4,59 @@ import gdual
 
 
 # construct a new ngdual tuple for e^logZ * <x/Z, dx>_q
-def ngdual_new(x, q):
+def ngdual_new_x_dx(x, q):
+    if isinstance(x, tuple):
+        # take the first instance of x.utp as x
+        utp = np.zeros(q, dtype=np.double)
+        utp[0] = np.exp(x[0]) * x[1][0]
+        if q > 1:
+            utp[1] = 1.0
+
+        # normalize the utp
+        Z = np.max([utp[0], 1.0])
+        logZ = np.log(Z)
+        utp /= Z
+
+        return logZ, utp
+    elif isinstance(x, np.ndarray):
+        # take the first instance of x[:] as x
+        utp = np.zeros(q, dtype=np.double)
+        utp[0] = x[0]
+        if q > 1:
+            utp[1] = 1.0
+
+        # normalize the utp
+        Z = np.max([x[0], 1.0])
+        logZ = np.log(Z)
+        utp /= Z
+
+        return logZ, utp
+    else:
+        # construct a new utp array of length q
+        utp = np.zeros(q, dtype=np.double)
+        utp[0] = x
+        if q > 1:
+            utp[1] = 1.0
+
+        # normalize the utp
+        Z = np.max([x, 1.0])
+        logZ = np.log(Z)
+        utp /= Z
+
+        return logZ, utp
+
+
+def ngdual_new_c_dx(c, q):
     # construct a new utp array of length q
     utp = np.zeros(q, dtype=np.double)
-    utp[0] = x
-    if q > 1:
-        utp[1] = 1.0
+    utp[0] = c
 
     # normalize the utp
-    Z = np.max([x, 1.0])
+    Z = np.max([c, 1.0])
     logZ = np.log(Z)
     utp /= Z
 
     return logZ, utp
-
 
 # compose two ngduals as G(F)
 # note: F will need to be "denormalized", may be unstable

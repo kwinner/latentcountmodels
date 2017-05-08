@@ -20,16 +20,17 @@ def ngdualforward(y,
         # base case
         if k < 0:
             # special type of new ngdual for f = 1
-            alpha_utp = np.zeros(q_k)
-            alpha_utp[0] = 1.
-            alpha = (0, alpha_utp)
+            # alpha_utp = np.zeros(q_k)
+            # alpha_utp[0] = 1.
+            # alpha = (0, alpha_utp)
+            alpha = ngdual.ngdual_new_c_dx(1.0, q_k)
 
             return alpha
 
         u = deepcopy(s)
         u = ngdual.ngdual_scalar_mul(u, (1 - theta_observ[k]))
 
-        u_du = ngdual.ngdual_new(u[1][0], q_k + y[k])
+        u_du = ngdual.ngdual_new_x_dx(u, q_k + y[k])
 
         assert np.isfinite(u_du[0])
         assert np.all(np.isfinite(u_du[1]))
@@ -39,7 +40,7 @@ def ngdualforward(y,
         assert np.isfinite(F[0])
         assert np.all(np.isfinite(F[1]))
 
-        s_prev = ngdual.ngdual_new(F[1][0], 1)
+        s_prev = ngdual.ngdual_new_x_dx(F, 1)
 
         assert np.isfinite(s_prev[0])
         assert np.all(np.isfinite(s_prev[1]))
@@ -69,7 +70,7 @@ def ngdualforward(y,
         assert np.isfinite(alpha[0])
         assert np.all(np.isfinite(alpha[1]))
 
-        s_ds = ngdual.ngdual_new(s[1][0], q_k)
+        s_ds = ngdual.ngdual_new_x_dx(s, q_k)
 
         assert np.isfinite(s_ds[0])
         assert np.all(np.isfinite(s_ds[1]))
@@ -94,6 +95,6 @@ def ngdualforward(y,
         Alpha[k] = alpha
         return alpha
 
-    lift_A(ngdual.ngdual_new(1., 1), K - 1, d)
+    lift_A(ngdual.ngdual_new_x_dx(1., 1), K - 1, d)
 
     return Alpha

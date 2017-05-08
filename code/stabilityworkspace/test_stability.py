@@ -92,13 +92,13 @@ ll = np.log(Alpha[-1][0]) + np.sum(logZ)
 
 print "LL from previous algorithm:  ", ll
 
-Alpha_test = ngdualforward.ngdualforward(y,
-                                         arrival_normliftedpgf,
-                                         Lambda_eval,
-                                         offspring_normliftedpgf,
-                                         Delta_eval,
-                                         Rho_eval,
-                                         d=1)
+Alpha = ngdualforward.ngdualforward(y,
+                                    arrival_normliftedpgf,
+                                    Lambda_eval,
+                                    offspring_normliftedpgf,
+                                    Delta_eval,
+                                    Rho_eval,
+                                    d=1)
 
-
+ll = Alpha[-1][0] + np.log(Alpha[-1][1][0])
 print "LL from newest algorithm:  ", ll
