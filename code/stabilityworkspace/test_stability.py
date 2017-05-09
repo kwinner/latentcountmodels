@@ -4,6 +4,7 @@ from scipy import stats
 import generatingfunctions
 import gdualforward
 import ngdualforward
+import truncatedfa
 
 # true params
 Lambda_gen  = 100 * np.array([0.0257, 0.1163, 0.2104, 0.1504, 0.0428]).reshape(-1,1)
@@ -70,16 +71,6 @@ print y
 Lambda_eval = Lambda_gen
 Delta_eval  = Delta_gen
 Rho_eval    = Rho_gen
-Alpha, logZ = gdualforward.gdualforward2(y,
-                                        arrival_liftedpgf,
-                                        Lambda_eval,
-                                        offspring_liftedpgf,
-                                        Delta_eval,
-                                        Rho_eval,
-                                        d=1)
-ll = np.log(Alpha[-1][0]) + np.sum(logZ)
-
-print "LL from normalized algorithm:", ll
 
 Alpha, logZ = gdualforward.gdualforward(y,
                                         arrival_liftedpgf,
@@ -102,3 +93,14 @@ Alpha = ngdualforward.ngdualforward(y,
 
 ll = Alpha[-1][0] + np.log(Alpha[-1][1][0])
 print "LL from newest algorithm:  ", ll
+
+Alpha_tfa, z_tfa = truncatedfa.truncated_forward(arrival_distn,
+                                                 Lambda_eval,
+                                                 truncatedfa.binomial_branching,
+                                                 Delta_eval,
+                                                 Rho_eval,
+                                                 y,
+                                                 n_max=1000)
+
+loglikelihood_tfa      = truncatedfa.likelihood(z_tfa, log=True)
+print "LL from truncated algorithm:  ", ll
