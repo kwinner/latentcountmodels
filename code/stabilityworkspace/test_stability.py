@@ -7,9 +7,12 @@ import ngdualforward
 import truncatedfa
 
 # true params
-Lambda_gen  = 100 * np.array([0.0257, 0.1163, 0.2104, 0.1504, 0.0428]).reshape(-1,1)
-Delta_gen   = 2 * np.array([0.2636, 0.2636, 0.2636, 0.2636]).reshape(-1,1)
+Lambda_gen  = 200 * np.array([0.0257, 0.1163, 0.2104, 0.1504, 0.0428]).reshape(-1,1)
+Delta_gen   = 2 * 0.2636 * np.ones(5).reshape(-1,1)
 Rho_gen     = 0.5 * np.ones(5)
+# Lambda_gen  = 1500 * np.array([0.0257, 0.05, 0.1163, 0.15, 0.2104, 0.17, 0.1504, 0.07, 0.0428]).reshape(-1,1)
+# Delta_gen   = 2 * np.array([0.2636, 0.2636, 0.2636, 0.2636, 0.2636, 0.2636, 0.2636, 0.2636]).reshape(-1,1)
+# Rho_gen     = 0.5 * np.ones(9)
 
 K = Lambda_gen.shape[0]
 
@@ -62,8 +65,9 @@ if sample_counts == True:
 else:
     # N = [22, 104, 214, 240, 162]
     # y = [11, 55,  115, 112, 72]
-    y = [11,  89, 221, 231, 144]
-    y = [ 2,  9,  12,  14,  9]
+    y = [ 41, 138, 325, 377, 234]
+    # y = [ 18,  50, 125, 203, 282, 271, 280, 213, 145]
+    # y = [ 2,  9,  12,  14,  9]
 
 print y
 
@@ -71,17 +75,6 @@ print y
 Lambda_eval = Lambda_gen
 Delta_eval  = Delta_gen
 Rho_eval    = Rho_gen
-
-Alpha, logZ = gdualforward.gdualforward(y,
-                                        arrival_liftedpgf,
-                                        Lambda_eval,
-                                        offspring_liftedpgf,
-                                        Delta_eval,
-                                        Rho_eval,
-                                        d=1)
-ll = np.log(Alpha[-1][0]) + np.sum(logZ)
-
-print "LL from previous algorithm:  ", ll
 
 Alpha = ngdualforward.ngdualforward(y,
                                     arrival_normliftedpgf,
@@ -92,7 +85,40 @@ Alpha = ngdualforward.ngdualforward(y,
                                     d=1)
 
 ll = Alpha[-1][0] + np.log(Alpha[-1][1][0])
-print "LL from newest algorithm:  ", ll
+print "LL from ngdual algorithm:  ", ll
+
+Alpha, logZ = gdualforward.gdualforward(y,
+                                        arrival_liftedpgf,
+                                        Lambda_eval,
+                                        offspring_liftedpgf,
+                                        Delta_eval,
+                                        Rho_eval,
+                                        d=1)
+ll = np.log(Alpha[-1][0]) + np.sum(logZ)
+
+print "LL from gdual algorithm:  ", ll
+
+# Alpha, logZ = gdualforward.gdualforward_original(y,
+#                                         arrival_liftedpgf,
+#                                         Lambda_eval,
+#                                         offspring_liftedpgf,
+#                                         Delta_eval,
+#                                         Rho_eval,
+#                                         d=1)
+# ll = np.log(Alpha[-1][0]) + np.sum(logZ)
+#
+# print "LL from original gdual algorithm:  ", ll
+#
+# Alpha = gdualforward.gdualforward_unnormalized(y,
+#                                         arrival_liftedpgf,
+#                                         Lambda_eval,
+#                                         offspring_liftedpgf,
+#                                         Delta_eval,
+#                                         Rho_eval,
+#                                         d=1)
+# ll = np.log(Alpha[-1][0])
+#
+# print "LL from unnormalized algorithm: ", ll
 
 Alpha_tfa, z_tfa = truncatedfa.truncated_forward(arrival_distn,
                                                  Lambda_eval,
@@ -102,5 +128,5 @@ Alpha_tfa, z_tfa = truncatedfa.truncated_forward(arrival_distn,
                                                  y,
                                                  n_max=1000)
 
-loglikelihood_tfa      = truncatedfa.likelihood(z_tfa, log=True)
+ll      = truncatedfa.likelihood(z_tfa, log=True)
 print "LL from truncated algorithm:  ", ll

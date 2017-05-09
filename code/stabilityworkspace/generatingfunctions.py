@@ -11,12 +11,13 @@ def poisson_pgf(s, theta):
 def poisson_gdual(s, theta):
     lmbda = theta[0]
     out = s.copy()
+    out[0] = out[0] - 1
     return gdual.gdual_exp(lmbda * out)
 
 
 def poisson_ngdual(s, theta):
     lmbda = theta[0]
-    return ngdual.ngdual_exp(ngdual.ngdual_scalar_mul(s, lmbda))
+    return ngdual.ngdual_exp(ngdual.ngdual_scalar_mul(ngdual.ngdual_scalar_add(s, -1.0), lmbda))
 
 
 def bernoulli_pgf(s, theta):
