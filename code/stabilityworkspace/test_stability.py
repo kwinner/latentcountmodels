@@ -7,7 +7,7 @@ import ngdualforward
 import truncatedfa
 
 # true params
-Lambda_gen  = 200 * np.array([0.0257, 0.1163, 0.2104, 0.1504, 0.0428]).reshape(-1,1)
+Lambda_gen  = 6000 * np.array([0.0257, 0.1163, 0.2104, 0.1504, 0.0428]).reshape(-1,1)
 Delta_gen   = 2 * 0.2636 * np.ones(5).reshape(-1,1)
 Rho_gen     = 0.5 * np.ones(5)
 # Lambda_gen  = 1500 * np.array([0.0257, 0.05, 0.1163, 0.15, 0.2104, 0.17, 0.1504, 0.07, 0.0428]).reshape(-1,1)
@@ -16,7 +16,7 @@ Rho_gen     = 0.5 * np.ones(5)
 
 K = Lambda_gen.shape[0]
 
-sample_counts = False
+sample_counts = True
 
 # configure distributions
 arrival   = 'poisson'
@@ -48,6 +48,7 @@ elif offspring == 'poisson':
     offspring_distn     = stats.poisson
     offspring_pgf       = generatingfunctions.poisson_pgf
     offspring_liftedpgf = generatingfunctions.poisson_gdual
+    offspring_normliftedpgf = generatingfunctions.poisson_ngdual
 
 if sample_counts == True:
     # sample data
@@ -68,6 +69,7 @@ else:
     y = [ 41, 138, 325, 377, 234]
     # y = [ 18,  50, 125, 203, 282, 271, 280, 213, 145]
     # y = [ 2,  9,  12,  14,  9]
+    y = [45, 213, 454, 515, 352]
 
 print y
 
@@ -87,16 +89,16 @@ Alpha = ngdualforward.ngdualforward(y,
 ll = Alpha[-1][0] + np.log(Alpha[-1][1][0])
 print "LL from ngdual algorithm:  ", ll
 
-Alpha, logZ = gdualforward.gdualforward(y,
-                                        arrival_liftedpgf,
-                                        Lambda_eval,
-                                        offspring_liftedpgf,
-                                        Delta_eval,
-                                        Rho_eval,
-                                        d=1)
-ll = np.log(Alpha[-1][0]) + np.sum(logZ)
-
-print "LL from gdual algorithm:  ", ll
+# Alpha, logZ = gdualforward.gdualforward(y,
+#                                         arrival_liftedpgf,
+#                                         Lambda_eval,
+#                                         offspring_liftedpgf,
+#                                         Delta_eval,
+#                                         Rho_eval,
+#                                         d=1)
+# ll = np.log(Alpha[-1][0]) + np.sum(logZ)
+#
+# print "LL from gdual algorithm:  ", ll
 
 # Alpha, logZ = gdualforward.gdualforward_original(y,
 #                                         arrival_liftedpgf,

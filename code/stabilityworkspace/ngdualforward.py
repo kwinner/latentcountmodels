@@ -80,6 +80,21 @@ def ngdualforward(y,
         assert np.isfinite(alpha[0])
         assert np.all(np.isfinite(alpha[1]))
 
+        # scalar = ngdual.ngdual_scalar_mul(s_ds, theta_observ[k])
+        #
+        # assert np.isfinite(scalar[0])
+        # assert np.all(np.isfinite(scalar[1]))
+        #
+        # scalar = ngdual.ngdual_pow(scalar, y[k])
+        #
+        # assert np.isfinite(scalar[0])
+        # assert np.all(np.isfinite(scalar[1]))
+        #
+        # alpha = ngdual.ngdual_mul(alpha, scalar)
+        #
+        # assert np.isfinite(alpha[0])
+        # assert np.all(np.isfinite(alpha[1]))
+
         alpha = ngdual.ngdual_mul(alpha,
                                   ngdual.ngdual_pow(ngdual.ngdual_scalar_mul(s_ds, theta_observ[k]),
                                                     y[k]))

@@ -7,7 +7,7 @@ import gdual
 def ngdual_new_x_dx(x, q):
     if isinstance(x, tuple):
         # take the first instance of x.utp as x
-        utp = np.zeros(q, dtype=np.double)
+        utp = np.zeros(q, dtype=np.longdouble)
         utp[0] = np.exp(x[0]) * x[1][0]
         if q > 1:
             utp[1] = 1.0
@@ -20,7 +20,7 @@ def ngdual_new_x_dx(x, q):
         return logZ, utp
     elif isinstance(x, np.ndarray):
         # take the first instance of x[:] as x
-        utp = np.zeros(q, dtype=np.double)
+        utp = np.zeros(q, dtype=np.longdouble)
         utp[0] = x[0]
         if q > 1:
             utp[1] = 1.0
@@ -33,7 +33,7 @@ def ngdual_new_x_dx(x, q):
         return logZ, utp
     else:
         # construct a new utp array of length q
-        utp = np.zeros(q, dtype=np.double)
+        utp = np.zeros(q, dtype=np.longdouble)
         utp[0] = x
         if q > 1:
             utp[1] = 1.0
@@ -48,7 +48,7 @@ def ngdual_new_x_dx(x, q):
 
 def ngdual_new_c_dx(c, q):
     # construct a new utp array of length q
-    utp = np.zeros(q, dtype=np.double)
+    utp = np.zeros(q, dtype=np.longdouble)
     utp[0] = c
 
     # normalize the utp
@@ -190,8 +190,8 @@ def ngdual_scalar_mul_log(F, logc):
 
 
 # compute <exp(f), dx>_q from <f, dx>_q
-# note: F will currently be unnormalized first
-def ngdual_exp(F):
+# note: in safe version, F will first be unnormalized
+def ngdual_exp_safe(F):
     out_utp = np.empty_like(F[1])
     q       = out_utp.shape[0]
 
@@ -217,9 +217,35 @@ def ngdual_exp(F):
     return out_logZ, out_utp
 
 
+# compute <exp(f), dx>_q from <f, dx>_q
+def ngdual_exp(F):
+    out_utp = np.empty_like(F[1])
+    q       = out_utp.shape[0]
+
+    # compute Z
+    Z = np.exp(F[0])
+
+    # compute the first term of exp(f)
+    out_utp[0] = np.power(np.exp(F[1][0]), Z)
+
+    # copy the non scalar terms of F
+    F_utp_tilde = np.copy(F[1][1:])
+
+    F_utp_tilde *= np.arange(1, q)
+    for i in xrange(1, q):
+        out_utp[i] = Z * np.sum(out_utp[:i][::-1] * F_utp_tilde[:i], axis=0) / i
+
+    # handle normalization
+    out_Z    = np.max(out_utp)
+    out_logZ = np.log(out_Z)
+    out_utp  /= out_Z
+
+    return out_logZ, out_utp
+
+
 # compute <log(f), dx>_q from <f, dx>_q
-# note: F will currently be unnormalized first
-def ngdual_log(F):
+# note: in safe version, F will first be unnormalized
+def ngdual_log_safe(F):
     out_utp = np.empty_like(F[1])
     q       = out_utp.shape[0]
 
@@ -233,6 +259,29 @@ def ngdual_log(F):
     for i in xrange(1, q):
         out_utp[i] = (F_utp[i] * i - np.sum(F_utp[1:i][::-1] * out_utp[1:i]))
         out_utp[i] /= F_utp[0]
+    out_utp[1:q] /= np.arange(1, q)
+
+    # handle normalization
+    out_Z    = np.max(out_utp)
+    out_logZ = np.log(out_Z)
+    out_utp  /= out_Z
+
+    return out_logZ, out_utp
+
+
+# compute <log(f), dx>_q from <f, dx>_q
+def ngdual_log(F):
+    out_utp = np.empty_like(F[1])
+    q       = out_utp.shape[0]
+
+    # compute the first term of log(f)
+    out_utp[0] = np.log(F[1][0])
+    # correct for log Z of F
+    out_utp[0] += F[0]
+
+    for i in xrange(1, q):
+        out_utp[i] = (F[1][i] * i - np.sum(F[1][1:i][::-1] * out_utp[1:i]))
+        out_utp[i] /= F[1][0]
     out_utp[1:q] /= np.arange(1, q)
 
     # handle normalization
@@ -259,6 +308,10 @@ def ngdual_pow(F, k):
     out_utp  /= out_Z
 
     return out_logZ, out_utp
+
+
+def ngdual_pow_experimental(F, k):
+    return ngdual_exp(ngdual_scalar_mul(ngdual_log(F), k))
 
 
 #compute <1/f, dx>_q from <f, dx>_q

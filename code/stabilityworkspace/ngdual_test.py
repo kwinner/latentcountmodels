@@ -18,7 +18,7 @@ rho   = 0.76
 print "\n\nTest new gduals"
 
 gdual_utp    = gdual.gdual_new(x, q)
-ngdual_tuple = ngdual.ngdual_new(x, q)
+ngdual_tuple = ngdual.ngdual_new_x_dx(x, q)
 
 print "gdual:  ", gdual_utp
 print "ngdual: ", (np.exp(ngdual_tuple[0]) * ngdual_tuple[1])
@@ -29,7 +29,7 @@ print "\n\nTest scalar operations"
 
 gdual_utp    = gdual.gdual_new(x, q)
 gdual_utp    = gdual_utp * c1
-ngdual_tuple = ngdual.ngdual_new(x, q)
+ngdual_tuple = ngdual.ngdual_new_x_dx(x, q)
 ngdual_tuple = ngdual.ngdual_scalar_mul(ngdual_tuple, c1)
 
 print "gdual:  ", gdual_utp
@@ -37,7 +37,7 @@ print "ngdual: ", (np.exp(ngdual_tuple[0]) * ngdual_tuple[1])
 
 gdual_utp    = gdual.gdual_new(x, q)
 gdual_utp[0] = gdual_utp[0] + c2
-ngdual_tuple = ngdual.ngdual_new(x, q)
+ngdual_tuple = ngdual.ngdual_new_x_dx(x, q)
 ngdual_tuple = ngdual.ngdual_scalar_add(ngdual_tuple, c2)
 
 print "\ngdual:  ", gdual_utp
@@ -46,7 +46,7 @@ print "ngdual: ", (np.exp(ngdual_tuple[0]) * ngdual_tuple[1])
 gdual_utp    = gdual.gdual_new(x, q)
 gdual_utp    = gdual_utp * c1
 gdual_utp[0] = gdual_utp[0] + c2
-ngdual_tuple = ngdual.ngdual_new(x, q)
+ngdual_tuple = ngdual.ngdual_new_x_dx(x, q)
 ngdual_tuple = ngdual.ngdual_scalar_mul(ngdual_tuple, c1)
 ngdual_tuple = ngdual.ngdual_scalar_add(ngdual_tuple, c2)
 
@@ -56,7 +56,7 @@ print "ngdual: ", (np.exp(ngdual_tuple[0]) * ngdual_tuple[1])
 gdual_utp    = gdual.gdual_new(x, q)
 gdual_utp[0] = gdual_utp[0] + c2
 gdual_utp    = gdual_utp * c1
-ngdual_tuple = ngdual.ngdual_new(x, q)
+ngdual_tuple = ngdual.ngdual_new_x_dx(x, q)
 ngdual_tuple = ngdual.ngdual_scalar_add(ngdual_tuple, c2)
 ngdual_tuple = ngdual.ngdual_scalar_mul(ngdual_tuple, c1)
 
@@ -70,12 +70,26 @@ print "\n\nTest pow"
 gdual_utp    = gdual.gdual_new(x, q)
 gdual_utp    = gdual_utp * c1
 gdual_utp    = gdual.gdual_pow(gdual_utp, k)
-ngdual_tuple = ngdual.ngdual_new(x, q)
+ngdual_tuple = ngdual.ngdual_new_x_dx(x, q)
 ngdual_tuple = ngdual.ngdual_scalar_mul(ngdual_tuple, c1)
 ngdual_tuple = ngdual.ngdual_pow(ngdual_tuple, k)
 
 print "gdual:  ", gdual_utp
 print "ngdual: ", (np.exp(ngdual_tuple[0]) * ngdual_tuple[1])
+###
+
+###
+print "\n\nTest experimental pow operation"
+
+ngdual_tuple = ngdual.ngdual_new_x_dx(x, q)
+ngdual_tuple = ngdual.ngdual_scalar_mul(ngdual_tuple, c1)
+ngdual_tuple = ngdual.ngdual_pow_safe(ngdual_tuple, k)
+ngdual_tuple2 = ngdual.ngdual_new_x_dx(x, q)
+ngdual_tuple2 = ngdual.ngdual_scalar_mul(ngdual_tuple2, c1)
+ngdual_tuple2 = ngdual.ngdual_pow(ngdual_tuple2, k)
+
+print "ngdual1: ", (np.exp(ngdual_tuple[0]) * ngdual_tuple[1])
+print "ngdual2: ", (np.exp(ngdual_tuple2[0]) * ngdual_tuple2[1])
 ###
 
 ###
@@ -85,7 +99,7 @@ gdual_utp    = gdual.gdual_new(x, q)
 gdual_utp    = gdual_utp * c1
 gdual_utp    = gdual.gdual_pow(gdual_utp, k)
 gdual_utp    = gdual.gdual_reciprocal(gdual_utp)
-ngdual_tuple = ngdual.ngdual_new(x, q)
+ngdual_tuple = ngdual.ngdual_new_x_dx(x, q)
 ngdual_tuple = ngdual.ngdual_scalar_mul(ngdual_tuple, c1)
 ngdual_tuple = ngdual.ngdual_pow(ngdual_tuple, k)
 ngdual_tuple = ngdual.ngdual_reciprocal(ngdual_tuple)
@@ -100,7 +114,7 @@ print "\n\nTest exp"
 gdual_utp    = gdual.gdual_new(x, q)
 gdual_utp    = gdual_utp * c1
 gdual_utp    = gdual.gdual_exp(gdual_utp)
-ngdual_tuple = ngdual.ngdual_new(x, q)
+ngdual_tuple = ngdual.ngdual_new_x_dx(x, q)
 ngdual_tuple = ngdual.ngdual_scalar_mul(ngdual_tuple, c1)
 ngdual_tuple = ngdual.ngdual_exp(ngdual_tuple)
 
@@ -109,11 +123,25 @@ print "ngdual: ", (np.exp(ngdual_tuple[0]) * ngdual_tuple[1])
 ###
 
 ###
+print "\n\nTest experimental exp operation"
+
+ngdual_tuple = ngdual.ngdual_new_x_dx(x, q)
+ngdual_tuple = ngdual.ngdual_scalar_mul(ngdual_tuple, c1)
+ngdual_tuple = ngdual.ngdual_exp_safe(ngdual_tuple)
+ngdual_tuple2 = ngdual.ngdual_new_x_dx(x, q)
+ngdual_tuple2 = ngdual.ngdual_scalar_mul(ngdual_tuple2, c1)
+ngdual_tuple2 = ngdual.ngdual_exp(ngdual_tuple2)
+
+print "ngdual1: ", (np.exp(ngdual_tuple[0]) * ngdual_tuple[1])
+print "ngdual2: ", (np.exp(ngdual_tuple2[0]) * ngdual_tuple2[1])
+###
+
+###
 print "\n\nTest log"
 gdual_utp    = gdual.gdual_new(x, q)
 gdual_utp    = gdual_utp * c1
 gdual_utp    = gdual.gdual_log(gdual_utp)
-ngdual_tuple = ngdual.ngdual_new(x, q)
+ngdual_tuple = ngdual.ngdual_new_x_dx(x, q)
 ngdual_tuple = ngdual.ngdual_scalar_mul(ngdual_tuple, c1)
 ngdual_tuple = ngdual.ngdual_log(ngdual_tuple)
 
@@ -122,12 +150,25 @@ print "ngdual: ", (np.exp(ngdual_tuple[0]) * ngdual_tuple[1])
 ###
 
 ###
+print "\n\nTest experimental log operation"
+ngdual_tuple = ngdual.ngdual_new_x_dx(x, q)
+ngdual_tuple = ngdual.ngdual_scalar_mul(ngdual_tuple, c1)
+ngdual_tuple = ngdual.ngdual_log_safe(ngdual_tuple)
+ngdual_tuple2 = ngdual.ngdual_new_x_dx(x, q)
+ngdual_tuple2 = ngdual.ngdual_scalar_mul(ngdual_tuple2, c1)
+ngdual_tuple2 = ngdual.ngdual_log(ngdual_tuple2)
+
+print "ngdual1: ", (np.exp(ngdual_tuple[0]) * ngdual_tuple[1])
+print "ngdual2: ", (np.exp(ngdual_tuple2[0]) * ngdual_tuple2[1])
+###
+
+###
 print "\n\nTest deriv"
 gdual_utp    = gdual.gdual_new(x, q)
 gdual_utp    = gdual_utp * c1
 gdual_utp    = gdual.gdual_log(gdual_utp)
 gdual_utp    = gdual.gdual_deriv(gdual_utp, 2)
-ngdual_tuple = ngdual.ngdual_new(x, q)
+ngdual_tuple = ngdual.ngdual_new_x_dx(x, q)
 ngdual_tuple = ngdual.ngdual_scalar_mul(ngdual_tuple, c1)
 ngdual_tuple = ngdual.ngdual_log(ngdual_tuple)
 ngdual_tuple = ngdual.ngdual_deriv(ngdual_tuple, 2)
@@ -142,8 +183,8 @@ F_gdual      = gdual.gdual_new(x, q)
 G_gdual      = gdual.gdual_new(y, q)
 F_gdual[0]   = F_gdual[0] + c2
 G_gdual[0]   = G_gdual[0] + c3
-F_ngdual     = ngdual.ngdual_new(x, q)
-G_ngdual     = ngdual.ngdual_new(y, q)
+F_ngdual     = ngdual.ngdual_new_x_dx(x, q)
+G_ngdual     = ngdual.ngdual_new_x_dx(y, q)
 F_ngdual     = ngdual.ngdual_scalar_add(F_ngdual, c2)
 G_ngdual     = ngdual.ngdual_scalar_add(G_ngdual, c3)
 
@@ -166,8 +207,8 @@ F_gdual[0]   = F_gdual[0] + c3
 G_gdual[0]   = G_gdual[0] + c3
 F_gdual      = gdual.gdual_pow(F_gdual, k)
 G_gdual      = gdual.gdual_log(G_gdual)
-F_ngdual     = ngdual.ngdual_new(x, q)
-G_ngdual     = ngdual.ngdual_new(y, q)
+F_ngdual     = ngdual.ngdual_new_x_dx(x, q)
+G_ngdual     = ngdual.ngdual_new_x_dx(y, q)
 F_ngdual     = ngdual.ngdual_scalar_add(F_ngdual, c3)
 G_ngdual     = ngdual.ngdual_scalar_add(G_ngdual, c3)
 F_ngdual     = ngdual.ngdual_pow(F_ngdual, k)
@@ -191,8 +232,8 @@ F_gdual      = gdual.gdual_new(x, q)
 G_gdual      = gdual.gdual_new(y, q)
 F_gdual[0]   = F_gdual[0] + c2
 G_gdual[0]   = G_gdual[0] + c3
-F_ngdual     = ngdual.ngdual_new(x, q)
-G_ngdual     = ngdual.ngdual_new(y, q)
+F_ngdual     = ngdual.ngdual_new_x_dx(x, q)
+G_ngdual     = ngdual.ngdual_new_x_dx(y, q)
 F_ngdual     = ngdual.ngdual_scalar_add(F_ngdual, c2)
 G_ngdual     = ngdual.ngdual_scalar_add(G_ngdual, c3)
 
@@ -221,8 +262,8 @@ F_gdual[0]   = F_gdual[0] + c3
 G_gdual[0]   = G_gdual[0] + c3
 F_gdual      = gdual.gdual_pow(F_gdual, k)
 G_gdual      = gdual.gdual_log(G_gdual)
-F_ngdual     = ngdual.ngdual_new(x, q)
-G_ngdual     = ngdual.ngdual_new(y, q)
+F_ngdual     = ngdual.ngdual_new_x_dx(x, q)
+G_ngdual     = ngdual.ngdual_new_x_dx(y, q)
 F_ngdual     = ngdual.ngdual_scalar_add(F_ngdual, c3)
 G_ngdual     = ngdual.ngdual_scalar_add(G_ngdual, c3)
 F_ngdual     = ngdual.ngdual_pow(F_ngdual, k)
@@ -252,8 +293,8 @@ G_gdual      = gdual.gdual_new(y, q)
 F_gdual[0]   = F_gdual[0] + c3
 G_gdual[0]   = G_gdual[0] + c3
 F_gdual      = gdual.gdual_pow(F_gdual, k)
-F_ngdual     = ngdual.ngdual_new(x, q)
-G_ngdual     = ngdual.ngdual_new(y, q)
+F_ngdual     = ngdual.ngdual_new_x_dx(x, q)
+G_ngdual     = ngdual.ngdual_new_x_dx(y, q)
 F_ngdual     = ngdual.ngdual_scalar_add(F_ngdual, c3)
 G_ngdual     = ngdual.ngdual_scalar_add(G_ngdual, c3)
 F_ngdual     = ngdual.ngdual_pow(F_ngdual, k)
@@ -274,7 +315,7 @@ print "H_ngdual: ", (np.exp(H_ngdual[0]) * H_ngdual[1])
 print "\n\nTest generating functions"
 gdual_utp    = gdual.gdual_new(x, q)
 gdual_utp    = generatingfunctions.poisson_gdual(gdual_utp, [lmbda])
-ngdual_tuple = ngdual.ngdual_new(x, q)
+ngdual_tuple = ngdual.ngdual_new_x_dx(x, q)
 ngdual_tuple = generatingfunctions.poisson_ngdual(ngdual_tuple, [lmbda])
 
 print "gdual:  ", gdual_utp
@@ -284,7 +325,7 @@ print "ngdual: ", (np.exp(ngdual_tuple[0]) * ngdual_tuple[1])
 
 gdual_utp    = gdual.gdual_new(x, q)
 gdual_utp    = generatingfunctions.bernoulli_gdual(gdual_utp, [rho])
-ngdual_tuple = ngdual.ngdual_new(x, q)
+ngdual_tuple = ngdual.ngdual_new_x_dx(x, q)
 ngdual_tuple = generatingfunctions.bernoulli_ngdual(ngdual_tuple, [rho])
 
 print "gdual:  ", gdual_utp
