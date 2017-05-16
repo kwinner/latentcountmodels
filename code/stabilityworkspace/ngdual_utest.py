@@ -13,6 +13,10 @@ c3 = 16.7   # scalar add (y)
 k  = 2.5    # pow
 lmbda = 1.9
 rho   = 0.76
+n     = 12.31
+r     = 6.11
+p     = 0.93
+logp  = 0.051
 
 ###
 print "\n\nTest new gduals"
@@ -318,6 +322,7 @@ gdual_utp    = generatingfunctions.poisson_gdual(gdual_utp, [lmbda])
 ngdual_tuple = ngdual.ngdual_new_x_dx(x, q)
 ngdual_tuple = generatingfunctions.poisson_ngdual(ngdual_tuple, [lmbda])
 
+print "poisson"
 print "gdual:  ", gdual_utp
 print "ngdual: ", (np.exp(ngdual_tuple[0]) * ngdual_tuple[1])
 
@@ -328,6 +333,62 @@ gdual_utp    = generatingfunctions.bernoulli_gdual(gdual_utp, [rho])
 ngdual_tuple = ngdual.ngdual_new_x_dx(x, q)
 ngdual_tuple = generatingfunctions.bernoulli_ngdual(ngdual_tuple, [rho])
 
+print "bernoulli"
+print "gdual:  ", gdual_utp
+print "ngdual: ", (np.exp(ngdual_tuple[0]) * ngdual_tuple[1])
+
+##
+
+gdual_utp    = gdual.gdual_new(x, q)
+gdual_utp    = generatingfunctions.binomial_gdual(gdual_utp, [n, p])
+ngdual_tuple = ngdual.ngdual_new_x_dx(x, q)
+ngdual_tuple = generatingfunctions.binomial_ngdual(ngdual_tuple, [n, p])
+
+print "binomial"
+print "gdual:  ", gdual_utp
+print "ngdual: ", (np.exp(ngdual_tuple[0]) * ngdual_tuple[1])
+
+##
+
+gdual_utp    = gdual.gdual_new(x, q)
+gdual_utp    = generatingfunctions.negbin_gdual(gdual_utp, [r, p])
+ngdual_tuple = ngdual.ngdual_new_x_dx(x, q)
+ngdual_tuple = generatingfunctions.negbin_ngdual(ngdual_tuple, [r, p])
+
+print "negbin"
+print "gdual:  ", gdual_utp
+print "ngdual: ", (np.exp(ngdual_tuple[0]) * ngdual_tuple[1])
+
+##
+
+gdual_utp    = gdual.gdual_new(x, q)
+gdual_utp    = generatingfunctions.logarithmic_gdual(gdual_utp, [logp])
+ngdual_tuple = ngdual.ngdual_new_x_dx(x, q)
+ngdual_tuple = generatingfunctions.logarithmic_ngdual(ngdual_tuple, [logp])
+
+print "logarithmic"
+print "gdual:  ", gdual_utp
+print "ngdual: ", (np.exp(ngdual_tuple[0]) * ngdual_tuple[1])
+
+##
+
+gdual_utp    = gdual.gdual_new(x, q)
+gdual_utp    = generatingfunctions.geometric_gdual(gdual_utp, [p])
+ngdual_tuple = ngdual.ngdual_new_x_dx(x, q)
+ngdual_tuple = generatingfunctions.geometric_ngdual(ngdual_tuple, [p])
+
+print "geometric"
+print "gdual:  ", gdual_utp
+print "ngdual: ", (np.exp(ngdual_tuple[0]) * ngdual_tuple[1])
+
+##
+
+gdual_utp    = gdual.gdual_new(x, q)
+gdual_utp    = generatingfunctions.geometric2_gdual(gdual_utp, [p])
+ngdual_tuple = ngdual.ngdual_new_x_dx(x, q)
+ngdual_tuple = generatingfunctions.geometric2_ngdual(ngdual_tuple, [p])
+
+print "geometric2"
 print "gdual:  ", gdual_utp
 print "ngdual: ", (np.exp(ngdual_tuple[0]) * ngdual_tuple[1])
 ###

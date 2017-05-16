@@ -55,6 +55,14 @@ def binomial_gdual(s, theta):
     return gdual.gdual_pow(out, n)
 
 
+def binomial_ngdual(s, theta):
+    n, p = theta[:]
+
+    return ngdual.ngdual_pow(ngdual.ngdual_scalar_add(ngdual.ngdual_scalar_mul(s, p),
+                                                      1 - p),
+                             n)
+
+
 def negbin_pgf(s, theta):
     r, p = theta[:]
 
@@ -74,6 +82,23 @@ def negbin_gdual(s, theta):
     return out
 
 
+def negbin_ngdual(s, theta):
+    r, p = theta[:]
+
+    out = ngdual.ngdual_scalar_mul(s, p - 1)
+    out = ngdual.ngdual_scalar_add(out, 1)
+    out = ngdual.ngdual_reciprocal(out)
+    out = ngdual.ngdual_scalar_mul(out, p)
+    out = ngdual.ngdual_pow(out, r)
+
+    return out
+
+    # return ngdual.ngdual_pow(ngdual.ngdual_scalar_mul(ngdual.ngdual_reciprocal(ngdual.ngdual_scalar_add(ngdual.ngdual_scalar_mul(s, p - 1),
+    #                                                                                                     1)),
+    #                                                   p),
+    #                          r)
+
+
 def logarithmic_pgf(s, theta):
     p = theta[0]
     return np.log(1 - (p * s)) / np.log(1 - p)
@@ -87,6 +112,14 @@ def logarithmic_gdual(s, theta):
     out[0] += 1
     out = gdual.gdual_log(out)
     return (out / np.log(1 - p))
+
+
+def logarithmic_ngdual(s, theta):
+    p = theta[0]
+
+    return ngdual.ngdual_scalar_mul(ngdual.ngdual_log(ngdual.ngdual_scalar_add(ngdual.ngdual_scalar_mul(s, -p),
+                                                                               1)),
+                                    1 / np.log(1 - p))
 
 
 # PGF for geometric with support 0, 1, 2, ...
@@ -104,6 +137,14 @@ def geometric_gdual(s, theta):
     return (p * gdual.gdual_reciprocal(out))
 
 
+def geometric_ngdual(s, theta):
+    p = theta[0]
+
+    return ngdual.ngdual_scalar_mul(ngdual.ngdual_reciprocal(ngdual.ngdual_scalar_add(ngdual.ngdual_scalar_mul(s, p - 1),
+                                                                                      1)),
+                                    p)
+
+
 # PGF for geometric with support 1, 2, ...
 def geometric2_pgf(s, theta):
     p = theta[0]
@@ -118,3 +159,12 @@ def geometric2_gdual(s, theta):
     out[0] += 1
     out = gdual.gdual_reciprocal(out)
     return gdual.gdual_mul(p * s, out)
+
+
+def geometric2_ngdual(s, theta):
+    p = theta[0]
+
+    return ngdual.ngdual_mul(ngdual.ngdual_scalar_mul(ngdual.ngdual_reciprocal(ngdual.ngdual_scalar_add(ngdual.ngdual_scalar_mul(s, p - 1),
+                                                                                                        1)),
+                                                      p),
+                             s)
