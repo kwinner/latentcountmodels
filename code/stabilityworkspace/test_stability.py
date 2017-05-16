@@ -7,7 +7,7 @@ import ngdualforward
 import truncatedfa
 
 # true params
-Lambda_gen  = 6000 * np.array([0.0257, 0.1163, 0.2104, 0.1504, 0.0428]).reshape(-1,1)
+Lambda_gen  = 10000 * np.array([0.0257, 0.1163, 0.2104, 0.1504, 0.0428]).reshape(-1,1)
 Delta_gen   = 2 * 0.2636 * np.ones(5).reshape(-1,1)
 Rho_gen     = 0.5 * np.ones(5)
 # Lambda_gen  = 1500 * np.array([0.0257, 0.05, 0.1163, 0.15, 0.2104, 0.17, 0.1504, 0.07, 0.0428]).reshape(-1,1)

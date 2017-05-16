@@ -86,7 +86,7 @@ def ngdual_compose(G, F):
     out_utp[0] = G_0_cache
 
     # handle normalization
-    out_Z    = np.max(np.abs(out_utp))
+    out_Z    = max([1, np.max(np.abs(out_utp))])
     out_logZ = np.log(out_Z) + G[0]
     out_utp  /= out_Z
 
@@ -111,7 +111,7 @@ def ngdual_compose_affine(G, F):
         out_utp *= np.power(F_utp[1], np.arange(0, q))
 
         # handle normalization
-        out_Z    = np.max(np.abs(out_utp))
+        out_Z    = max([1, np.max(np.abs(out_utp))])
         out_logZ = np.log(out_Z) + G[0]
         out_utp  /= out_Z
 
@@ -154,7 +154,7 @@ def ngdual_scalar_add(F, c):
     # TODO: if F_utp[0] + (c / np.exp(F[0])) > 1, then renormalization can be handled explicitly
     out_utp[0] = out_utp[0] + (c / np.exp(F[0]))
 
-    out_Z = np.max(out_utp)
+    out_Z    = max([1, np.max(np.abs(out_utp))])
     out_logZ = np.log(out_Z) + F[0]
     out_utp /= out_Z
 
@@ -172,7 +172,7 @@ def ngdual_mul(F, G):
     out_utp = np.convolve(F_utp, G_utp)[:q]
 
     # handle normalization
-    out_Z    = np.max(np.abs(out_utp))
+    out_Z    = max([1, np.max(np.abs(out_utp))])
     out_logZ = np.log(out_Z) + F[0] + G[0]
     out_utp  /= out_Z
 
@@ -194,7 +194,7 @@ def ngdual_scalar_mul_log(F, logc):
 
 # compute <exp(f), dx>_q from <f, dx>_q
 # note: in safe version, F will first be unnormalized
-def ngdual_exp_safe(F):
+def ngdual_exp_very_safe(F):
     out_utp = np.empty_like(F[1])
     q       = out_utp.shape[0]
 
@@ -213,7 +213,7 @@ def ngdual_exp_safe(F):
         out_utp[i] = np.sum(out_utp[:i][::-1] * F_utp_tilde[:i], axis=0) / i
 
     # handle normalization
-    out_Z    = np.max(np.abs(out_utp))
+    out_Z    = max([1, np.max(np.abs(out_utp))])
     out_logZ = np.log(out_Z)
     out_utp  /= out_Z
 
@@ -221,7 +221,7 @@ def ngdual_exp_safe(F):
 
 
 # compute <exp(f), dx>_q from <f, dx>_q
-def ngdual_exp(F):
+def ngdual_exp_safe(F):
     out_utp = np.empty_like(F[1])
     q       = out_utp.shape[0]
 
@@ -239,8 +239,39 @@ def ngdual_exp(F):
         out_utp[i] = Z * np.sum(out_utp[:i][::-1] * F_utp_tilde[:i], axis=0) / i
 
     # handle normalization
-    out_Z    = np.max(np.abs(out_utp))
+    out_Z    = max([1, np.max(np.abs(out_utp))])
     out_logZ = np.log(out_Z)
+    out_utp  /= out_Z
+
+    return out_logZ, out_utp
+
+
+# compute <exp(c) * exp(f - c), dx>_q from <f, dx>_q
+def ngdual_exp(F):
+    # take off c
+    # correction = np.exp(F[0])
+    correction = np.exp(F[0]) * F[1][0]
+    F_prime = ngdual_scalar_add(F, -correction)
+
+    out_utp = np.empty_like(F_prime[1])
+    q       = out_utp.shape[0]
+
+    # compute Z
+    Z = np.exp(F_prime[0])
+
+    # compute the first term of exp(f)
+    out_utp[0] = np.power(np.exp(F_prime[1][0]), Z)
+
+    # copy the non scalar terms of F
+    F_utp_tilde = np.copy(F_prime[1][1:])
+
+    F_utp_tilde *= np.arange(1, q)
+    for i in xrange(1, q):
+        out_utp[i] = Z * np.sum(out_utp[:i][::-1] * F_utp_tilde[:i], axis=0) / i
+
+    # handle normalization
+    out_Z    = max([1, np.max(np.abs(out_utp))])
+    out_logZ = correction + np.log(out_Z)
     out_utp  /= out_Z
 
     return out_logZ, out_utp
@@ -265,7 +296,7 @@ def ngdual_log_safe(F):
     out_utp[1:q] /= np.arange(1, q)
 
     # handle normalization
-    out_Z    = np.max(np.abs(out_utp))
+    out_Z    = max([1, np.max(np.abs(out_utp))])
     out_logZ = np.log(out_Z)
     out_utp  /= out_Z
 
@@ -288,7 +319,7 @@ def ngdual_log(F):
     out_utp[1:q] /= np.arange(1, q)
 
     # handle normalization
-    out_Z    = np.max(np.abs(out_utp))
+    out_Z    = max([1, np.max(np.abs(out_utp))])
     out_logZ = np.log(out_Z)
     out_utp  /= out_Z
 
@@ -306,7 +337,7 @@ def ngdual_pow_safe(F, k):
     out_utp = gdual.gdual_exp(k * gdual.gdual_log(F_utp))
 
     # handle normalization
-    out_Z    = np.max(np.abs(out_utp))
+    out_Z    = max([1, np.max(np.abs(out_utp))])
     out_logZ = np.log(out_Z)
     out_utp  /= out_Z
 
@@ -332,7 +363,7 @@ def ngdual_reciprocal(F):
         out_utp[i] = 1. / F_utp[0] * (-np.sum(out_utp[:i] * F_utp[i:0:-1], axis=0))
 
     # handle normalization
-    out_Z    = np.max(np.abs(out_utp))
+    out_Z    = max([1, np.max(np.abs(out_utp))])
     out_logZ = np.log(out_Z)
     out_utp  /= out_Z
 
