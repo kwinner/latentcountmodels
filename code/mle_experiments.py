@@ -1,20 +1,18 @@
-import pgffa, truncatedfa, UTPPGFFA_cython as utppgffa
-import os, sys, warnings
+import os, sys
+import numpy as np
 
-from mle import *
 from mle_distributions import *
-
-warnings.filterwarnings('error')
+from mle import *
 
 def mean2p(mu, size):
     return float(size)/(size+mu)
 
-def run_experiment(mode, min_delta, n, out_dir, out_mode):
-    fa = utppgffa           # forward algorithm
-    T = np.arange(7)        # vector of observation times
+def run_experiment(mode, params, n, out_dir, out_mode):
+    lmbda, v, min_delta, max_delta, step, rho = params
+    T = np.arange(7) # vector of observation times
 
     # Distributions
-    arrival_idx = 0 if mode in range(3) else 1
+    arrival_idx = 0 if mode < 3 else 1
     branch_idx = mode % 3
 
     arrival = [constant_poisson_arrival, constant_nbinom_arrival][arrival_idx]
@@ -23,21 +21,15 @@ def run_experiment(mode, min_delta, n, out_dir, out_mode):
     print arrival['pgf'], branch['pgf']
 
     # Arrival params
-    lmbda = 5
-    v = 10
-    p = mean2p(lmbda, v)
-    arrival_params = [lmbda, [v, p]]
+    p = mean2p(lmbda, v) # ignored in Poisson arrival cases
 
     # Branching params
-    max_delta = 1 if mode in [0, 3] else 1.6
-    deltas = np.arange(min_delta, max_delta + 0.1, 0.2)
-    
-    # Observation params
-    rho = 0.6
+    deltas = np.arange(min_delta, max_delta + 0.1, step)
 
-    if mode in range(3):
+    # True params dict
+    if mode < 3:
         true_params = {'arrival': lmbda, 'observ': rho}
-    elif mode in range(3, 6):
+    else:
         true_params = {'arrival': [v, p], 'observ': rho}
     
     # Setup outdir
@@ -62,12 +54,12 @@ def run_experiment(mode, min_delta, n, out_dir, out_mode):
         log = '{}/warnings.log'.format(path)
         print out
 
-        run_mle(T, arrival, branch, observ, fa, log=log, max_iters=n,
-                n=n, out=out, out_mode=out_mode, true_params=true_params)
+        run_mle(T, arrival, branch, observ, log=log, n=n, out=out,
+                out_mode=out_mode, true_params=true_params)
 
 if __name__ == "__main__":
     """
-    Modes:
+    Experiments:
     1. Poisson arrival, binomial branching
     2. Poisson arrival, Poisson branching
     3. Poisson arrival, negative binomial branching
@@ -75,10 +67,23 @@ if __name__ == "__main__":
     5. Negative binomial arrival, Poisson branching
     6. Negative binomial arrival, negative binomial branching
     """
-    mode = int(sys.argv[1]) - 1
-    min_delta = 0.3
-    n = 50
-    out_dir = '../data/mle_cython_gtol1e-15/'
-    out_mode = 'w'
+    mode = int(sys.argv[1]) - 1   # experiment number
+    n = 50                        # number of samples
+    out_dir = '../data/mle_out/'
+    out_mode = 'w'                # 'a' for append, 'w' for write
+
+    # Arrival params
+    lmbda = 5                     # mean
+    v = 10                        # dispersion (ignored in Poisson arrival cases)
+
+    # Branching params
+    min_delta = 1.6
+    max_delta = 0.9 if mode in [0, 3] else 1.6 # 0.9 if binomial branching, else 1.6
+    step = 0.1 if mode in [0, 3] else 0.2      # 0.1 if binomial branching, else 0.2
+
+    # Observation params
+    rho = 0.6
     
-    run_experiment(mode, min_delta, n, out_dir, out_mode)
+    assert mode in range(6), 'Choose an experiment 1-6'
+    params = [lmbda, v, min_delta, max_delta, step, rho]
+    run_experiment(mode, params, n, out_dir, out_mode)

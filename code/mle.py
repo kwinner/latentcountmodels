@@ -1,82 +1,68 @@
 from scipy import optimize
+from stabilityworkspace.ngdualforward import ngdualforward
 
-import csv, sys, warnings, traceback
+import csv, sys, warnings
 import numpy as np
-import truncatedfa, pgffa, UTPPGFFA_cython as utppgffa
 
-def run_mle(T, arrival, branch, observ, fa, y=None, true_params=None, n=20,
-            out=None, out_mode='w', max_iters=100, log=None):
-    # If y is None true_params must be provided,
-    # otherwise (y is provided) true_params must be None
-    if y is None: assert true_params is not None, 'Must provide true_params'
-    if y is not None: assert true_params is None, 'Cannot provide true_params'
+warnings.filterwarnings('error')
+np.seterr(divide='ignore')
 
-    # For PGFFA, make sure Poisson arrival and binomial branching
-    if fa is pgffa:
-        assert self.arrival_dist is arrival.poisson and \
-               self.branching_dist is branching.binom, \
-               'Error: PGFFA only supports Poisson arrival and binomial branching'
+def run_mle(T, arrival, branch, observ, y=None, true_params=None, n=1,
+            out=None, out_mode='w', max_attempts=3, log=None):
+    # If y is None true_params must be provided to generate samples,
+    # otherwise (y is provided) true_params will be ignored if provided
+    if y is None:
+        assert true_params is not None, 'Must provide true_params'
+    if y is not None and true_params is not None:
+        print 'true_params will be ignored'
 
-    # FA args
-    if fa is pgffa:
-        fa_args = tuple()
-    elif fa is utppgffa:
-        fa_args = (arrival['pgf'], branch['pgf'], observ['pgf'])
-    elif fa is truncatedfa:
-        fa_args = (arrival['pmf'], branch['pmf'], observ['pmf'])
-    else:
-        print 'Invalid FA'
-        sys.exit(0)
-
-    # MLE, and save results if out is not None
+    # Save results if out is not None
     if out:
         fout = open(out, out_mode)
         writer = csv.writer(fout)
 
+    # Log RuntimeWarnings and AssertionErrors if log is not None
     if log:
         flog = open(log, 'a')
+        if true_params: flog.write('True params: ' + str(true_params))
+    else:
+        flog = None
 
-    i = 0       # total number of reps needed to get n estimates
-    n_conv = 0  # number of convergent estimates
-    while n_conv < n and i < max_iters:
+    n_successes = 0
+    for i in xrange(n):
         # Generate data
         if true_params is not None: y = generate_data(true_params, T, arrival, branch, observ)
         #print y
 
-        success, n_restarts = False, 0
-        while (not success) and n_restarts < 3:
-            res = mle(y, T, arrival, branch, observ, fa, fa_args, flog)
+        success, n_attempts = False, 0
+        while (not success) and n_attempts < max_attempts:
+            if n_attempts > 0: print 'Restarting'
+            res = mle(y, T, arrival, branch, observ, flog)
             success = res.success
-            n_restarts += 1
-
-        if n_restarts > 1 and success: print 'Restart successful'
+            n_attempts += 1
 
         if success:
-            #print res.success, res.message
             theta_hat = res.x
     
             # Calculate CI
             ci_width = np.absolute(1.96*np.sqrt(np.diagonal(res.hess_inv.todense())))
             ci_left = theta_hat - ci_width
             ci_right = theta_hat + ci_width
-            
             #print theta_hat, ci_width
     
             # Write to out
             if out: writer.writerow(np.concatenate((y, theta_hat, ci_left, ci_right)))
-            n_conv += 1
-        else:
-            print res.message, n_conv, 'successes out of', i + 1, 'trials'
+            n_successes += 1
 
-        i += 1
+        print res.success, res.message, n_successes, 'successes out of', i + 1, 'trials'
 
-    print 'Number of successes:', n_conv
-    print 'Number of trials:', i
+    print 'Number of successes:', n_successes
+    print 'Number of trials:', n
 
     if out: fout.close()
     if log:
-        flog.write('Number of successes: ' + str(n_conv) + '\n')
-        flog.write('Number of trials: ' + str(i) + '\n')
+        flog.write('Number of successes: ' + str(n_successes) + '\n')
+        flog.write('Number of trials: ' + str(n) + '\n')
         flog.close()
 
     try:
@@ -84,20 +70,20 @@ def run_mle(T, arrival, branch, observ, fa, y=None, true_params=None, n=20,
     except:
         return None, None, None
 
-def mle(y, T, arrival, branch, observ, fa, fa_args, log):
+def mle(y, T, arrival, branch, observ, log):
     theta0 = unpack('init', y, arrival, branch, observ)
     bounds = unpack('bounds', y, arrival, branch, observ)
 
     # Call the optimizer
-    objective_args = (y, T, fa, fa_args, arrival, branch, observ, log)
+    objective_args = (y, T, arrival, branch, observ, log)
     return optimize.minimize(objective, theta0, args=objective_args,
                              method='L-BFGS-B', jac=False, bounds=bounds,
                              options={'gtol': 1e-15})
                              #options={'disp': True})#, 'eps': 1e-12, 'ftol': 1e-15, 'gtol': 1e-15})
 
-def objective(theta, y, T, fa, fa_args, arrival, branch, observ, log):
-    # Make sure there is no nan in theta
-    if np.any(np.isnan(theta)): return float('inf')
+def objective(theta, y, T, arrival, branch, observ, log):
+    # Make sure all values in theta are valid
+    if not np.all(np.isfinite(theta)): return float('inf')
 
     # Turn theta from np array into dictionary
     arrival_theta, branch_theta, observ_theta = theta_array2dict(theta, T, arrival, branch, observ)
@@ -106,24 +92,23 @@ def objective(theta, y, T, fa, fa_args, arrival, branch, observ, log):
     #print 'observ', observ_theta
 
     # Compute log likelihood and return negative log likelihood
-    arrival_pgf, branch_pgf, observ_pgf = fa_args
+    arrival_pgf = arrival['pgf']
+    branch_pgf = branch['pgf']
     #print arrival_pgf, branch_pgf
     
     ll = None
     try:
-        alpha, z = utppgffa.utppgffa_cython(y, arrival_pgf, arrival_theta,
-                                            branch_pgf, branch_theta, observ_theta)
-        ll = np.log(alpha[0]) + np.sum(z)
+        alpha = ngdualforward(y, arrival_pgf, arrival_theta,
+                                branch_pgf, branch_theta, observ_theta)
+        ll = alpha[-1][0] + np.log(alpha[-1][1][0])
     except RuntimeWarning as w:
         if log:
-            line = ' '.join([str(x) for x in [arrival_pgf, branch_pgf, y, theta, ll, w]])
+            line = ' '.join([str(x) for x in [y, theta, ll, w]])
             log.write(line + '\n')
         ll = -1e12
-
-    if ll and (np.isnan(ll) or np.isneginf(ll)):
+    except AssertionError as e:
         if log:
-            w = 'invalid value encountered in double_scalars'
-            line = ' '.join([str(x) for x in [arrival_pgf, branch_pgf, y, theta, ll, w]])
+            line = ' '.join([str(x) for x in [y, theta, ll, e]])
             log.write(line + '\n')
         ll = -1e12
     
