@@ -19,7 +19,7 @@ constant_poisson_arrival = {
     'sample': stats.poisson.rvs,
     'hyperparam2param': lambda x, T: np.tile(x, (len(T), 1)),
     'init': lambda y: np.median(y),
-    'bounds': lambda y: (1e-6, 10)
+    'bounds': lambda y: (1e-6, 1000)
 }
 
 constant_nbinom_arrival = {
@@ -50,7 +50,7 @@ constant_poisson_branch = {
     'sample': lambda n, lmbda: stats.poisson.rvs(n * lmbda),
     'hyperparam2param': lambda x, T: np.tile(x, (len(T)-1, 1)),
     'init': lambda y: 1,
-    'bounds': lambda y: (1e-6, 5)
+    'bounds': lambda y: (1e-6, None)
 }
 
 constant_nbinom_branch = {
