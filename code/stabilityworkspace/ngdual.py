@@ -180,11 +180,13 @@ def ngdual_mul(F, G):
 
 
 def ngdual_scalar_mul(F, c):
-    if c >= 0:
+    if c > 0:
         # push c into logZ
         return (F[0] + np.log(c), np.copy(F[1]))
-    else:
+    elif c < 0:
         return (F[0] + np.log(-c), -1 * np.copy(F[1]))
+    else: #c = 0
+        return 0, np.zeros_like(F[1])
 
 
 def ngdual_scalar_mul_log(F, logc):

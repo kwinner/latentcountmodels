@@ -7,12 +7,14 @@ import ngdualforward
 import truncatedfa
 
 # true params
-Lambda_gen  = 10000 * np.array([0.0257, 0.1163, 0.2104, 0.1504, 0.0428]).reshape(-1,1)
+Lambda_gen  = 1000 * np.array([0.0257, 0.1163, 0.2104, 0.1504, 0.0428]).reshape(-1,1)
 Delta_gen   = 2 * 0.2636 * np.ones(5).reshape(-1,1)
 Rho_gen     = 0.5 * np.ones(5)
 # Lambda_gen  = 1500 * np.array([0.0257, 0.05, 0.1163, 0.15, 0.2104, 0.17, 0.1504, 0.07, 0.0428]).reshape(-1,1)
 # Delta_gen   = 2 * np.array([0.2636, 0.2636, 0.2636, 0.2636, 0.2636, 0.2636, 0.2636, 0.2636]).reshape(-1,1)
 # Rho_gen     = 0.5 * np.ones(9)
+
+n_max = 2500
 
 K = Lambda_gen.shape[0]
 
@@ -128,7 +130,7 @@ Alpha_tfa, z_tfa = truncatedfa.truncated_forward(arrival_distn,
                                                  Delta_eval,
                                                  Rho_eval,
                                                  y,
-                                                 n_max=1000)
+                                                 n_max=n_max)
 
 ll      = truncatedfa.likelihood(z_tfa, log=True)
 print "LL from truncated algorithm:  ", ll
