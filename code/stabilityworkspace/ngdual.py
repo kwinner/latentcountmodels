@@ -1,4 +1,5 @@
 import numpy as np
+import scipy
 import util
 import gdual
 
@@ -79,7 +80,8 @@ def ngdual_compose(G, F):
     # Horner's method truncated to q
     out_utp[0] = G_utp[q - 1]
     for i in range(q - 2, -1, -1):
-        out_utp = np.convolve(out_utp, F_utp)[:q]
+        # out_utp = np.convolve(out_utp, F_utp)[:q]
+        out_utp = scipy.signal.convolve(out_utp, F_utp)[:q]
         out_utp[0] += G_utp[i]
 
     # restore cached values
@@ -169,7 +171,8 @@ def ngdual_mul(F, G):
     G_utp = np.copy(G[1])
     q     = F_utp.shape[0]
 
-    out_utp = np.convolve(F_utp, G_utp)[:q]
+    # out_utp = np.convolve(F_utp, G_utp)[:q]
+    out_utp = scipy.signal.convolve(F_utp, G_utp)[:q]
 
     # handle normalization
     out_Z    = max([1, np.max(np.abs(out_utp))])

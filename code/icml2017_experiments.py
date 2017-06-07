@@ -555,18 +555,18 @@ def runtime_experiment_plot(resultdir):
     plt.show(block=True)
 
 
-def runtime_experiment_gen(N_space   = np.arange(10,100,10),
-                           rho_space = np.arange(0.05, 1.00, 0.05),
-                           Lambda    = np.array([0.0257, 0.1163, 0.2104, 0.1504, 0.0428], dtype=np.float64), # unscaled Lambda
+def runtime_experiment_gen_rho(N_space   = np.arange(10, 100, 10),
+                               rho_space = np.arange(0.05, 1.00, 0.05),
+                               Lambda    = np.array([0.0257, 0.1163, 0.2104, 0.1504, 0.0428], dtype=np.float64),  # unscaled Lambda
                            Delta     = np.array([0.2636, 0.2636, 0.2636, 0.2636], dtype=np.float64),
-                           epsilon = 1e-6,              # error tolerance in truncated fa
-                           n_reps  = 10,                # number of times to repeat the experiment
-                           N_LIMIT = 1000,              # hard cap on the max value for the truncated algorithm
+                               epsilon = 1e-6,  # error tolerance in truncated fa
+                           n_reps  = 10,  # number of times to repeat the experiment
+                           N_LIMIT = 1000,  # hard cap on the max value for the truncated algorithm
                            verbose = "silent",
-                           arrival = 'poisson',
-                           branch  = 'binomial',
-                           observ  = 'binomial'
-                           ):
+                               arrival = 'poisson',
+                               branch  = 'binomial',
+                               observ  = 'binomial'
+                               ):
     assert Lambda.shape[0] == Delta.shape[0] + 1
     K = Lambda.shape[0]
 
