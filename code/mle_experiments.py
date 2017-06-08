@@ -68,7 +68,8 @@ if __name__ == "__main__":
     6. Negative binomial arrival, negative binomial branching
     """
     mode = int(sys.argv[1]) - 1   # experiment number
-    n = 50                        # number of samples
+    n = 50                        # number of estimates
+    n_reps = 10                   # number of replicates for each estimate
     out_dir = '../data/mle_out/'
     out_mode = 'w'                # 'a' for append, 'w' for write
 
