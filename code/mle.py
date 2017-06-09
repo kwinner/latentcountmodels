@@ -32,7 +32,7 @@ def run_mle(T, arrival, branch, observ, y=None, true_params=None, n=1, n_reps=1,
     for i in xrange(n):
         # Generate data
         if true_params is not None: y = generate_data(true_params, T, arrival, branch, observ, n_reps)
-        print y
+        #print y
 
         success, n_attempts = False, 0
         while (not success) and n_attempts < max_attempts:
@@ -51,7 +51,7 @@ def run_mle(T, arrival, branch, observ, y=None, true_params=None, n=1, n_reps=1,
             #print theta_hat, ci_width
     
             # Write to out
-            if out: writer.writerow(np.concatenate((theta_hat, ci_left, ci_right)))
+            if out: writer.writerow(np.concatenate((y[0], theta_hat, ci_left, ci_right)))
             n_successes += 1
 
         print res.success, res.message, n_successes, 'successes out of', i + 1, 'trials'
