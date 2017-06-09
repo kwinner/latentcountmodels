@@ -32,7 +32,7 @@ def run_mle(T, arrival, branch, observ, y=None, true_params=None, n=1, n_reps=1,
     for i in xrange(n):
         # Generate data
         if true_params is not None: y = generate_data(true_params, T, arrival, branch, observ, n_reps)
-        #print y
+        print y
 
         success, n_attempts = False, 0
         while (not success) and n_attempts < max_attempts:
@@ -73,6 +73,7 @@ def run_mle(T, arrival, branch, observ, y=None, true_params=None, n=1, n_reps=1,
 def mle(y, T, arrival, branch, observ, log):
     theta0 = unpack('init', y, arrival, branch, observ)
     bounds = unpack('bounds', y, arrival, branch, observ)
+    print theta0
 
     # Call the optimizer
     objective_args = (y, T, arrival, branch, observ, log)

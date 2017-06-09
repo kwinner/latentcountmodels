@@ -1,13 +1,13 @@
 import os, sys
 import numpy as np
 
-from mle_distributions import *
+from mle_distributions_kev import *
 from mle import *
 
 def mean2p(mu, size):
     return float(size)/(size+mu)
 
-def run_experiment(mode, params, n, n_reps, out_dir, out_mode):
+def run_experiment(mode, params, n, n_reps, max_attempts, out_dir, out_mode):
     lmbda, v, min_delta, max_delta, step, rho = params
     T = np.arange(7) # vector of observation times
 
@@ -55,7 +55,8 @@ def run_experiment(mode, params, n, n_reps, out_dir, out_mode):
         print out
 
         run_mle(T, arrival, branch, observ, log=log, n=n, n_reps=n_reps,
-                out=out, out_mode=out_mode, true_params=true_params)
+                max_attempts=max_attempts, out=out, out_mode=out_mode,
+                true_params=true_params)
 
 if __name__ == "__main__":
     """
@@ -70,6 +71,7 @@ if __name__ == "__main__":
     mode = int(sys.argv[1]) - 1   # experiment number
     n = 50                        # number of estimates
     n_reps = 10                   # number of replicates for each estimate
+    max_attempts = 10             # max number of random restarts (incl first attempt)
     out_dir = '../data/mle_out/'
     out_mode = 'w'                # 'a' for append, 'w' for write
 
@@ -87,4 +89,4 @@ if __name__ == "__main__":
     
     assert mode in range(6), 'Choose an experiment 1-6'
     params = [lmbda, v, min_delta, max_delta, step, rho]
-    run_experiment(mode, params, n, n_reps, out_dir, out_mode)
+    run_experiment(mode, params, n, n_reps, max_attempts, out_dir, out_mode)
