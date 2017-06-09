@@ -7,7 +7,7 @@ import numpy as np
 warnings.filterwarnings('error')
 np.seterr(divide='ignore')
 
-def run_mle(T, arrival, branch, observ, y=None, true_params=None, n=1,
+def run_mle(T, arrival, branch, observ, y=None, true_params=None, n=1, n_reps=1,
             out=None, out_mode='w', max_attempts=3, log=None):
     # If y is None true_params must be provided to generate samples,
     # otherwise (y is provided) true_params will be ignored if provided
@@ -31,8 +31,8 @@ def run_mle(T, arrival, branch, observ, y=None, true_params=None, n=1,
     n_successes = 0
     for i in xrange(n):
         # Generate data
-        if true_params is not None: y = generate_data(true_params, T, arrival, branch, observ)
-        #print y
+        if true_params is not None: y = generate_data(true_params, T, arrival, branch, observ, n_reps)
+        print y
 
         success, n_attempts = False, 0
         while (not success) and n_attempts < max_attempts:
@@ -51,7 +51,7 @@ def run_mle(T, arrival, branch, observ, y=None, true_params=None, n=1,
             #print theta_hat, ci_width
     
             # Write to out
-            if out: writer.writerow(np.concatenate((y, theta_hat, ci_left, ci_right)))
+            if out: writer.writerow(np.concatenate((theta_hat, ci_left, ci_right)))
             n_successes += 1
 
         print res.success, res.message, n_successes, 'successes out of', i + 1, 'trials'
@@ -96,21 +96,24 @@ def objective(theta, y, T, arrival, branch, observ, log):
     branch_pgf = branch['pgf']
     #print arrival_pgf, branch_pgf
     
-    ll = None
-    try:
-        alpha = ngdualforward(y, arrival_pgf, arrival_theta,
-                                branch_pgf, branch_theta, observ_theta)
-        ll = alpha[-1][0] + np.log(alpha[-1][1][0])
-    except RuntimeWarning as w:
-        if log:
-            line = ' '.join([str(x) for x in [y, theta, ll, w]])
-            log.write(line + '\n')
-        ll = -1e12
-    except AssertionError as e:
-        if log:
-            line = ' '.join([str(x) for x in [y, theta, ll, e]])
-            log.write(line + '\n')
-        ll = -1e12
+    ll = 0
+    for i in range(len(y)):
+        try:
+            alpha_i = ngdualforward(y[i], arrival_pgf, arrival_theta,
+                                    branch_pgf, branch_theta, observ_theta)
+            ll_i = alpha_i[-1][0] + np.log(alpha_i[-1][1][0])            
+        except RuntimeWarning as w:
+            if log:
+                line = ' '.join([str(x) for x in [y, theta, ll, w]])
+                log.write(line + '\n')
+            ll_i = -1e12
+        except AssertionError as e:
+            if log:
+                line = ' '.join([str(x) for x in [y, theta, ll, e]])
+                log.write(line + '\n')
+            ll_i = -1e12
+
+        ll += ll_i
     
     return -ll
 
@@ -130,18 +133,30 @@ def theta_array2dict(theta_array, T, arrival, branch, observ):
             branch['hyperparam2param'](branch_params, T).astype(np.float64),
             observ['hyperparam2param'](observ_params, T).astype(np.float64))
 
-def generate_data(theta, T, arrival, branch, observ):
+def generate_data(theta, T, arrival, branch, observ, n_reps):
     K = len(T)
     arrival_params = arrival['hyperparam2param'](theta['arrival'], T)
     branch_params = branch['hyperparam2param'](theta['branch'], T)
     observ_params = observ['hyperparam2param'](theta['observ'], T)
 
     if arrival_params.ndim == 1: arrival_params = arrival_params.reshape((-1, 1))
-    m = arrival['sample'](*arrival_params.T)
-    n, y, z = np.zeros(K, dtype=int), np.zeros(K, dtype=int), np.zeros(K-1, dtype=int)
+    m = arrival['sample'](*arrival_params.T, size=(n_reps, K))
+    n = np.zeros((n_reps, K), dtype=int)
+    y = np.zeros((n_reps, K), dtype=int)
+    z = np.zeros((n_reps, K-1), dtype=int)
+
     for k in range(K):
-        n[k] = m[k] + z[k-1] if k > 0 else m[k]
-        if k < K-1: z[k] = branch['sample'](n[k], branch_params[k]) if n[k] > 0 else 0
+        n[:, k] = m[:, k] + z[:, k-1] if k > 0 else m[:, k]
+
+        # Some hack to avoid domain error for n[i, k] = 0
+        n_tmp = n[:, k]
+        mask = np.array(n_tmp <= 0)
+        n_tmp[mask] = 1
+        if k < K-1:
+            z_tmp = branch['sample'](n_tmp, branch_params[k])
+            z_tmp[mask] = 0
+            z[:, k] = z_tmp
+
     y = observ['sample'](n, observ_params)
 
     return y.astype(np.int32)
