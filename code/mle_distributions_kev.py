@@ -1,5 +1,5 @@
 from scipy import stats, special
-from generatingfunctions import *
+from stabilityworkspace.generatingfunctions import *
 import random
 
 
