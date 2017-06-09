@@ -7,7 +7,7 @@ from mle import *
 def mean2p(mu, size):
     return float(size)/(size+mu)
 
-def run_experiment(mode, params, n, out_dir, out_mode):
+def run_experiment(mode, params, n, n_reps, out_dir, out_mode):
     lmbda, v, min_delta, max_delta, step, rho = params
     T = np.arange(7) # vector of observation times
 
@@ -54,8 +54,8 @@ def run_experiment(mode, params, n, out_dir, out_mode):
         log = '{}/warnings.log'.format(path)
         print out
 
-        run_mle(T, arrival, branch, observ, log=log, n=n, out=out,
-                out_mode=out_mode, true_params=true_params)
+        run_mle(T, arrival, branch, observ, log=log, n=n, n_reps=n_reps,
+                out=out, out_mode=out_mode, true_params=true_params)
 
 if __name__ == "__main__":
     """
@@ -78,7 +78,7 @@ if __name__ == "__main__":
     v = 10                        # dispersion (ignored in Poisson arrival cases)
 
     # Branching params
-    min_delta = 1.6
+    min_delta = 0.2
     max_delta = 0.9 if mode in [0, 3] else 1.6 # 0.9 if binomial branching, else 1.6
     step = 0.1 if mode in [0, 3] else 0.2      # 0.1 if binomial branching, else 0.2
 
@@ -87,4 +87,4 @@ if __name__ == "__main__":
     
     assert mode in range(6), 'Choose an experiment 1-6'
     params = [lmbda, v, min_delta, max_delta, step, rho]
-    run_experiment(mode, params, n, out_dir, out_mode)
+    run_experiment(mode, params, n, n_reps, out_dir, out_mode)
