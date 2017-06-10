@@ -72,7 +72,7 @@ if __name__ == "__main__":
     n = 50                        # number of estimates
     n_reps = 10                   # number of replicates for each estimate
     max_attempts = 10             # max number of random restarts (incl first attempt)
-    out_dir = '../data/mle_out/'
+    out_dir = '../data/mle_out2/'
     out_mode = 'w'                # 'a' for append, 'w' for write
 
     # Arrival params
