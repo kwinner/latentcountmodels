@@ -70,8 +70,8 @@ constant_binom_branch = {
     'hyperparam2param': lambda x, T: np.tile(x, (len(T)-1, 1)),
     # 'init': lambda y: 1e-6,
     'init': lambda y: random.uniform(1e-6, 1 - 1e-6),
-    # 'bounds': lambda y: (1e-6, 1 - 1e-6)
-    'bounds': lambda y: (-np.inf, np.inf)
+    'bounds': lambda y: (1e-6, 1 - 1e-6)
+    #'bounds': lambda y: (-np.inf, np.inf)
 }
 """
 # Time-varying parameters across time
@@ -105,8 +105,8 @@ constant_binom_observ = {
     #'init': lambda y: 0.6,
     'init': lambda y: random.uniform(1e-3, 1 - 1e-3),
     # 'bounds': lambda y: (0.1, 1-1e-6)
-    # 'bounds': lambda y: (1e-3, 1 - 1e-3)
-    'bounds': lambda y: (0.6, 0.6)
+    'bounds': lambda y: (1e-3, 1 - 1e-3)
+    #'bounds': lambda y: (0.6, 0.6)
 }
 
 # Fully observed binomial (detection prob is 1)
