@@ -16,7 +16,7 @@ def run_experiment(mode, params, n, n_reps, max_attempts, out_dir, out_mode):
     branch_idx = mode % 3
 
     arrival = [constant_poisson_arrival, constant_nbinom_arrival][arrival_idx]
-    branch = [constant_binom_branch, constant_poisson_branch, constant_nbinom_branch][branch_idx]
+    branch = [constant_logistic_binom_branch, constant_poisson_branch, constant_nbinom_branch][branch_idx]
     observ = fix_binom_observ
     print arrival['pgf'], branch['pgf']
 
@@ -72,7 +72,7 @@ if __name__ == "__main__":
     n = 50                        # number of estimates
     n_reps = 10                   # number of replicates for each estimate
     max_attempts = 10             # max number of random restarts (incl first attempt)
-    out_dir = '../data/mle_out3/'
+    out_dir = '../data/mle_out4/'
     out_mode = 'w'                # 'a' for append, 'w' for write
 
     # Arrival params
