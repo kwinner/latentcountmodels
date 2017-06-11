@@ -125,8 +125,8 @@ fix_binom_observ = {
     'pgf': None,
     'sample': stats.binom.rvs,
     'hyperparam2param': lambda x, T: np.tile(0.6, len(T)),
-    'init': lambda y: None,
-    'bounds': lambda y: None
+    'init': lambda y: 0.6,
+    'bounds': lambda y: (None, None)
 }
 
 # Fully observed binomial (detection prob is 1)
@@ -135,6 +135,6 @@ full_binom_observ = {
     'pgf': None,
     'sample': stats.binom.rvs,
     'hyperparam2param': lambda x, T: np.tile(1, len(T)),
-    'init': lambda y: None,
-    'bounds': lambda y: None
+    'init': lambda y: 1,
+    'bounds': lambda y: (None, None)
 }
