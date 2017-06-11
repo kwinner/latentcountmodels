@@ -11,8 +11,8 @@ Experiments:
 6. Negative binomial arrival, negative binomial branching
 "
 
-mode <- 2        # choose exepriment between 1 and 6 above
-dir <- 'mle_out' # files should be in ../data/dir
+mode <- 1        # choose exepriment between 1 and 6 above
+dir <- 'mle_out2' # files should be in ../data/dir
 
 # A few setups
 name <- c('pois_bin', 'pois_pois', 'pois_nb', 'nb_bin', 'nb_pois', 'nb_nb')[mode]
@@ -23,7 +23,7 @@ title <- c('Poisson arrival, Bernoulli offspring',
            'NB arrival, Bernoulli offspring',
            'NB arrival, Poisson offspring',
            'NB arrival, Geometric offspring')[mode]
-if (mode%%3) {
+if ((mode-1) %% 3) {
   thetas <- c(0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6)
 } else {
   thetas <- c(0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9)
@@ -33,7 +33,7 @@ r_idx <- ifelse(mode < 4, 9, 10)
 # Create out dir if doesn't exist
 out_dir <- paste('../plots', dir, sep = '/')
 if (!dir.exists(out_dir)) {
-  dir.create(out_dir)
+  dir.create(out_dir, recursive = TRUE)
 }
 
 # Read data

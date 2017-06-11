@@ -73,6 +73,17 @@ constant_binom_branch = {
     'bounds': lambda y: (1e-6, 1 - 1e-6)
     #'bounds': lambda y: (-np.inf, np.inf)
 }
+
+constant_logistic_binom_branch = {
+    'learn_mask' : True,
+    'pgf': bernoulli_ngdual,
+    'sample': stats.binom.rvs,
+    'hyperparam2param': lambda x, T: np.tile(1 / (1+np.exp(-x)), (len(T)-1, 1)),
+    # 'init': lambda y: 1e-6,
+    'init': lambda y: random.uniform(-2, 2),
+    'bounds': lambda y: (None, None)
+}
+
 """
 # Time-varying parameters across time
 var_poisson_branch = {
@@ -109,12 +120,21 @@ constant_binom_observ = {
     #'bounds': lambda y: (0.6, 0.6)
 }
 
+fix_binom_observ = {
+    'learn_mask': False,
+    'pgf': None,
+    'sample': stats.binom.rvs,
+    'hyperparam2param': lambda x, T: np.tile(0.6, len(T)),
+    'init': lambda y: None,
+    'bounds': lambda y: None
+}
+
 # Fully observed binomial (detection prob is 1)
 full_binom_observ = {
     'learn_mask': False,
     'pgf': None,
     'sample': stats.binom.rvs,
-    'hyperparam2param': lambda x, T: np.tile(0.6, len(T)),
-    'init': lambda y: 0.6,
-    'bounds': lambda y: (0.6, 0.6)
+    'hyperparam2param': lambda x, T: np.tile(1, len(T)),
+    'init': lambda y: None,
+    'bounds': lambda y: None
 }
