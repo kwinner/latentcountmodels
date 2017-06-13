@@ -11,18 +11,18 @@ Experiments:
 6. Negative binomial arrival, negative binomial branching
 "
 
-mode <- 1        # choose exepriment between 1 and 6 above
-dir <- 'mle_out2' # files should be in ../data/dir
+mode <- 6               # choose exepriment between 1 and 6 above
+dir <- 'mle_out3_small' # files should be in ../data/dir
 
 # A few setups
 name <- c('pois_bin', 'pois_pois', 'pois_nb', 'nb_bin', 'nb_pois', 'nb_nb')[mode]
 other_params <- ifelse(mode < 4, '5.0_0.6', '10.0_0.67_0.6') # arrival and observation params
-title <- c('Poisson arrival, Bernoulli offspring',
-           'Poisson arrival, Poisson offspring',
-           'Poisson arrival, Geometric offspring',
-           'NB arrival, Bernoulli offspring',
-           'NB arrival, Poisson offspring',
-           'NB arrival, Geometric offspring')[mode]
+title <- c('Poisson immigration, Bernoulli offspring',
+           'Poisson immigration, Poisson offspring',
+           'Poisson immigration, Geometric offspring',
+           'NB immigration, Bernoulli offspring',
+           'NB immigration, Poisson offspring',
+           'NB immigration, Geometric offspring')[mode]
 if ((mode-1) %% 3) {
   thetas <- c(0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6)
 } else {
