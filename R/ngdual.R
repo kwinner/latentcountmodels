@@ -268,33 +268,55 @@ ngdual.exp <- function(F) {
 # }
 # # ngdual.exp <- ngdual.exp.logspace
 
-logsumexp <- function(X, X.sign = NA) {
-  # w/o sign argument or with all nonnegative signs, default to standard logSumExp
-  # would be nice to remove this dependence
-  if(is.na(X.sign) || all(X.sign >= 0)) {
-    result.mag <- matrixStats::logSumExp(X)
-    if(result.mag == -Inf) {
-      result.sign <- 0
-    } else {
-      result.sign <- 1
-    }
-    return(c(result.mag, result.sign))
-  } else {
-    X.mag  <- abs(X)
+# logsumexp <- function(X, X.sign = NA) {
+#   # w/o sign argument or with all nonnegative signs, default to standard logSumExp
+#   # would be nice to remove this dependence
+#   if(is.na(X.sign) || all(X.sign >= 0)) {
+#     result.mag <- matrixStats::logSumExp(X)
+#     if(result.mag == -Inf) {
+#       result.sign <- 0
+#     } else {
+#       result.sign <- 1
+#     }
+#     return(c(result.mag, result.sign))
+#   } else {
+#     X.mag  <- abs(X)
+# 
+#     Z.pos <- matrixStats::logSumExp(X.mag[X.sign == 1])
+#     Z.neg <- matrixStats::logSumExp(X.mag[X.sign == -1])
+# 
+#     if(Z.pos >= Z.neg) {
+#       result.sign <- 1
+#       result.mag  <- log(1 - exp(Z.neg - Z.pos)) + Z.pos
+#     } else {
+#       result.sign <- -1
+#       result.mag  <- log(1 - exp(Z.pos - Z.neg)) + Z.neg
+#     }
+# 
+#     return(c(result.mag, result.sign))
+#   }
+# }
 
-    Z.pos <- matrixStats::logSumExp(X.mag[X.sign == 1])
-    Z.neg <- matrixStats::logSumExp(X.mag[X.sign == -1])
-
-    if(Z.pos >= Z.neg) {
-      result.sign <- 1
-      result.mag  <- log(1 - exp(Z.neg - Z.pos)) + Z.pos
-    } else {
-      result.sign <- -1
-      result.mag  <- log(1 - exp(Z.pos - Z.neg)) + Z.neg
-    }
-
-    return(c(result.mag, result.sign))
+## ported from scipy.special.logsumexp
+logsumexp <- function(a, b = NA) {
+  a.max <- max(a)
+  
+  if(!is.finite(a.max)) {
+    a.max <- 0
   }
+  
+  if(all(!is.na(b))) {
+    tmp <- b * exp(a - a.max)
+  } else {
+    tmp <- exp(a - a.max)
+  }
+  
+  s <- sum(tmp)
+  
+  sgn <- sign(s)
+  out <- log(abs(s))
+  
+  return(c(out, sgn))
 }
 
 # # compute <exp(F), dx>_q from <F, dx>_q but improve stability by computing each term in logspace
@@ -362,10 +384,10 @@ ngdual.exp.logspace <- function(F) {
   
   for(i in seq(1,q-1)) {
     # slice the vectors for this for loop iteration
-    Ft.utp.logabs.iter <- rev(Ft.utp.logabs[seq(1, i)])
-    Ft.utp.sign.iter   <- rev(Ft.utp.sign  [seq(1, i)])
-    H.utp.logabs.iter  <- H.utp.logabs[seq(1, i)]
-    H.utp.sign.iter    <- H.utp.sign  [seq(1, i)]
+    Ft.utp.logabs.iter <- Ft.utp.logabs[seq(1, i)]
+    Ft.utp.sign.iter   <- Ft.utp.sign  [seq(1, i)]
+    H.utp.logabs.iter  <- rev(H.utp.logabs[seq(1, i)])
+    H.utp.sign.iter    <- rev(H.utp.sign  [seq(1, i)])
     
     # G = rev(H.iter) * Ft.iter
     G.logabs <- Ft.utp.logabs.iter + H.utp.logabs.iter

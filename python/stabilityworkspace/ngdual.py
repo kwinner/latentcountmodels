@@ -214,7 +214,7 @@ def ngdual_exp_very_safe(F):
     F_utp_tilde = np.copy(F_utp[1:])
 
     F_utp_tilde *= np.arange(1, q)
-    for i in xrange(1, q):
+    for i in range(1, q):
         out_utp[i] = np.sum(out_utp[:i][::-1] * F_utp_tilde[:i], axis=0) / i
 
     # handle normalization
@@ -240,7 +240,7 @@ def ngdual_exp_safe(F):
     F_utp_tilde = np.copy(F[1][1:])
 
     F_utp_tilde *= np.arange(1, q)
-    for i in xrange(1, q):
+    for i in range(1, q):
         out_utp[i] = Z * np.sum(out_utp[:i][::-1] * F_utp_tilde[:i], axis=0) / i
 
     # handle normalization
@@ -271,7 +271,7 @@ def ngdual_exp(F):
     F_utp_tilde = np.copy(F_prime[1][1:])
 
     F_utp_tilde *= np.arange(1, q)
-    for i in xrange(1, q):
+    for i in range(1, q):
         out_utp[i] = Z * np.sum(out_utp[:i][::-1] * F_utp_tilde[:i], axis=0) / i
 
     # handle normalization
@@ -306,7 +306,7 @@ def ngdual_exp_experimental(F):
     F_utp_tilde = np.copy(F_prime[1][1:])
 
     F_utp_tilde *= np.arange(1, q)
-    for i in xrange(1, q):
+    for i in range(1, q):
         out_utp[i] = Z * np.sum(out_utp[:i][::-1] * F_utp_tilde[:i], axis=0) / i
 
     # handle normalization
@@ -316,43 +316,82 @@ def ngdual_exp_experimental(F):
 
     return out_logZ, out_utp
 
+# def ngdual_exp_logspace(F):
+#     # take off c
+#     # correction = np.exp(F[0])
+#     # correction = np.exp(F[0]) * F[1][0]
+#     # F_prime = ngdual_scalar_add(F, -correction)
+#
+#     q           = F[1].shape[0]
+#     log_out_utp = np.empty_like(F[1])
+#
+#     # compute the first term of exp(f)
+#     Z = np.exp(F[0])
+#     log_out_val = Z * F[1][0]
+#     log_out_utp[0] = 0 # use 0 for the first term and push the log_out_val into out_logZ below
+#
+#     # construct \tilde{F}
+#     F_utp_tilde = np.copy(F[1][1:]) * np.arange(1, q)
+#
+#     for i in range(1, q):
+#         # preslice the vector for this iteration
+#         F_iter = F_utp_tilde[i-1::-1]
+#         log_out_utp_iter = log_out_utp[:i]
+#
+#         # remove entries where F is zero (will become zero in logsumexp anyways, this avoids warnings)
+#         log_out_utp_iter = log_out_utp_iter[F_iter != 0.]
+#         F_iter           = F_iter[F_iter != 0.]
+#
+#         log_out_utp[i] = F[0] - np.log(i) + scipy.misc.logsumexp(log_out_utp_iter + np.log(F_iter))
+#
+#     # handle normalization
+#     out_logZ = np.max([np.e, np.max(log_out_utp)])
+#     log_out_utp -= out_logZ
+#     out_logZ += log_out_val
+#
+#     # convert utp out of logspace
+#     out_utp = np.exp(log_out_utp)
+#
+#     return out_logZ, out_utp
+
+
 def ngdual_exp_logspace(F):
-    # take off c
-    # correction = np.exp(F[0])
-    # correction = np.exp(F[0]) * F[1][0]
-    # F_prime = ngdual_scalar_add(F, -correction)
+    q            = F[1].shape[0]
+    H_utp_logabs = np.empty_like(F[1]) # the log absvalue of the output UTP
+    H_utp_sign   = np.empty_like(F[1]) # the sign bit of each term of the output UTP
 
-    q           = F[1].shape[0]
-    log_out_utp = np.empty_like(F[1])
+    # Ft = \tilde{F} = F[2:q] * (1:q-1)
+    Ft_utp_logabs = np.log(np.abs(F[1][1:])) + np.log(np.arange(1, q))
+    Ft_utp_sign   = np.sign(F[1])
 
-    # compute the first term of exp(f)
-    Z = np.exp(F[0])
-    log_out_val = Z * F[1][0]
-    log_out_utp[0] = 0 # use 0 for the first term and push the log_out_val into out_logZ below
+    # compute the first term of the output utp
+    H_utp_logabs[0] = np.exp(F[0]) * F[1][0]
+    H_utp_sign[0]   = 1
 
-    # construct \tilde{F}
-    F_utp_tilde = np.copy(F[1][1:]) * np.arange(1, q)
+    for i in range(1, q):
+        # slice the vectors for this iteration
+        Ft_utp_logabs_iter = Ft_utp_logabs[i-1::-1]
+        Ft_utp_sign_iter   = Ft_utp_sign[i-1::-1]
+        H_utp_logabs_iter  = H_utp_logabs[:i]
+        H_utp_sign_iter    = H_utp_sign[:i]
 
-    for i in xrange(1, q):
-        # preslice the vector for this iteration
-        F_iter = F_utp_tilde[i-1::-1]
-        log_out_utp_iter = log_out_utp[:i]
+        # G = H_iter * Ft.iter
+        G_utp_logabs = H_utp_logabs_iter + Ft_utp_logabs_iter
+        G_utp_sign   = H_utp_sign_iter   * Ft_utp_sign_iter
 
-        # remove entries where F is zero (will become zero in logsumexp anyways, this avoids warnings)
-        log_out_utp_iter = log_out_utp_iter[F_iter != 0.]
-        F_iter           = F_iter[F_iter != 0.]
+        # logsumexp with sign
+        (mag, sgn) = scipy.special.logsumexp(G_utp_logabs, b = G_utp_sign, return_sign = True)
+        H_utp_logabs[i] = F[0] - np.log(i) + mag
+        H_utp_sign[i]   = sgn
 
-        log_out_utp[i] = F[0] - np.log(i) + scipy.misc.logsumexp(log_out_utp_iter + np.log(F_iter))
-
-    # handle normalization
-    out_logZ = np.max([np.e, np.max(log_out_utp)])
-    log_out_utp -= out_logZ
-    out_logZ += log_out_val
+    H_logZ = np.max([np.e, np.max(H_utp_logabs)])
+    H_utp_logabs -= H_logZ * H_utp_sign
 
     # convert utp out of logspace
-    out_utp = np.exp(log_out_utp)
+    H_utp = np.exp(H_utp_logabs) * H_utp_sign
 
-    return out_logZ, out_utp
+    return H_logZ, H_utp
+
 
 # compute <log(f), dx>_q from <f, dx>_q
 # note: in safe version, F will first be unnormalized
@@ -367,7 +406,7 @@ def ngdual_log_safe(F):
     # compute the first term of log(f)
     out_utp[0] = np.log(F_utp[0])
 
-    for i in xrange(1, q):
+    for i in range(1, q):
         out_utp[i] = (F_utp[i] * i - np.sum(F_utp[1:i][::-1] * out_utp[1:i]))
         out_utp[i] /= F_utp[0]
     out_utp[1:q] /= np.arange(1, q)
@@ -390,7 +429,7 @@ def ngdual_log(F):
     # correct for log Z of F
     out_utp[0] += F[0]
 
-    for i in xrange(1, q):
+    for i in range(1, q):
         out_utp[i] = (F[1][i] * i - np.sum(F[1][1:i][::-1] * out_utp[1:i]))
         out_utp[i] /= F[1][0]
     out_utp[1:q] /= np.arange(1, q)
@@ -436,7 +475,7 @@ def ngdual_reciprocal(F):
     F_utp *= np.exp(F[0])
 
     out_utp[0] = 1. / F_utp[0]
-    for i in xrange(1, q):
+    for i in range(1, q):
         out_utp[i] = 1. / F_utp[0] * (-np.sum(out_utp[:i] * F_utp[i:0:-1], axis=0))
 
     # handle normalization
