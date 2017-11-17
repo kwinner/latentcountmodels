@@ -4,59 +4,51 @@ import scipy
 import scipy.special
 import gdual
 
+
+def ls2logsign(l, s=1):
+    l = np.array(l)
+    z = np.zeros(l.shape, dtype=[('l', '<f8'), ('s', 'i1')])
+    z['l'] = l
+    z['s'] = s
+    return z
+
+
 def logsign(x):
-    """
-    Convert from floating-point to log-sign number system
-    :param x:   numpy array
-    :return:    tuple of log(abs(x)), sign(x)
-    """
-    log_mag = np.log(np.abs(x))
-    sign    = np.sign(x)
-    return (log_mag, sign)
+    x = np.array(x)
+    z = np.zeros(x.shape, dtype=[('l', '<f8'), ('s', 'i1')])
+    z['l'] = np.log(np.abs(x))
+    z['s'] = np.sign(x)
+    return z
 
 
 def invlogsign(z):
-    """
-    Convert from log-sign number system to floating point
-    :param z:  type with z[0] = log(|x|), z[1] = sign(x)
-    :return:   x = z[1] * exp(z[0])
-    """
-    return z[1] * np.exp(z[0])
+    return z['s'] * np.exp(z['l'])
 
 def ls_mult(x, y):
-    """
-    Multiply two numbers in log-sign number system
-    :param x:   log-sign representation of x
-    :param y:   log-sign representation of y
-    :return:    log-sign representation of x * y
-    """
-    log_mag  = x[0] + y[0]
-    sign     = x[1] * y[1]
-    return log_mag, sign
+    z = np.empty_like(x)
+    z['l'] =  x['l'] + y['l']
+    z['s'] =  x['s'] * y['s']
+    return z
 
 def ls_add(x, y):
-    """
-    Add two numbers in log-sign number system
-    :param x:   log-sign representation of x
-    :param y:   log-sign representation of y
-    :return:    log-sign representation of x * y
-    """
-    log_mag_xy = np.array([x[0], y[0]])
-    sign_xy    = np.array([x[1], y[1]])
-    log_mag, sign = scipy.special.logsumexp(log_mag_xy, b=sign_xy, return_sign = True )
-    return log_mag, sign
+    z = np.array([x, y])
+    return ls_sum(z)
+
 
 def ls_sum(x, axis=None):
-    lz, sz = scipy.special.logsumexp(x[0], b=x[1], axis=axis, return_sign=True )
-    return lz, sz
+    l, s = scipy.special.logsumexp(x['l'], b=x['s'], axis=axis, return_sign=True )
+    return ls2logsign(l, s)
+
 
 def ls_exp(x):
-    l = np.exp(x[0])*x[1]
-    s = 1
-    return l, s
+    z = np.empty_like(x)
+    z['l'] = np.exp(x['l'])*x['s']
+    z['s'] = 1
+    return z
+
 
 def ls_allclose(x, y, **kwargs):
-    return np.allclose(x[0], y[0]) and np.allclose(x[1], y[1], **kwargs)
+    return np.allclose(x['l'], y['l']) and np.allclose(x['s'], y['s'], **kwargs)
 
 
 def test_logsign():
@@ -90,6 +82,23 @@ def test_logsign():
     z2 = ls_sum( logsign(x) )
     assert( ls_allclose (z1, z2) )
 
+    # Test ls_exp
+    x = np.array([12.3, -141.1, 0.23])
+    z1 = logsign(np.exp(x))
+    z2 = ls_exp(logsign(x))
+    assert( ls_allclose (z1, z2) )
+
+    # Test ls2logsign
+    z1 = ls2logsign(np.log(np.abs(x)), np.sign(x))
+    z2 = logsign(x)
+    assert( ls_allclose (z1, z2) )
+
+    # Test ls2logsign with positive array
+    x = np.array([1.0, 10.0, 400.0])
+    z1 = ls2logsign(np.log(x))
+    z2 = logsign(x)
+    assert( ls_allclose (z1, z2) )
+
     print 'test_logsign: success'
 
 
@@ -102,30 +111,27 @@ def some_gdual():
 
 
 def dan_gdual_exp(F):
-    q = F.shape[0]
-    out = (np.empty_like(F), np.empty_like(F))
+    # assume F is passed in as log-sign
+    out = np.empty_like(F)
+    q   = out.shape[0]
+    Ftilde = F[1:].copy()
 
-    Ftilde = logsign(F[1:].copy())
-
-    out[0][0], out[1][0] = ls_exp(logsign(F[0]))
-
+    out[0] = ls_exp(F[0])
     Ftilde = ls_mult(Ftilde, logsign(np.arange(1, q)))
     for i in xrange(1, q):
+        tmp = ls_mult(out[:i][::-1], Ftilde[:i])
+        out[i] = ls_mult( ls_sum( tmp, axis=0), logsign(1./i) )
 
-        Ftilde_slice = (Ftilde[0][:i], Ftilde[1][:i])
-        out_slice_rev = (out[0][:i][::-1], out[1][:i][::-1])
-        prod = ls_mult(Ftilde_slice, out_slice_rev)
-        out[0][i], out[1][i] = ls_mult(ls_sum(prod, axis=0) , logsign(1./i) )
-
-    return invlogsign(out)
+    return out
 
 test_logsign()
 
+
+# Test gdual_exp
 t = some_gdual()
-
-e2 = dan_gdual_exp(t)
 e1 = gdual.gdual_exp(t)
-
-
+e2 = invlogsign(dan_gdual_exp(logsign(t)))
 print e1
 print e2
+assert(np.allclose(e1, e2))
+
