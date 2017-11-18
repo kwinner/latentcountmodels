@@ -97,7 +97,24 @@ void ls_print_array_as_double( ls *a, size_t n ) {
 }
 
 
-void gdual_exp( ls* u, ls *v, size_t n);
+void gdual_exp( ls* u, ls *v, size_t n) { 
+    
+    ls u_tilde[n];
+    
+    for (int i = 0; i < n; i++) {
+        u_tilde[i] = ls_mult( u[i], double_to_ls(i) );
+    }
+
+    v[0] = ls_exp(u[0]);
+    
+    for (int k = 1; k < n; k++) { 
+        v[k] = ls_zero();
+        for (int j = 1; j <= k; j++) {
+            v[k] = ls_add( v[k], ls_mult( v[k-j], u_tilde[j] ) );
+        }
+        v[k] = ls_mult( v[k], double_to_ls(1.0 / k) );
+    }
+} 
 
 int main() {
     
@@ -128,23 +145,3 @@ int main() {
     
     return(0);
 }
-
-
-void gdual_exp( ls* u, ls *v, size_t n) { 
-    
-    ls u_tilde[n];
-    
-    for (int i = 0; i < n; i++) {
-        u_tilde[i] = ls_mult( u[i], double_to_ls(i) );
-    }
-
-    v[0] = ls_exp(u[0]);
-    
-    for (int k = 1; k < n; k++) { 
-        v[k] = ls_zero();
-        for (int j = 1; j <= k; j++) {
-            v[k] = ls_add( v[k], ls_mult( v[k-j], u_tilde[j] ) );
-        }
-        v[k] = ls_mult( v[k], double_to_ls(1.0 / k) );
-    }
-} 
