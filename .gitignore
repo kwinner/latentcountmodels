@@ -7,8 +7,7 @@ code/build/
 *.log
 *.synctex.gz
 *.pyc
-.idea/*
-code/.idea/*
+*/.idea/*
 *~
 
 code/*.pyc

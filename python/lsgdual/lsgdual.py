@@ -186,6 +186,7 @@ def mul_fast(F, G):
        ngduals are relatively stable, and can still use the FFT to do convolution"""
     assert islsgdual(F)
     assert islsgdual(G)
+    assert F.shape == G.shape
 
     q = len(F)
     H = _lsgdual_empty(q)
@@ -198,6 +199,28 @@ def mul_fast(F, G):
     H     = ngd2lsgd(H_ngd)
 
     return H
+
+
+def mul(F, G):
+    """compute <f * g, dx>_q from <f, dx>_q and <g, dx>_q
+       convolution of lsgduals is performed "in ls-space" using logsumexp
+       will be significantly slower than mul_fast which uses ngduals and FFT
+       but should be more stable"""
+    assert islsgdual(F)
+    assert islsgdual(G)
+    assert F.shape == G.shape
+
+    q = len(F)
+    H = _lsgdual_empty(q)
+
+    for k in range(0, q):
+        # convoluted way to do convolution in ls-space
+        H[k] = logsumexp(    F[range(0, k+1)]['mag'] + G[range(k, -1, -1)]['mag'],
+                         b = F[range(0, k+1)]['sgn'] * G[range(k, -1, -1)]['sgn'],
+                         return_sign = True)
+
+    return H
+
 
 def deriv(F, k):
     """compute d^k/dx^k <f, dx>_q = <d^k/dx^k f, dx>_{q-k}, k \in Z^+"""

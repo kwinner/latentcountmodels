@@ -305,19 +305,65 @@ def test_mul_fast():
         F = lsgdual_xdx(-5, 2)
         G = lsgdual_cdx(-3, 2)
         H = mul_fast(F, G)
-        assert np.allclose(   H['mag'], np.array([np.log(15), 3]))
+        assert np.allclose(   H['mag'], np.array([np.log(15), np.log(3)]))
         assert np.array_equal(H['sgn'], np.array([1, -1]))
 
         F = lsgdual_xdx(3, 2)
         G = lsgdual_xdx(-2, 2)
         G[1]['sgn'] = -1 # flip to -x
         H = mul_fast(F, G)
-        assert np.allclose(   H['mag'], np.array([np.log(6), 0]))
+        assert np.allclose(   H['mag'], np.array([np.log(6), np.log(5)]))
         assert np.array_equal(H['sgn'], np.array([-1,        -1]))
 
         F = lsgdual_xdx(-5, 2)
         G = lsgdual_cdx(0, 2)
         H = mul_fast(F, G)
+        assert np.allclose(H['mag'], np.array([-np.inf, -np.inf]))
+        assert np.array_equal(H['sgn'], np.array([0, 0]))
+    except AssertionError:
+        print(traceback.format_exc())
+
+        return False
+    else:
+        return True
+
+
+def test_mul():
+    try:
+        F = lsgdual_xdx(5, 2)
+        G = lsgdual_xdx(4, 2)
+        H = mul(F, G)
+        assert np.allclose(   H['mag'], np.array([np.log(20), np.log(9)]))
+        assert np.array_equal(H['sgn'], np.array([1,          1]))
+
+        F = lsgdual_xdx(5, 2)
+        G = lsgdual_xdx(-7, 2)
+        H = mul(F, G)
+        assert np.allclose(   H['mag'], np.array([np.log(35), np.log(2)]))
+        assert np.array_equal(H['sgn'], np.array([-1,         -1]))
+
+        F = lsgdual_xdx(-5, 2)
+        G = lsgdual_xdx(2, 2)
+        H = mul(F, G)
+        assert np.allclose(   H['mag'], np.array([np.log(10), np.log(3)]))
+        assert np.array_equal(H['sgn'], np.array([-1,         -1]))
+
+        F = lsgdual_xdx(-5, 2)
+        G = lsgdual_cdx(-3, 2)
+        H = mul(F, G)
+        assert np.allclose(   H['mag'], np.array([np.log(15), np.log(3)]))
+        assert np.array_equal(H['sgn'], np.array([1, -1]))
+
+        F = lsgdual_xdx(3, 2)
+        G = lsgdual_xdx(-2, 2)
+        G[1]['sgn'] = -1 # flip to -x
+        H = mul(F, G)
+        assert np.allclose(   H['mag'], np.array([np.log(6), np.log(5)]))
+        assert np.array_equal(H['sgn'], np.array([-1,        -1]))
+
+        F = lsgdual_xdx(-5, 2)
+        G = lsgdual_cdx(0, 2)
+        H = mul(F, G)
         assert np.allclose(H['mag'], np.array([-np.inf, -np.inf]))
         assert np.array_equal(H['sgn'], np.array([0, 0]))
     except AssertionError:
@@ -363,3 +409,4 @@ if __name__ == "__main__":
     print("test_add: %s"         % test_add())
     print("test_mul_scalar: %s"  % test_mul_scalar())
     print("test_mul_fast: %s"    % test_mul_fast())
+    print("test_mul: %s"         % test_mul())
