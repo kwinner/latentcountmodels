@@ -1,6 +1,6 @@
 import numpy as np
 import ngdual
-from scipy.special import logsumexp
+from scipy.special import logsumexp, gammaln
 
 #TODO: Implement lsgdual, ngdual, gdual with single-dispatch methods? https://www.python.org/dev/peps/pep-0443/
 
@@ -21,6 +21,16 @@ def _lsgdual_empty(q):
     assert q > 0
 
     return np.empty(q, dtype=[('mag', '<f16'), ('sgn', 'i1')])
+
+
+def _logpoch(x, n):
+    """compute the log of the pochhammer symbol := \Gamma(x+n) / \Gamma(x)"""
+    return gammaln(x + n) - gammaln(x)
+
+
+def _logfallingfactorial(k, i):
+    """compute the log of the falling factorial := k(k-1)...(k-i+1)"""
+    return _logpoch(i - k + 1, k)
 
 
 def lsgdual_1dx(q):
@@ -215,8 +225,9 @@ def mul(F, G):
 
     for k in range(0, q):
         # convoluted way to do convolution in ls-space
-        H[k] = logsumexp(    F[range(0, k+1)]['mag'] + G[range(k, -1, -1)]['mag'],
-                         b = F[range(0, k+1)]['sgn'] * G[range(k, -1, -1)]['sgn'],
+        # H[k] = \log(\sum_{j=0}^k F[j]G[k-j])
+        H[k] = logsumexp(    F[0:k+1]['mag'] + G[k::-1]['mag'],
+                         b = F[0:k+1]['sgn'] * G[k::-1]['sgn'],
                          return_sign = True)
 
     return H
@@ -224,7 +235,22 @@ def mul(F, G):
 
 def deriv(F, k):
     """compute d^k/dx^k <f, dx>_q = <d^k/dx^k f, dx>_{q-k}, k \in Z^+"""
-    return
+    assert islsgdual(F)
+    assert isinstance(k, int) or float(k).is_integer()
+
+    q = len(F)
+
+    # drop the lowest order terms from F
+    H = F[k:]
+
+    # compute the vector of falling factorial terms (from the chain rule)
+    logff = _logfallingfactorial(k, np.arange(k, q))
+
+    # ls-mult H by logff
+    H['mag'] += logff
+
+    return H
+
 
 def exp(F):
     """compute <exp(f), dx>_q"""

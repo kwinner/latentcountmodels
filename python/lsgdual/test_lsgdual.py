@@ -373,27 +373,89 @@ def test_mul():
     else:
         return True
 
+def test_deriv():
+    try:
+        F = lsgdual_xdx(5, 4)
+        H = deriv(F, 0)
+        assert np.allclose(H['mag'], F['mag'])
+        assert np.allclose(H['sgn'], F['sgn'])
+
+        F = lsgdual_xdx(5, 4)
+        H = deriv(F, 1)
+        assert np.allclose(H['mag'], [0, -np.inf, -np.inf])
+        assert np.allclose(H['sgn'], [1, 0,       0])
+
+        F = lsgdual_xdx(5, 4)
+        H = deriv(F, 2)
+        assert np.allclose(H['mag'], [-np.inf, -np.inf])
+        assert np.allclose(H['sgn'], [0,       0])
+    except AssertionError:
+        print(traceback.format_exc())
+
+        return False
+    else:
+        return True
+
 
 def test_compose():
-    return True
+    try:
+        print()
+    except AssertionError:
+        print(traceback.format_exc())
+
+        return False
+    else:
+        return True
 
 def test_compose_affine():
-    return True
+    try:
+        print()
+    except AssertionError:
+        print(traceback.format_exc())
 
-def test_deriv():
-    return True
+        return False
+    else:
+        return True
 
 def test_exp():
-    return True
+    try:
+        print()
+    except AssertionError:
+        print(traceback.format_exc())
+
+        return False
+    else:
+        return True
 
 def test_log():
-    return True
+    try:
+        print()
+    except AssertionError:
+        print(traceback.format_exc())
+
+        return False
+    else:
+        return True
 
 def test_pow():
-    return True
+    try:
+        print()
+    except AssertionError:
+        print(traceback.format_exc())
+
+        return False
+    else:
+        return True
 
 def test_reciprocal():
-    return True
+    try:
+        print()
+    except AssertionError:
+        print(traceback.format_exc())
+
+        return False
+    else:
+        return True
 
 
 if __name__ == "__main__":
@@ -408,5 +470,6 @@ if __name__ == "__main__":
     print("test_add_scalar: %s"  % test_add_scalar())
     print("test_add: %s"         % test_add())
     print("test_mul_scalar: %s"  % test_mul_scalar())
-    print("test_mul_fast: %s"    % test_mul_fast())
+    # print("test_mul_fast: %s"    % test_mul_fast())
     print("test_mul: %s"         % test_mul())
+    print("test_deriv: %s"       % test_deriv())
