@@ -69,7 +69,7 @@ ls ls_exp( ls x ) {
     return result;
 }
 
-void ls_print( ls *a, size_t n ) {
+void gdual_print( gdual_t a, size_t n ) {
     printf("%s", "[");
     for (int i = 0; i < n; i++ ) {
         printf("%hhd * exp(%.8e)", a[i].s, a[i].l);
@@ -80,7 +80,7 @@ void ls_print( ls *a, size_t n ) {
     printf("%s", "]\n");
 }
 
-void ls_print_as_double( ls *a, size_t n ) {
+void gdual_print_as_double( gdual_t a, size_t n ) {
     printf("%s", "[");
     for (int i = 0; i < n; i++ ) {
         printf("%.8e", ls_to_double(a[i]));
@@ -92,7 +92,7 @@ void ls_print_as_double( ls *a, size_t n ) {
 }
 
 
-void gdual_exp( ls* u, ls *v, size_t n) { 
+void gdual_exp( gdual_t u, gdual_t v, size_t n) { 
     
     ls u_tilde[n];
     

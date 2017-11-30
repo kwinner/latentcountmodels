@@ -10,7 +10,7 @@ libgdual_dir = '/Users/sheldon/projects/latentcountmodels/c'
 
 setup(
     cmdclass = {'build_ext': build_ext},
-    ext_modules = [Extension("cython_gdual",
-                             sources=["cython_gdual.pyx", libgdual_dir + "/libgdual.c"],
+    ext_modules = [Extension("cygdual",
+                             sources=["cygdual.pyx", libgdual_dir + "/libgdual.c"],
                              include_dirs=[numpy.get_include()])],
 )

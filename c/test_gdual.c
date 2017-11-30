@@ -21,11 +21,11 @@ int main() {
 
     gdual_exp( u, v, n );
 
-    ls_print(u, n);
-    ls_print_as_double(u, n);
+    gdual_print(u, n);
+    gdual_print_as_double(u, n);
     
-    ls_print(u, n);
-    ls_print_as_double(v, n); // Should print [2.50000000e-01, -6.25000001e-02, 1.56250000e-02, -3.90625000e-03, 9.76562501e-04, -2.44140625e-04, 6.10351563e-05]
+    gdual_print(u, n);
+    gdual_print_as_double(v, n); // Should print [2.50000000e-01, -6.25000001e-02, 1.56250000e-02, -3.90625000e-03, 9.76562501e-04, -2.44140625e-04, 6.10351563e-05]
     
     return(0);
 }

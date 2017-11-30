@@ -6,14 +6,16 @@ typedef struct ls {
     int8_t s;
 } ls;
 
+typedef ls* gdual_t;
+
 double ls_to_double( ls x );
 ls double_to_ls(double x);
 ls ls_zero();
 ls ls_add( ls x, ls y );
 ls ls_mult( ls x, ls y );
 ls ls_exp( ls x );
-void ls_print( ls *a, size_t n );
-void ls_print_as_double( ls *a, size_t n );
 
-void gdual_exp( ls* u, ls *v, size_t n);
-void gdual_exp_tmp( double* u, double* v, size_t n);
+void gdual_print( gdual_t a, size_t n );
+void gdual_print_as_double( gdual_t a, size_t n );
+
+void gdual_exp( gdual_t u, gdual_t v, size_t n);
