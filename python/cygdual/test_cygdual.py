@@ -1,3 +1,7 @@
+# First run
+#   >> python setup.py build_ext --inplace
+# The run this script
+
 import numpy as np
 import cygdual
 import gdual.gdual as gdual

@@ -12,8 +12,10 @@ code/build/
 *~
 
 **/#*#
+**.so
 
 c/test_gdual
+
 
 code/*.pyc
 code/*.cpp
