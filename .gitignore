@@ -16,3 +16,5 @@ code/*.cpp
 code/*.so
 *.stats
 .Rproj.user
+
+**/build

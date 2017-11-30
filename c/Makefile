@@ -1,5 +1,5 @@
-gdual: gdual.c
-	gcc gdual.c -o gdual
+test_gdual: test_gdual.c libgdual.c
+	gcc test_gdual.c libgdual.c -o test_gdual
 
 clean:
-	rm gdual
+	rm test_gdual

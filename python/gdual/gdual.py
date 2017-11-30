@@ -1,5 +1,5 @@
 import numpy as np
-import util
+import lsgdual.util as util
 
 # todo function descriptions
 # todo assert shape match

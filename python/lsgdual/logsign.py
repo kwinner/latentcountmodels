@@ -2,7 +2,7 @@ import numpy as np
 from scipy.special import logsumexp
 
 
-LS_DTYPE = [('mag', '<f16'), ('sgn', 'i1')]
+LS_DTYPE = np.dtype([('mag', np.float64), ('sgn', np.int8)], align=True)
 
 
 def ls(shape = 0):
