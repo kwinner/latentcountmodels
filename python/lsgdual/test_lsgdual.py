@@ -5,6 +5,10 @@ import traceback
 # TODO: tests currently don't explicitly test fail cases and may not be thorough on edge cases
 # TODO: add tests with more varied derivative terms
 
+def ls_allclose(x, y):
+    return np.allclose(x['mag'], y['mag']) and np.allclose(x['sgn'], y['sgn'])
+
+
 def test_lsgdual_1dx():
     F = lsgdual_1dx(4)
     assert len(F) == 4
@@ -377,8 +381,7 @@ def test_deriv():
     try:
         F = lsgdual_xdx(5, 4)
         H = deriv(F, 0)
-        assert np.allclose(H['mag'], F['mag'])
-        assert np.allclose(H['sgn'], F['sgn'])
+        assert ls_allclose(H, F)
 
         F = lsgdual_xdx(5, 4)
         H = deriv(F, 1)

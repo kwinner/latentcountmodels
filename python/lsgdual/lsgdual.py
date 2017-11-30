@@ -1,8 +1,14 @@
 import numpy as np
 import ngdual
-from scipy.special import logsumexp, gammaln
+
+from logsign import *
+from util import *
+
+from scipy.special import logsumexp
 
 #TODO: Implement lsgdual, ngdual, gdual with single-dispatch methods? https://www.python.org/dev/peps/pep-0443/
+
+#TODO: real2ls, ls2real
 
 """
 In general, the following naming conventions are used for parameters/outputs of these methods:
@@ -17,20 +23,10 @@ In general, the following naming conventions are used for parameters/outputs of 
 
 
 def _lsgdual_empty(q):
-    """method to standardize the data format of all new lsgduals"""
+    """instantiate an empty lsgdual 'object'"""
     assert q > 0
 
-    return np.empty(q, dtype=[('mag', '<f16'), ('sgn', 'i1')])
-
-
-def _logpoch(x, n):
-    """compute the log of the pochhammer symbol := \Gamma(x+n) / \Gamma(x)"""
-    return gammaln(x + n) - gammaln(x)
-
-
-def _logfallingfactorial(k, i):
-    """compute the log of the falling factorial := k(k-1)...(k-i+1)"""
-    return _logpoch(i - k + 1, k)
+    return ls(q)
 
 
 def lsgdual_1dx(q):
@@ -80,11 +76,7 @@ def lsgdual_xdx(x, q):
 
 def islsgdual(F):
     """test that F is a numpy array with the structure of an lsgdual"""
-    return isinstance(F, np.ndarray)            and \
-           F.ndim == 1                          and \
-           F.dtype.names == ('mag', 'sgn')      and \
-           np.issubdtype(F.dtype['mag'], float) and \
-           np.issubdtype(F.dtype['sgn'], int)
+    return isls(F) and F.ndim == 1
 
 
 def lsgd2gd(F):
@@ -162,14 +154,7 @@ def add(F, G):
     assert islsgdual(G)
     assert F.shape == G.shape
 
-    q = len(F)
-    H = _lsgdual_empty(q)
-
-    # stack the two lsgds
-    FG = np.array([F, G])
-
-    # sum elementwise over the stacked F and G, using the signs as weights
-    H['mag'], H['sgn'] = logsumexp(FG['mag'], b = FG['sgn'], axis = 0, return_sign = True)
+    H = ls_sum(np.array([F, G]), axis = 0)
 
     return H
 
@@ -244,7 +229,7 @@ def deriv(F, k):
     H = F[k:]
 
     # compute the vector of falling factorial terms (from the chain rule)
-    logff = _logfallingfactorial(k, np.arange(k, q))
+    logff = logfallingfactorial(k, np.arange(k, q))
 
     # ls-mult H by logff
     H['mag'] += logff
@@ -254,6 +239,17 @@ def deriv(F, k):
 
 def exp(F):
     """compute <exp(f), dx>_q"""
+    assert islsgdual(F)
+
+    q = len(F)
+    H = _lsgdual_empty(q)
+
+    # define f_i \in \tilde{F} = i * f_i
+    F_tilde = np.log(np.arange(q)) + F
+
+    # first term is the simple exp
+    H[0] = ls_exp(F[0])
+
     return
 
 def log(F):
