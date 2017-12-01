@@ -17,4 +17,3 @@ u_ls = ls.real2ls(u)
 v_ls = cygdual.cygdual_exp(u_ls)
 v = ls.ls2real(v_ls)
 print v
-

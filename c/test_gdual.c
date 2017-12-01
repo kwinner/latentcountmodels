@@ -1,4 +1,4 @@
-#include "libgdual.h"
+#include "gdual.h"
 
 int main() {
     
