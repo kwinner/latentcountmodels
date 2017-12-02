@@ -2,7 +2,7 @@
 #include <stdint.h>
 
 typedef double mag_t;
-typedef int sign_t;
+typedef int32_t sign_t;
 
 typedef struct ls {
     mag_t  mag;
