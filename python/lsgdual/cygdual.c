@@ -1202,6 +1202,7 @@ static const char __pyx_k_n[] = "n";
 static const char __pyx_k_u[] = "u";
 static const char __pyx_k_v[] = "v";
 static const char __pyx_k_np[] = "np";
+static const char __pyx_k_exp[] = "exp";
 static const char __pyx_k_main[] = "__main__";
 static const char __pyx_k_test[] = "__test__";
 static const char __pyx_k_dtype[] = "dtype";
@@ -1213,7 +1214,6 @@ static const char __pyx_k_cygdual[] = "cygdual";
 static const char __pyx_k_logsign[] = "logsign";
 static const char __pyx_k_LS_DTYPE[] = "LS_DTYPE";
 static const char __pyx_k_ValueError[] = "ValueError";
-static const char __pyx_k_cygdual_exp[] = "cygdual_exp";
 static const char __pyx_k_RuntimeError[] = "RuntimeError";
 static const char __pyx_k_ndarray_is_not_C_contiguous[] = "ndarray is not C contiguous";
 static const char __pyx_k_cygdual_pyx_cython_wrapper_for[] = "\ncygdual.pyx\n\ncython wrapper for libgdual\n\n";
@@ -1231,8 +1231,8 @@ static PyObject *__pyx_n_s_RuntimeError;
 static PyObject *__pyx_kp_s_Users_sheldon_projects_latentco;
 static PyObject *__pyx_n_s_ValueError;
 static PyObject *__pyx_n_s_cygdual;
-static PyObject *__pyx_n_s_cygdual_exp;
 static PyObject *__pyx_n_s_dtype;
+static PyObject *__pyx_n_s_exp;
 static PyObject *__pyx_n_s_import;
 static PyObject *__pyx_n_s_logsign;
 static PyObject *__pyx_n_s_main;
@@ -1247,7 +1247,7 @@ static PyObject *__pyx_n_s_u;
 static PyObject *__pyx_kp_u_unknown_dtype_code_in_numpy_pxd;
 static PyObject *__pyx_n_s_v;
 static PyObject *__pyx_n_s_zeros;
-static PyObject *__pyx_pf_7cygdual_cygdual_exp(CYTHON_UNUSED PyObject *__pyx_self, PyArrayObject *__pyx_v_u); /* proto */
+static PyObject *__pyx_pf_7cygdual_exp(CYTHON_UNUSED PyObject *__pyx_self, PyArrayObject *__pyx_v_u); /* proto */
 static int __pyx_pf_5numpy_7ndarray___getbuffer__(PyArrayObject *__pyx_v_self, Py_buffer *__pyx_v_info, int __pyx_v_flags); /* proto */
 static void __pyx_pf_5numpy_7ndarray_2__releasebuffer__(PyArrayObject *__pyx_v_self, Py_buffer *__pyx_v_info); /* proto */
 static PyObject *__pyx_tuple_;
@@ -1262,21 +1262,21 @@ static PyObject *__pyx_codeobj__8;
 /* "cygdual.pyx":26
  * @cython.boundscheck(False)
  * @cython.wraparound(False)
- * def cygdual_exp(np.ndarray[ls, ndim=1, mode="c"] u not None):             # <<<<<<<<<<<<<<
+ * def exp(np.ndarray[ls, ndim=1, mode="c"] u not None):             # <<<<<<<<<<<<<<
  *     """
  *     gdual_exp (u)
  */
 
 /* Python wrapper */
-static PyObject *__pyx_pw_7cygdual_1cygdual_exp(PyObject *__pyx_self, PyObject *__pyx_v_u); /*proto*/
-static char __pyx_doc_7cygdual_cygdual_exp[] = "\n    gdual_exp (u)\n\n    Computes exp of gdual u\n\n    param: array -- a 1-d numpy array\n\n    ";
-static PyMethodDef __pyx_mdef_7cygdual_1cygdual_exp = {"cygdual_exp", (PyCFunction)__pyx_pw_7cygdual_1cygdual_exp, METH_O, __pyx_doc_7cygdual_cygdual_exp};
-static PyObject *__pyx_pw_7cygdual_1cygdual_exp(PyObject *__pyx_self, PyObject *__pyx_v_u) {
+static PyObject *__pyx_pw_7cygdual_1exp(PyObject *__pyx_self, PyObject *__pyx_v_u); /*proto*/
+static char __pyx_doc_7cygdual_exp[] = "\n    gdual_exp (u)\n\n    Computes exp of gdual u\n\n    param: array -- a 1-d numpy array\n\n    ";
+static PyMethodDef __pyx_mdef_7cygdual_1exp = {"exp", (PyCFunction)__pyx_pw_7cygdual_1exp, METH_O, __pyx_doc_7cygdual_exp};
+static PyObject *__pyx_pw_7cygdual_1exp(PyObject *__pyx_self, PyObject *__pyx_v_u) {
   PyObject *__pyx_r = 0;
   __Pyx_RefNannyDeclarations
-  __Pyx_RefNannySetupContext("cygdual_exp (wrapper)", 0);
+  __Pyx_RefNannySetupContext("exp (wrapper)", 0);
   if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_u), __pyx_ptype_5numpy_ndarray, 0, "u", 0))) __PYX_ERR(0, 26, __pyx_L1_error)
-  __pyx_r = __pyx_pf_7cygdual_cygdual_exp(__pyx_self, ((PyArrayObject *)__pyx_v_u));
+  __pyx_r = __pyx_pf_7cygdual_exp(__pyx_self, ((PyArrayObject *)__pyx_v_u));
 
   /* function exit code */
   goto __pyx_L0;
@@ -1287,7 +1287,7 @@ static PyObject *__pyx_pw_7cygdual_1cygdual_exp(PyObject *__pyx_self, PyObject *
   return __pyx_r;
 }
 
-static PyObject *__pyx_pf_7cygdual_cygdual_exp(CYTHON_UNUSED PyObject *__pyx_self, PyArrayObject *__pyx_v_u) {
+static PyObject *__pyx_pf_7cygdual_exp(CYTHON_UNUSED PyObject *__pyx_self, PyArrayObject *__pyx_v_u) {
   size_t __pyx_v_n;
   PyArrayObject *__pyx_v_v = 0;
   __Pyx_LocalBuf_ND __pyx_pybuffernd_u;
@@ -1301,7 +1301,7 @@ static PyObject *__pyx_pf_7cygdual_cygdual_exp(CYTHON_UNUSED PyObject *__pyx_sel
   PyObject *__pyx_t_3 = NULL;
   PyObject *__pyx_t_4 = NULL;
   PyArrayObject *__pyx_t_5 = NULL;
-  __Pyx_RefNannySetupContext("cygdual_exp", 0);
+  __Pyx_RefNannySetupContext("exp", 0);
   __pyx_pybuffer_v.pybuffer.buf = NULL;
   __pyx_pybuffer_v.refcount = 0;
   __pyx_pybuffernd_v.data = NULL;
@@ -1391,7 +1391,7 @@ static PyObject *__pyx_pf_7cygdual_cygdual_exp(CYTHON_UNUSED PyObject *__pyx_sel
   /* "cygdual.pyx":26
  * @cython.boundscheck(False)
  * @cython.wraparound(False)
- * def cygdual_exp(np.ndarray[ls, ndim=1, mode="c"] u not None):             # <<<<<<<<<<<<<<
+ * def exp(np.ndarray[ls, ndim=1, mode="c"] u not None):             # <<<<<<<<<<<<<<
  *     """
  *     gdual_exp (u)
  */
@@ -1409,7 +1409,7 @@ static PyObject *__pyx_pf_7cygdual_cygdual_exp(CYTHON_UNUSED PyObject *__pyx_sel
     __Pyx_SafeReleaseBuffer(&__pyx_pybuffernd_u.rcbuffer->pybuffer);
     __Pyx_SafeReleaseBuffer(&__pyx_pybuffernd_v.rcbuffer->pybuffer);
   __Pyx_ErrRestore(__pyx_type, __pyx_value, __pyx_tb);}
-  __Pyx_AddTraceback("cygdual.cygdual_exp", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __Pyx_AddTraceback("cygdual.exp", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __pyx_r = NULL;
   goto __pyx_L2;
   __pyx_L0:;
@@ -3575,8 +3575,8 @@ static __Pyx_StringTabEntry __pyx_string_tab[] = {
   {&__pyx_kp_s_Users_sheldon_projects_latentco, __pyx_k_Users_sheldon_projects_latentco, sizeof(__pyx_k_Users_sheldon_projects_latentco), 0, 0, 1, 0},
   {&__pyx_n_s_ValueError, __pyx_k_ValueError, sizeof(__pyx_k_ValueError), 0, 0, 1, 1},
   {&__pyx_n_s_cygdual, __pyx_k_cygdual, sizeof(__pyx_k_cygdual), 0, 0, 1, 1},
-  {&__pyx_n_s_cygdual_exp, __pyx_k_cygdual_exp, sizeof(__pyx_k_cygdual_exp), 0, 0, 1, 1},
   {&__pyx_n_s_dtype, __pyx_k_dtype, sizeof(__pyx_k_dtype), 0, 0, 1, 1},
+  {&__pyx_n_s_exp, __pyx_k_exp, sizeof(__pyx_k_exp), 0, 0, 1, 1},
   {&__pyx_n_s_import, __pyx_k_import, sizeof(__pyx_k_import), 0, 0, 1, 1},
   {&__pyx_n_s_logsign, __pyx_k_logsign, sizeof(__pyx_k_logsign), 0, 0, 1, 1},
   {&__pyx_n_s_main, __pyx_k_main, sizeof(__pyx_k_main), 0, 0, 1, 1},
@@ -3675,14 +3675,14 @@ static int __Pyx_InitCachedConstants(void) {
   /* "cygdual.pyx":26
  * @cython.boundscheck(False)
  * @cython.wraparound(False)
- * def cygdual_exp(np.ndarray[ls, ndim=1, mode="c"] u not None):             # <<<<<<<<<<<<<<
+ * def exp(np.ndarray[ls, ndim=1, mode="c"] u not None):             # <<<<<<<<<<<<<<
  *     """
  *     gdual_exp (u)
  */
   __pyx_tuple__7 = PyTuple_Pack(3, __pyx_n_s_u, __pyx_n_s_n, __pyx_n_s_v); if (unlikely(!__pyx_tuple__7)) __PYX_ERR(0, 26, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple__7);
   __Pyx_GIVEREF(__pyx_tuple__7);
-  __pyx_codeobj__8 = (PyObject*)__Pyx_PyCode_New(1, 0, 3, 0, 0, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__7, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_Users_sheldon_projects_latentco, __pyx_n_s_cygdual_exp, 26, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__8)) __PYX_ERR(0, 26, __pyx_L1_error)
+  __pyx_codeobj__8 = (PyObject*)__Pyx_PyCode_New(1, 0, 3, 0, 0, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__7, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_Users_sheldon_projects_latentco, __pyx_n_s_exp, 26, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__8)) __PYX_ERR(0, 26, __pyx_L1_error)
   __Pyx_RefNannyFinishContext();
   return 0;
   __pyx_L1_error:;
@@ -3838,13 +3838,13 @@ PyMODINIT_FUNC PyInit_cygdual(void)
   /* "cygdual.pyx":26
  * @cython.boundscheck(False)
  * @cython.wraparound(False)
- * def cygdual_exp(np.ndarray[ls, ndim=1, mode="c"] u not None):             # <<<<<<<<<<<<<<
+ * def exp(np.ndarray[ls, ndim=1, mode="c"] u not None):             # <<<<<<<<<<<<<<
  *     """
  *     gdual_exp (u)
  */
-  __pyx_t_2 = PyCFunction_NewEx(&__pyx_mdef_7cygdual_1cygdual_exp, NULL, __pyx_n_s_cygdual); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 26, __pyx_L1_error)
+  __pyx_t_2 = PyCFunction_NewEx(&__pyx_mdef_7cygdual_1exp, NULL, __pyx_n_s_cygdual); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 26, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
-  if (PyDict_SetItem(__pyx_d, __pyx_n_s_cygdual_exp, __pyx_t_2) < 0) __PYX_ERR(0, 26, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_d, __pyx_n_s_exp, __pyx_t_2) < 0) __PYX_ERR(0, 26, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
 
   /* "cygdual.pyx":1

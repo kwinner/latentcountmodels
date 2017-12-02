@@ -23,7 +23,7 @@ cdef extern from "gdual.h":
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def cygdual_exp(np.ndarray[ls, ndim=1, mode="c"] u not None):
+def exp(np.ndarray[ls, ndim=1, mode="c"] u not None):
     """
     gdual_exp (u)
 

@@ -14,6 +14,6 @@ print gdual.gdual_exp(u)
 
 print "cython version: "
 u_ls = logsign.real2ls(u)
-v_ls = cygdual.cygdual_exp(u_ls)
+v_ls = cygdual.exp(u_ls)
 v = logsign.ls2real(v_ls)
 print v
