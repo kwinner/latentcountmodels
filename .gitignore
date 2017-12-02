@@ -9,11 +9,16 @@ code/build/
 *.pyc
 .idea/
 .idea/*
-*~
 
-**/#*#
+# Ignore all emacs temp files and backup files
+**/\#*\#
+**~
+
+# Ignore all object and shared object files
+**.o
 **.so
 
+# Ignore this executable
 c/test_gdual
 
 
