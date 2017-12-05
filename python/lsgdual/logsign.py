@@ -4,6 +4,7 @@ from scipy.special import logsumexp
 
 LS_DTYPE = np.dtype([('mag', np.float64), ('sgn', np.int32)], align=True)
 
+#TODO: add underscore versions of methods w/o assertions for internal use?
 
 def ls(shape = 0):
     """instantiate an empty log-sign array with given shape"""
@@ -28,13 +29,13 @@ def ls2real(x):
 
 def isls(x):
     """test that x is a number in log-sign space"""
-    return isinstance(x, np.ndarray)            and \
-           x.dtype.names == ('mag', 'sgn')      and \
-           np.issubdtype(x.dtype['mag'], float) and \
+    return (isinstance(x, np.ndarray) or isinstance(x, np.void)) and \
+           x.dtype.names == ('mag', 'sgn')                       and \
+           np.issubdtype(x.dtype['mag'], float)                  and \
            np.issubdtype(x.dtype['sgn'], int)
 
 
-def ls_add(x, y):
+def add(x, y):
     """add two numbers in log-sign space"""
     assert isls(x) and isls(y)
 
@@ -43,7 +44,7 @@ def ls_add(x, y):
                      return_sign = True)
 
 
-def ls_sum(x, axis=None):
+def sum(x, axis=None):
     """sum all values in the vector of numbers in ls-space along some axis"""
     mag, sgn = logsumexp(x['mag'], b = x['sgn'], axis = axis, return_sign = True)
 
@@ -54,7 +55,18 @@ def ls_sum(x, axis=None):
     return z
 
 
-def ls_mul(x, y):
+def inv(x):
+    """compute 1/x"""
+    assert isls(x)
+
+    z = np.empty_like(x)
+    z['mag'] = -x['mag']
+    z['sgn'] = x['sgn']
+
+    return z
+
+
+def mul(x, y):
     """multiply two numbers (or vectors of numbers) in log-sign space"""
     assert isls(x) and isls(y)
     assert x.shape == y.shape
@@ -66,7 +78,17 @@ def ls_mul(x, y):
     return z
 
 
-def ls_exp(x):
+def div(x, y):
+    """divide x by y in log-sign space"""
+    assert isls(x) and isls(y)
+    assert x.shape == y.shape
+
+    z = mul(x, inv(y))
+
+    return z
+
+
+def exp(x):
     """exponentiate a number (or vector of numbers) in log-sign space"""
     assert isls(x)
 
@@ -77,7 +99,7 @@ def ls_exp(x):
     return z
 
 
-def ls_log(x):
+def log(x):
     """compute the log of a number (or vector) in log-sign space"""
     assert isls(x)
 

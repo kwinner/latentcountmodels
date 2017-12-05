@@ -1,14 +1,12 @@
 import numpy as np
 import ngdual
+import logsign as ls
 
-from logsign import *
 from util import *
 
 from scipy.special import logsumexp
 
 #TODO: Implement lsgdual, ngdual, gdual with single-dispatch methods? https://www.python.org/dev/peps/pep-0443/
-
-#TODO: real2ls, ls2real
 
 """
 In general, the following naming conventions are used for parameters/outputs of these methods:
@@ -26,7 +24,7 @@ def _lsgdual_empty(q):
     """instantiate an empty lsgdual 'object'"""
     assert q > 0
 
-    return ls(q)
+    return ls.ls(q)
 
 
 def lsgdual_1dx(q):
@@ -76,7 +74,7 @@ def lsgdual_xdx(x, q):
 
 def islsgdual(F):
     """test that F is a numpy array with the structure of an lsgdual"""
-    return isls(F) and F.ndim == 1
+    return ls.isls(F) and F.ndim == 1
 
 
 def lsgd2gd(F):
@@ -154,7 +152,7 @@ def add(F, G):
     assert islsgdual(G)
     assert F.shape == G.shape
 
-    H = ls_sum(np.array([F, G]), axis = 0)
+    H = ls.sum(np.array([F, G]), axis = 0)
 
     return H
 
@@ -245,22 +243,50 @@ def exp(F):
     H = _lsgdual_empty(q)
 
     # define f_i \in \tilde{F} = i * f_i
-    F_tilde = np.log(np.arange(q)) + F
+    F_tilde = F[1:]
+    F_tilde['mag'] += np.log(np.arange(1, q))
 
     # first term is the simple exp
-    H[0] = ls_exp(F[0])
+    H[0] = ls.exp(F[0])
 
-    return
+    for i in range(1, q):
+        H[i] = ls.sum(ls.mul(H[:i][::-1], F_tilde[:i]))
+        H[i]['mag'] -= np.log(i)
+
+    return H
+
 
 def log(F):
     """compute <log(f), dx>_q"""
-    return
+    assert islsgdual(F)
+
+    q = len(F)
+    H = _lsgdual_empty(q)
+
+    # define f_i \in \tilde{F} = i * f_i
+    F_tilde = np.copy(F)
+    F_tilde['mag'] += np.log(np.arange(q))
+
+    # first term is the simple log (note: if F[0]['sgn'] <= 0, this will still "fail"
+    H[0] = ls.log(F[0])
+
+    for i in range(1, q):
+        H_inner = ls.sum(ls.mul(H[1:i][::-1], F[1:i][::-1]))
+        # mul by -1
+        H_inner['sgn'] *= -1
+
+        H[i] = ls.div(ls.add(F_tilde[i], H_inner), \
+                      F[0])
+    # actually computed H_tilde (H_tilde[i] = H[i] * i). correct for that here
+    H['mag'] -= np.log(np.arange(q))
+
+    return H
 
 def pow(F, k):
     """compute <f^k, dx>_q"""
     return
 
-def reciprocal(F):
+def inv(F):
     """compute <1/f, dx>_q"""
     return
 

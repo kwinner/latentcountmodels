@@ -400,6 +400,25 @@ def test_deriv():
         return True
 
 
+def test_exp():
+    try:
+        F = lsgdual_xdx(5, 4)
+        H = exp(F)
+        assert np.allclose(H['mag'], [5., 5., 5 - np.log(2), 5 - np.log(6)])
+        assert np.allclose(H['sgn'], [ 1,  1,             1,             1])
+
+        F = lsgdual_xdx(-5, 4)
+        H = exp(F)
+        assert np.allclose(H['mag'], [-5., -5., -5 - np.log(2), -5 - np.log(6)])
+        assert np.allclose(H['sgn'], [ 1,  1,             1,             1])
+    except AssertionError:
+        print(traceback.format_exc())
+
+        return False
+    else:
+        return True
+
+
 def test_compose():
     try:
         print()
@@ -411,16 +430,6 @@ def test_compose():
         return True
 
 def test_compose_affine():
-    try:
-        print()
-    except AssertionError:
-        print(traceback.format_exc())
-
-        return False
-    else:
-        return True
-
-def test_exp():
     try:
         print()
     except AssertionError:
@@ -476,3 +485,4 @@ if __name__ == "__main__":
     # print("test_mul_fast: %s"    % test_mul_fast())
     print("test_mul: %s"         % test_mul())
     print("test_deriv: %s"       % test_deriv())
+    print("test_exp: %s"         % test_exp())
