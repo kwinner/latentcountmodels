@@ -1,4 +1,5 @@
 #include "gdual.h"
+#include <stdio.h>
 
 int main() {
     
@@ -19,13 +20,37 @@ int main() {
         u[i] = double_to_ls(t[i]);
     }
 
-    gdual_exp( u, v, n );
-
-    gdual_print(u, n);
-    gdual_print_as_double(u, n);
-    
-    gdual_print(u, n);
+    printf("**** EXP ****\n");
+    gdual_exp( v, u, n );
+    gdual_print(v, n);
     gdual_print_as_double(v, n); // Should print [2.50000000e-01, -6.25000001e-02, 1.56250000e-02, -3.90625000e-03, 9.76562501e-04, -2.44140625e-04, 6.10351563e-05]
+    printf("\n");
     
+    printf("**** INV ****\n");
+    gdual_inv(v, u, n);
+    gdual_print(v, n);
+    gdual_print_as_double(v, n);
+    printf("\n");
+    
+    printf("**** MUL ****\n");
+    gdual_mul(v, u, u, n);
+    gdual_print(v, n);
+    gdual_print_as_double(v, n);
+    printf("\n");
+
+    printf("**** POW ****\n");
+    gdual_pow(v, u, 2.0, n);
+    gdual_print(v, n);
+    gdual_print_as_double(v, n);
+    printf("\n");
+    
+    u[0] = double_to_ls(2.5); // log requires u[0] to be positive
+
+    printf("**** LOG ****\n");
+    gdual_log( v, u, n );
+    gdual_print(v, n);
+    gdual_print_as_double(v, n);
+    printf("\n");
+
     return(0);
 }
