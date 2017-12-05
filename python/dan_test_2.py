@@ -1,7 +1,7 @@
 import numpy as np
-import lsgdual.cygdual as cygdual
-import lsgdual.lsgdual as lsgdual
-import gdual.gdual as gdual
+import logsign as ls
+import cygdual
+import gdual
 
 
 def some_gdual():
@@ -20,34 +20,34 @@ u = np.array([-1.38629436e+00,
               -1.95312500e-04,
               4.06901042e-05])
 
-u_ls = lsgdual.real2ls(u)
+u_ls = ls.real2ls(u)
 
-print 'EXP'
-print gdual.gdual_exp(u)
-print lsgdual.ls2real(cygdual.exp(u_ls))
-print ''
+print('EXP')
+print(gdual.gdual_exp(u))
+print(ls.ls2real(cygdual.exp(u_ls)))
+print('')
 
-print 'INV'
-print gdual.gdual_reciprocal(u)
-print lsgdual.ls2real(cygdual.inv(u_ls))
-print ''
+print('INV')
+print(gdual.gdual_reciprocal(u))
+print(ls.ls2real(cygdual.inv(u_ls)))
+print('')
 
-print 'MUL'
-print gdual.gdual_mul(u, u)
-print lsgdual.ls2real(cygdual.mul(u_ls, u_ls))
-print ''
+print('MUL')
+print(gdual.gdual_mul(u, u))
+print(ls.ls2real(cygdual.mul(u_ls, u_ls)))
+print('')
 
-print 'POW'
-#print gdual.gdual_pow(u, 2.0)
+print('POW')
+#print(gdual.gdual_pow(u, 2.0)
 v_ls = cygdual.pow(u_ls, 2.0)
-print lsgdual.ls2real(v_ls)
-print ''
+print(ls.ls2real(v_ls))
+print('')
 
 u[0] = 2.5
-u_ls = lsgdual.real2ls(u)
+u_ls = ls.real2ls(u)
 
-print 'LOG'
-print gdual.gdual_log(u)
-print lsgdual.ls2real(cygdual.log(u_ls))
-print ''
+print('LOG')
+print(gdual.gdual_log(u))
+print(ls.ls2real(cygdual.log(u_ls)))
+print('')
 

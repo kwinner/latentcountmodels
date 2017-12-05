@@ -4,7 +4,7 @@ from Cython.Distutils import build_ext
 from os.path import realpath, dirname
 import numpy
 
-libgdual_dir = dirname(dirname(dirname(realpath(__file__)))) + "/c"
+libgdual_dir = dirname(dirname(realpath(__file__))) + "/c"
 
 setup(
     name='lsgdual',
