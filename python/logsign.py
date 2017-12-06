@@ -39,6 +39,12 @@ def add(x, y):
     """add two numbers in log-sign space"""
     assert isls(x) and isls(y)
 
+    # logsumexp doesn't handle these cases well, especially for scalar numbers
+    if x['sgn'] == 0:
+        return y
+    elif y['sgn'] == 0:
+        return x
+
     return logsumexp(x['mag'] + y['mag'],
                      b = x['sgn'] * y['sgn'],
                      return_sign = True)
@@ -103,19 +109,4 @@ def log(x):
     """compute the log of a number (or vector) in log-sign space"""
     assert isls(x)
 
-    z = np.empty_like(x)
-    if x['sgn'] == 1:
-        # x is already the desired quantity in linear space, we just need to go one layer deeper
-        z['mag'] = np.log(x['mag'])
-        z['sgn'] = np.sign(x['mag'])
-    elif x['sgn'] == 0:
-        # log(0) = -inf, but in ls-space
-        z['mag'] = np.inf
-        z['sgn'] = -1
-    else: #x['sgn'] == -1:
-        # log(x \in Z^-) = nan
-        # TODO: warning?
-        z['mag'] = np.nan
-        z['sgn'] = np.nan
-
-    return z
+    return real2ls(x['mag'] + np.log(x['sgn']))

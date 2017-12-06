@@ -113,7 +113,7 @@ def gdual_exp(F):
 
     out[0] = np.exp(F[0])
     Ftilde *= np.arange(1, q)
-    for i in range(1, q):
+    for i in xrange(1, q):
         out[i] = np.sum(out[:i][::-1]*Ftilde[:i], axis=0) / i
 
     return out
@@ -125,10 +125,10 @@ def gdual_log(F):
 
     out[0] = np.log(F[0])
 
-    for i in range(1, q):
+    for i in xrange(1, q):
         out[i] = (F[i]*i - np.sum(F[1:i][::-1]*out[1:i], axis=0))
         out[i] /= F[0]
-    for i in range(1, q):
+    for i in xrange(1, q):
         out[i] /= i
 
     return out
@@ -144,7 +144,7 @@ def gdual_reciprocal(F):
     q   = out.shape[0]
 
     out[0] = 1. / F[0]
-    for i in range(1, q):
+    for i in xrange(1, q):
         out[i] = 1. / F[0] * (-np.sum(out[:i] * F[i:0:-1], axis=0))
 
     return out

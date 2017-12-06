@@ -1,6 +1,8 @@
 import numpy as np
-import ngdual
+import ngdual as ngd
+import gdual as gd
 import logsign as ls
+import copy
 
 from util import *
 
@@ -138,7 +140,7 @@ def add_scalar(F, c):
     if c_sgn == 0:
         return F
 
-    H = np.copy(F)
+    H = copy.deepcopy(F)
 
     H[0] = logsumexp(    [F[0]['mag'], c_mag],
                      b = [F[0]['sgn'], c_sgn],
@@ -161,7 +163,7 @@ def mul_scalar(F, c):
     assert islsgdual(F)
     assert np.isreal(c) and (not hasattr(c, "__len__") or len(c) == 1)
 
-    H = np.copy(F)
+    H = copy.deepcopy(F)
 
     if c == 0:
         # special case mul by zero to avoid log(0)
@@ -187,7 +189,7 @@ def mul_fast(F, G):
     F_ngd = lsgd2ngd(F)
     G_ngd = lsgd2ngd(G)
 
-    H_ngd = ngdual.ngdual_mul(F_ngd, G_ngd)
+    H_ngd = ngd.ngdual_mul(F_ngd, G_ngd)
 
     H     = ngd2lsgd(H_ngd)
 
@@ -263,22 +265,30 @@ def log(F):
     q = len(F)
     H = _lsgdual_empty(q)
 
+    ind = np.arange(q)
+    ind[0] = 1
+    ls_ind = ls.real2ls(ind)
+
     # define f_i \in \tilde{F} = i * f_i
-    F_tilde = np.copy(F)
-    F_tilde['mag'] += np.log(np.arange(q))
+    F_tilde = ls.mul(F, ls_ind)
 
     # first term is the simple log (note: if F[0]['sgn'] <= 0, this will still "fail"
     H[0] = ls.log(F[0])
 
     for i in range(1, q):
-        H_inner = ls.sum(ls.mul(H[1:i][::-1], F[1:i][::-1]))
-        # mul by -1
-        H_inner['sgn'] *= -1
+        if i == 1:
+            #H_inner = 0 by construction
 
-        H[i] = ls.div(ls.add(F_tilde[i], H_inner), \
-                      F[0])
+            H[i] = ls.div(F_tilde[i], F[0])
+        else:
+            H_inner = ls.sum(ls.mul(H[1:i][::-1], F[1:i][::-1]))
+            # mul by -1
+            H_inner['sgn'] *= -1
+
+            H[i] = ls.div(ls.add(F_tilde[i], H_inner), \
+                          F[0])
     # actually computed H_tilde (H_tilde[i] = H[i] * i). correct for that here
-    H['mag'] -= np.log(np.arange(q))
+    H = ls.div(H, ls_ind)
 
     return H
 
@@ -292,7 +302,29 @@ def inv(F):
 
 def compose(G, F):
     """compose two lsgduals as G(F)"""
-    return
+    assert islsgdual(F) and islsgdual(G)
+    assert F.shape == G.shape
+
+    q = len(F)
+    H = lsgdual_cdx(0, q)
+
+    # cache first terms of G, F and then clear first terms of F, G
+    G_0 = copy.deepcopy(G[0])
+    F_0 = copy.deepcopy(F[0])
+    G[0] = ls.real2ls(0)
+    F[0] = ls.real2ls(0)
+
+    H[0] = G[q - 1]
+    for i in range(q - 2, -1, -1):
+        H = mul(H, F)
+        H[0] = ls.add(H[0], G[i])
+
+    # restore cached value for G as first value of H
+    H[0] = G_0
+    G[0] = G_0
+    F[0] = F_0
+
+    return H
 
 def compose_affine(G, F):
     """comopse two lsgduals as G(F) where len(F) <= 2"""
@@ -303,10 +335,27 @@ def compose_affine(G, F):
 #mul_logscalar (mul by a scalar as log(C))
 
 if __name__ == "__main__":
-    F = lsgdual_xdx(5, 2)
-    G = lsgdual_xdx(4, 2)
-    FG = np.array([F,G])
+    F = lsgdual_xdx(4, 7)
+    F = log(F)
 
-    H = add(F, G)
+    G = lsgdual_xdx(-2, 7)
+    G = exp(G)
+    G = add_scalar(G, 3)
 
-    print(H)
+    print(F)
+    print(G)
+
+    GF = compose(G, F)
+
+    print(F)
+    print(G)
+
+    print("")
+
+    print(lsgd2gd(GF))
+
+    F_gd = lsgd2gd(F)
+    G_gd = lsgd2gd(G)
+    GF_gd = gd.gdual_compose(G_gd, F_gd)
+
+    print(GF_gd)
