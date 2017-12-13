@@ -127,7 +127,7 @@ def ngdual_deriv(F, k):
     q       = out_utp.shape[0]
 
     # compute the vector of falling factorial terms in log space
-    factln = util.fallingfactorialln(k, np.arange(q))
+    factln = util.logfallingfactorial(k, np.arange(q))
 
     # drop the lowest order terms of both vectors
     factln  = factln[k:]
