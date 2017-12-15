@@ -7,8 +7,8 @@
 /*****************************************/
 /* Log-sign number system                */
 /*****************************************/
-#define NEG_INF (-1.0/0)
-#define POS_INF (1.0/0)
+#define NEG_INF -INFINITY
+#define POS_INF INFINITY
 #define SIGN(x) ((x) >= 0 ? 1 : -1)
 #define LS(s, m) ((struct ls) {s, m})
 
@@ -66,18 +66,23 @@ ls ls_add( ls x, ls y ) {
     /***********************************************************************/
     
     ls result;
-    sign_t sign = (x.sign == y.sign) ? 1 : -1;
-    if ( x.mag > y.mag ) {
-        result.sign = x.sign;
-        double arg = sign * exp(y.mag - x.mag);
-        assert(arg >= -1.0);
-        result.mag = x.mag + log1p( arg );
-    }
-    else {
+    if ( x.mag == NEG_INF ) {
         result.sign = y.sign;
-        double arg = sign * exp(x.mag - y.mag);
-        assert(arg >= -1.0);
-        result.mag = y.mag + log1p( arg );
+        result.mag  = y.mag;
+    } else {
+        sign_t sign = (x.sign == y.sign) ? 1 : -1;
+        if ( x.mag > y.mag ) {
+            result.sign = x.sign;
+            double arg = sign * exp(y.mag - x.mag);
+            assert(arg >= -1.0);
+            result.mag = x.mag + log1p( arg );
+        }
+        else {
+            result.sign = y.sign;
+            double arg = sign * exp(x.mag - y.mag);
+            assert(arg >= -1.0);
+            result.mag = y.mag + log1p( arg );
+        }
     }
     return result;
 }
@@ -304,7 +309,7 @@ void gdual_mul ( ls* v,
         for (int j = 0; j <= k; j++) { 
             v[k] = ls_add( v[k], ls_mult(u[j], w[k-j]) );
         }
-    }        
+    }
 }
 
 // compute v = u / w
@@ -352,7 +357,7 @@ void gdual_compose( ls* res,
                     ls* v,
                     size_t n)
 {
-    assert(0);
+    assert(0);    
 }
 
 void gdual_compose_affine( ls* res,

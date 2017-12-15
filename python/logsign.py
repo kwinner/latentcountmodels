@@ -110,3 +110,13 @@ def log(x):
     assert isls(x)
 
     return real2ls(x['mag'] + np.log(x['sgn']))
+
+
+def pow(x, k):
+    q = max(len(x), len(k))
+
+    z = np.empty_like(x)
+    z['sgn'] = np.sign(np.power(x['sgn'], k))
+    z['mag']  = k * x['mag']
+
+    return z

@@ -83,7 +83,7 @@ def binary_op(np.ndarray[ls, ndim=1, mode="c"] u not None,
               np.ndarray[ls, ndim=1, mode="c"] w not None,
               op not None):
 
-    assert(u.shape == w.shape)
+    assert(u.shape[0] == w.shape[0])
 
     cdef size_t n = u.shape[0]
     cdef np.ndarray[ls, ndim=1, mode="c"] v = np.zeros(n, dtype=LS_DTYPE)

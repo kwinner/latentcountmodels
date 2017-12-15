@@ -281,7 +281,7 @@ def log(F):
 
             H[i] = ls.div(F_tilde[i], F[0])
         else:
-            H_inner = ls.sum(ls.mul(H[1:i][::-1], F[1:i][::-1]))
+            H_inner = ls.sum(ls.mul(H[1:i], F[1:i][::-1]))
             # mul by -1
             H_inner['sgn'] *= -1
 
