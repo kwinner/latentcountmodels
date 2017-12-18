@@ -115,7 +115,7 @@ def log(x):
 def pow(x, k):
     q = max(len(x), len(k))
 
-    z = np.empty_like(x)
+    z = ls(shape=q)
     z['sgn'] = np.sign(np.power(x['sgn'], k))
     z['mag']  = k * x['mag']
 
