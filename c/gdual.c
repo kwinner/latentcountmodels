@@ -245,7 +245,7 @@ void gdual_log( ls* v,      /* The result */
 // Compute v = u^r
 void gdual_pow( ls* v, ls* u, double r, size_t n )
 {
-    printf("n = %d\n", (int) n);
+//    printf("n = %d\n", (int) n);
     
     /* Reference: Chapter 13 p. 305 from 
        Griewank, A. and Walther, A. Evaluating derivatives: principles and 
