@@ -29,11 +29,21 @@ def _lsgdual_empty(q):
     return ls.ls(q)
 
 
+def _lsgdual_zeros(q):
+    """instantiate an lsgdual 'object' with all entries equiv to zero"""
+    assert q > 0
+
+    F = np.zeros(q, dtype=ls.LS_DTYPE)
+    F['mag'] = -np.inf
+
+    return F
+
+
 def lsgdual_1dx(q):
     """construct a new lsgdual for <1, dx>_q"""
     assert q > 0
 
-    F = _lsgdual_empty(q)
+    F = _lsgdual_zeros(q)
 
     with np.errstate(divide='ignore'):
         F['mag'] = np.append([0], np.tile(-np.inf, q - 1))
@@ -44,32 +54,45 @@ def lsgdual_1dx(q):
 
 def lsgdual_cdx(c, q):
     """construct a new lsgdual for <c, dx>_q"""
-    assert np.isreal(c) and (not hasattr(c, "__len__") or len(c) == 1)
     assert q > 0
+    if ls.isls(c):
+        F = _lsgdual_zeros(q)
 
-    F = _lsgdual_empty(q)
+        F[0] = copy.deepcopy(c)
+    else:
+        assert np.isreal(c) and (not hasattr(c, "__len__") or len(c) == 1)
 
-    with np.errstate(divide='ignore'):
-        F['mag'] = np.append([np.log(np.abs(c))], np.tile(-np.inf, q - 1))
-        F['sgn'] = np.append([np.sign(c)],        np.tile(0,       q - 1))
+        F = _lsgdual_zeros(q)
+
+        with np.errstate(divide='ignore'):
+            F['mag'] = np.append([np.log(np.abs(c))], np.tile(-np.inf, q - 1))
+            F['sgn'] = np.append([np.sign(c)],        np.tile(0,       q - 1))
 
     return F
 
 
 def lsgdual_xdx(x, q):
     """construct a new lsgdual for <x, dx>_q"""
-    assert np.isreal(x) and (not hasattr(x, "__len__") or len(x) == 1)
     assert q > 0
+    if ls.isls(x):
+        F = _lsgdual_zeros(q)
 
-    F = _lsgdual_empty(q)
+        F[0] = copy.deepcopy(x)
 
-    with np.errstate(divide='ignore'):
-        if q == 1:
-            F['mag'] = np.array(np.log(np.abs(x)))
-            F['sgn'] = np.array(np.sign(x))
-        else:
-            F['mag'] = np.append([np.log(np.abs(x)), 0], np.tile(-np.inf, q - 2))
-            F['sgn'] = np.append([np.sign(x),        1], np.tile(0,       q - 2))
+        if q > 1:
+            F[1] = ls.real2ls(1.0)
+    else:
+        assert np.isreal(x) and (not hasattr(x, "__len__") or len(x) == 1)
+
+        F = _lsgdual_zeros(q)
+
+        with np.errstate(divide='ignore'):
+            if q == 1:
+                F['mag'] = np.array(np.log(np.abs(x)))
+                F['sgn'] = np.array(np.sign(x))
+            else:
+                F['mag'] = np.append([np.log(np.abs(x)), 0], np.tile(-np.inf, q - 2))
+                F['sgn'] = np.append([np.sign(x),        1], np.tile(0,       q - 2))
 
     return F
 
