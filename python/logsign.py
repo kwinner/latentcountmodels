@@ -10,6 +10,10 @@ def ls(shape = 0):
     """instantiate an empty log-sign array with given shape"""
     return np.empty(shape, dtype = LS_DTYPE)
 
+def zeros(shape=0):
+    ZERO = real2ls(0.0)
+    ZERO['sgn'] = 1
+    return np.tile(ZERO, shape)
 
 def real2ls(x):
     """convert a number in linear space to log-sign space"""
@@ -45,10 +49,15 @@ def add(x, y):
     elif y['sgn'] == 0:
         return x
 
-    return logsumexp(x['mag'] + y['mag'],
-                     b = x['sgn'] * y['sgn'],
-                     return_sign = True)
+    mag, sign = logsumexp(x['mag'] + y['mag'],
+                          b = x['sgn'] * y['sgn'],
+                          return_sign = True)
 
+    z = ls(mag.shape)
+    z['mag'] = mag
+    z['sgn'] = sign
+
+    return z
 
 def sum(x, axis=None):
     """sum all values in the vector of numbers in ls-space along some axis"""

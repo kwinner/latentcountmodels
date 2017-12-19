@@ -22,6 +22,7 @@ cdef extern from "gdual.h":
     void gdual_exp( ls* res, ls* u, size_t n)
     void gdual_log( ls* res, ls* u, size_t n)
     void gdual_inv( ls* res, ls* u, size_t n)
+    void gdual_neg( ls* res, ls* u, size_t n)
 
     void gdual_mul( ls* res, ls* u, ls* w, size_t n )
     void gdual_add( ls* res, ls* u, ls* w, size_t n )
@@ -30,29 +31,6 @@ cdef extern from "gdual.h":
     void gdual_pow( ls* res, ls* u, double r, size_t n)
     void gdual_scalar_mul( ls* res, ls* u, double c, size_t n)
     void gdual_u_plus_cw( ls* res, ls* u, ls* w, double c, size_t n)
-
-
-
-def exp(np.ndarray[ls, ndim=1, mode="c"] u not None):
-    return unary_op(u, 'exp')
-
-def log(np.ndarray[ls, ndim=1, mode="c"] u not None):
-    return unary_op(u, 'log')
-
-def inv(np.ndarray[ls, ndim=1, mode="c"] u not None):
-    return unary_op(u, 'inv')
-
-def mul(np.ndarray[ls, ndim=1, mode="c"] u not None,
-        np.ndarray[ls, ndim=1, mode="c"] w not None):
-    return binary_op(u, w, 'mul')
-
-def add(np.ndarray[ls, ndim=1, mode="c"] u not None,
-        np.ndarray[ls, ndim=1, mode="c"] w not None):
-    return binary_op(u, w, 'add')
-
-def div(np.ndarray[ls, ndim=1, mode="c"] u not None,
-        np.ndarray[ls, ndim=1, mode="c"] w not None):
-    return binary_op(u, w, 'div')
 
 
 ctypedef void (*UNARY_OP)(ls*, ls*, size_t)
@@ -70,12 +48,26 @@ def unary_op(np.ndarray[ls, ndim=1, mode="c"] u not None, op not None):
         fun = &gdual_log
     elif op == 'inv':
         fun = &gdual_inv
+    elif op == 'neg':
+        fun = &gdual_neg
     else:
         raise('unrecognized unary operation on gduals: ' + op)
 
     fun(<ls *> v.data, <ls*> u.data, n)
 
     return v
+
+def exp(np.ndarray[ls, ndim=1, mode="c"] u not None):
+    return unary_op(u, 'exp')
+
+def log(np.ndarray[ls, ndim=1, mode="c"] u not None):
+    return unary_op(u, 'log')
+
+def inv(np.ndarray[ls, ndim=1, mode="c"] u not None):
+    return unary_op(u, 'inv')
+
+def inv(np.ndarray[ls, ndim=1, mode="c"] u not None):
+    return unary_op(u, 'neg')
 
 ctypedef void (*BINARY_OP)(ls*, ls*, ls*, size_t)
 
@@ -99,6 +91,40 @@ def binary_op(np.ndarray[ls, ndim=1, mode="c"] u not None,
         raise('unrecognized operation : ' + op)
 
     fun(<ls *> v.data, <ls *> u.data, <ls*> w.data, n)
+
+    return v
+
+
+def mul(np.ndarray[ls, ndim=1, mode="c"] u not None,
+        np.ndarray[ls, ndim=1, mode="c"] w not None):
+    return binary_op(u, w, 'mul')
+
+def add(np.ndarray[ls, ndim=1, mode="c"] u not None,
+        np.ndarray[ls, ndim=1, mode="c"] w not None):
+    return binary_op(u, w, 'add')
+
+def div(np.ndarray[ls, ndim=1, mode="c"] u not None,
+        np.ndarray[ls, ndim=1, mode="c"] w not None):
+    return binary_op(u, w, 'div')
+
+def rdiv(np.ndarray[ls, ndim=1, mode="c"] u not None,
+         np.ndarray[ls, ndim=1, mode="c"] w not None):
+    return binary_op(w, u, 'div')
+
+
+def rsub(np.ndarray[ls, ndim=1, mode="c"] u not None,
+         np.ndarray[ls, ndim=1, mode="c"] w not None):
+    return sub(w, u)
+
+def sub(np.ndarray[ls, ndim=1, mode="c"] u not None,
+        np.ndarray[ls, ndim=1, mode="c"] w not None):
+
+    assert(u.shape[0] == w.shape[0])
+
+    cdef size_t n = u.shape[0]
+    cdef np.ndarray[ls, ndim=1, mode="c"] v = np.zeros(n, dtype=LS_DTYPE)
+
+    gdual_u_plus_cw(<ls *> v.data, <ls *> u.data, <ls*> w.data, -1.0, n)
 
     return v
 

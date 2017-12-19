@@ -5,7 +5,7 @@ import util as util
 # todo assert shape match
 def gdual_new(x, q):
     # todo this is really a special case of new gdual for new RVs
-    out = np.zeros(q, dtype=np.double)
+    out = np.zeros(q, dtype=np.longdouble)
 
     out[0] = x
     if q > 1:
@@ -61,6 +61,43 @@ def gdual_deriv(F, k):
 
     return out
 
+def gdual_integrate(F):
+    out = np.zeros_like(F)
+    q = len(F)
+    k = np.arange(1, q).astype(float)
+    out[1:] = (1/k) * F[0:q-1]
+    return out
+    
+def gdual_div(x, y):
+    return gdual_mul(x, gdual_reciprocal(y))
+    
+def gdual_log1p(F):
+    q = len(F)
+    F_prime = np.zeros_like(F)
+    F_prime[:q-1] = gdual_deriv(F, 1)
+    
+    F_plus_one = F.copy();
+    F_plus_one[0] += 1
+
+    integrand = gdual_div( F_prime, F_plus_one )
+    out = gdual_integrate( integrand )
+    out[0] = np.log1p(F[0])
+
+    return out
+    
+def gdual_log_(F):
+    F_minus_one = F.copy()
+    F_minus_one[0] -= 1.0
+    return gdual_log1p( F_minus_one )
+
+# def gdual_log_(F):
+#     q = len(F)
+#     F_prime = np.zeros_like(F)
+#     F_prime[:q-1] = gdual_deriv(F, 1)
+
+#     out = gdual_integrate( gdual_div( F_prime, F) )
+#     out[0] = np.log(F[0])
+#     return out
 
 def gdual_deriv_safe(F, k):
     q = F.shape[0]

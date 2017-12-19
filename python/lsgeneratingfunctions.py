@@ -8,6 +8,9 @@ def poisson(s, theta):
     q = s.shape[0]
     lmbda = theta[0]
 
+    # s.add(-1).mul(lmbda).exp()
+    # cygd.exp(lambda*(s-1))
+
     return cygd.exp(cygd.mul(cygd.add(s, lsgd.lsgdual_cdx(-1.0, q)),
                              lsgd.lsgdual_cdx(lmbda, q)))
 

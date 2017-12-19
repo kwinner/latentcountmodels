@@ -285,8 +285,7 @@ def log(F):
             # mul by -1
             H_inner['sgn'] *= -1
 
-            H[i] = ls.div(ls.add(F_tilde[i], H_inner), \
-                          F[0])
+            H[i] = ls.div(ls.add(F_tilde[i], H_inner), F[0])
     # actually computed H_tilde (H_tilde[i] = H[i] * i). correct for that here
     H = ls.div(H, ls_ind)
 
