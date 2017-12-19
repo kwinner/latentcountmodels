@@ -31,6 +31,7 @@ void gdual_print_as_double( ls* a, size_t n );
 void            gdual_exp( ls* res, ls* u, size_t n);
 void            gdual_log( ls* res, ls* u, size_t n);
 void            gdual_inv( ls* res, ls* u, size_t n);
+void            gdual_neg( ls* res, ls* u, size_t n);
 
 // Binary-ish operations
 void     gdual_scalar_mul( ls* res, ls* u, double c, size_t n);

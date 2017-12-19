@@ -12,8 +12,12 @@
 #define SIGN(x) ((x) >= 0 ? 1 : -1)
 #define LS(s, m) ((struct ls) {s, m})
 
-double ls_to_double( ls x) {
+double ls_to_double(ls x) {
     return exp(x.mag) * x.sign;
+}
+
+long double ls_to_long_double(ls x) {
+    return expl(x.mag) * x.sign;
 }
 
 ls double_to_ls(double x) {
@@ -26,8 +30,12 @@ ls double_to_ls(double x) {
 ls ls_zero( ) {
     ls result;
     result.mag = NEG_INF;
-    result.sign = 1;
+    result.sign = 0;
     return result;
+}
+
+int ls_is_zero(ls x) {
+    return x.mag==NEG_INF || x.sign == 0;
 }
 
 ls ls_neg( ls x ) {
@@ -64,25 +72,26 @@ ls ls_add( ls x, ls y ) {
     /*                                                                     */
     /* The case when y has a larger magnitude is symmetric.                */
     /***********************************************************************/
+
+    if ( ls_is_zero(x) )
+        return y;
+
+    if ( ls_is_zero(y) )
+        return x;
     
     ls result;
-    if ( x.mag == NEG_INF ) {
+    sign_t sign = (x.sign == y.sign) ? 1 : -1;
+    if ( x.mag > y.mag ) {
+        result.sign = x.sign;
+        long double arg = sign * expl(y.mag - x.mag);
+        assert(arg >= -1.0);
+        result.mag = (double) (x.mag + log1pl( arg ));
+    }
+    else {
         result.sign = y.sign;
-        result.mag  = y.mag;
-    } else {
-        sign_t sign = (x.sign == y.sign) ? 1 : -1;
-        if ( x.mag > y.mag ) {
-            result.sign = x.sign;
-            double arg = sign * exp(y.mag - x.mag);
-            assert(arg >= -1.0);
-            result.mag = x.mag + log1p( arg );
-        }
-        else {
-            result.sign = y.sign;
-            double arg = sign * exp(x.mag - y.mag);
-            assert(arg >= -1.0);
-            result.mag = y.mag + log1p( arg );
-        }
+        long double arg = sign * expl(x.mag - y.mag);
+        assert(arg >= -1.0);
+        result.mag = (double) (y.mag + log1p( arg ));
     }
     return result;
 }
@@ -122,8 +131,7 @@ ls ls_log( ls x ) {
     return double_to_ls( x.mag + log(x.sign) );
 }
 
-ls ls_pow( ls x, double r ) {
-    
+ls ls_pow( ls x, double r ) {    
     ls result;
     result.sign = SIGN(pow(x.sign, r)); 
     result.mag  = r * x.mag;    // log(x^r) = r log(x)
@@ -138,7 +146,7 @@ ls ls_pow( ls x, double r ) {
 void gdual_print( ls* a, size_t n ) {
     printf("%s", "[");
     for (int i = 0; i < n; i++ ) {
-        printf("%d * exp(%.8e)", a[i].sign, a[i].mag);
+        printf("%d * exp(%.8e)", a[i].sign, (double) a[i].mag);
         if (i < n-1) {
             printf("%s", ", ");
         }
@@ -184,6 +192,12 @@ void gdual_scalar_mul( ls* v, ls* u, double c, size_t n) {
     }
 }
 
+// Compute v = -u
+void gdual_neg( ls* v, ls* u, size_t n) {
+    gdual_scalar_mul(v, u, -1.0, n);
+}
+
+
 void gdual_exp( ls* v,      /* The result */
                 ls* u,
                 size_t n) { 
@@ -194,7 +208,7 @@ void gdual_exp( ls* v,      /* The result */
     
     ls u_tilde[n];
     
-    for (int i = 1; i < n; i++) {
+    for (int i = 0; i < n; i++) {
         u_tilde[i] = ls_mult( u[i], double_to_ls(i) );
     }
 
@@ -222,7 +236,7 @@ void gdual_log( ls* v,      /* The result */
     ls u_tilde[n];
     ls v_tilde[n];
 
-    for (int i = 1; i < n; i++) {
+    for (int i = 0; i < n; i++) {
         u_tilde[i] = ls_mult( u[i], double_to_ls(i) );
     }
 
