@@ -3,7 +3,7 @@ import util as util
 
 # todo function descriptions
 # todo assert shape match
-def gdual_new(x, q):
+def new(x, q):
     # todo this is really a special case of new gdual for new RVs
     out = np.zeros(q, dtype=np.longdouble)
 
@@ -14,7 +14,7 @@ def gdual_new(x, q):
     return out
 
 
-def gdual_compose(G, F):
+def compose(G, F):
     out = np.zeros_like(G)
     q = out.shape[0]
 
@@ -39,7 +39,7 @@ def gdual_compose(G, F):
     return out
 
 
-def gdual_compose_affine(G, F):
+def compose_affine(G, F):
     if F.shape[0] <= 1:
         # handling composition with a constant F
         return G.copy()
@@ -51,7 +51,7 @@ def gdual_compose_affine(G, F):
         return G * np.power(F[1], np.arange(0, q))
 
 
-def gdual_deriv(F, k):
+def deriv(F, k):
     q = F.shape[0]
 
     fact = util.fallingfactorial(k, np.arange(q))
@@ -61,45 +61,45 @@ def gdual_deriv(F, k):
 
     return out
 
-def gdual_integrate(F):
+def integrate(F):
     out = np.zeros_like(F)
     q = len(F)
     k = np.arange(1, q).astype(float)
     out[1:] = (1/k) * F[0:q-1]
     return out
     
-def gdual_div(x, y):
-    return gdual_mul(x, gdual_reciprocal(y))
+def div(x, y):
+    return mul(x, inv(y))
     
-def gdual_log1p(F):
-    q = len(F)
-    F_prime = np.zeros_like(F)
-    F_prime[:q-1] = gdual_deriv(F, 1)
-    
-    F_plus_one = F.copy();
-    F_plus_one[0] += 1
-
-    integrand = gdual_div( F_prime, F_plus_one )
-    out = gdual_integrate( integrand )
-    out[0] = np.log1p(F[0])
-
-    return out
-    
-def gdual_log_(F):
-    F_minus_one = F.copy()
-    F_minus_one[0] -= 1.0
-    return gdual_log1p( F_minus_one )
-
-# def gdual_log_(F):
+# def log1p(F):
 #     q = len(F)
 #     F_prime = np.zeros_like(F)
-#     F_prime[:q-1] = gdual_deriv(F, 1)
+#     F_prime[:q-1] = deriv(F, 1)
+    
+#     F_plus_one = F.copy();
+#     F_plus_one[0] += 1
 
-#     out = gdual_integrate( gdual_div( F_prime, F) )
+#     integrand = div( F_prime, F_plus_one )
+#     out = integrate( integrand )
+#     out[0] = np.log1p(F[0])
+
+#     return out
+    
+# def log_(F):
+#     F_minus_one = F.copy()
+#     F_minus_one[0] -= 1.0
+#     return log1p( F_minus_one )
+
+# def log_(F):
+#     q = len(F)
+#     F_prime = np.zeros_like(F)
+#     F_prime[:q-1] = deriv(F, 1)
+
+#     out = integrate( div( F_prime, F) )
 #     out[0] = np.log(F[0])
 #     return out
 
-def gdual_deriv_safe(F, k):
+def deriv_safe(F, k):
     q = F.shape[0]
 
     factln = util.fallingfactorialln(k, np.arange(q))
@@ -128,13 +128,13 @@ def gdual_deriv_safe(F, k):
     return logZ, outsigns * np.exp(out)
 
 
-def gdual_mul(F, G):
+def mul(F, G):
     q = max(F.shape[0], G.shape[0])
 
     return np.convolve(F, G)[:q]
 
 
-def gdual_mul2(F, G):
+def mul2(F, G):
     H = np.zeros_like(F)
     for k in range(0, F.shape[0]):
         for i in range(0, k+1):
@@ -143,7 +143,7 @@ def gdual_mul2(F, G):
     return H
 
 
-def gdual_exp(F):
+def exp(F):
     out = np.empty_like(F)
     q   = out.shape[0]
     Ftilde = F[1:].copy()
@@ -156,7 +156,7 @@ def gdual_exp(F):
     return out
 
 
-def gdual_log(F):
+def log(F):
     out = np.empty_like(F)
     q   = out.shape[0]
 
@@ -172,11 +172,11 @@ def gdual_log(F):
 
 
 #TODO: broken if F[0] < 0, need to handle
-def gdual_pow(F, k):
-    return gdual_exp(k * gdual_log(F))
+def pow(F, k):
+    return exp(k * log(F))
 
 
-def gdual_reciprocal(F):
+def inv(F):
     out = np.zeros_like(F)
     q   = out.shape[0]
 
@@ -187,29 +187,29 @@ def gdual_reciprocal(F):
     return out
 
 
-def gdual_mean(F):
+def mean(F):
     return F[1]
 
 
-def gdual_var(F):
+def var(F):
     return (2 * F[2]) - np.power(F[1], 2) + F[1]
 
 
-def gdual_normalize(F):
+def normalize(F):
     Z = np.max(F)
     F /= Z
     logZ = np.log(Z)
     return logZ, F
 
 
-def gdual_renormalize(F, old_logZ):
+def renormalize(F, old_logZ):
     Z = np.max(F)
     F /= Z
     logZ = old_logZ + np.log(Z)
     return logZ, F
 
 
-def gdual_adjust_Z(F, old_logZ, new_logZ):
+def adjust_Z(F, old_logZ, new_logZ):
     if ~np.isfinite(new_logZ):
         None
     adjustment = np.exp(old_logZ - new_logZ)

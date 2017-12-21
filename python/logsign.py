@@ -2,18 +2,20 @@ import numpy as np
 from scipy.special import logsumexp
 
 
-LS_DTYPE = np.dtype([('mag', np.float64), ('sgn', np.int32)], align=True)
+DTYPE = np.dtype([('mag', np.float64), ('sgn', np.int32)], align=True)
 
-#TODO: add underscore versions of methods w/o assertions for internal use?
-
+#TODO: add underscore versions of methods w/o assertions for internal use
 def ls(shape = 0):
     """instantiate an empty log-sign array with given shape"""
-    return np.empty(shape, dtype = LS_DTYPE)
+    return np.empty(shape, dtype=DTYPE)
 
 def zeros(shape=0):
     ZERO = real2ls(0.0)
-    ZERO['sgn'] = 1
-    return np.tile(ZERO, shape)
+    return np.tile(ZERO, shape).astype(DTYPE)
+
+def ones(shape=0):
+    ONE = real2ls(1.0)
+    return np.tile(ONE, shape).astype(DTYPE)
 
 def real2ls(x):
     """convert a number in linear space to log-sign space"""

@@ -7,7 +7,7 @@ cython wrapper for libgdual
 
 import cython
 
-from logsign import LS_DTYPE
+from logsign import DTYPE as LS_DTYPE
 
 # import both numpy and the Cython declarations for numpy
 import numpy as np

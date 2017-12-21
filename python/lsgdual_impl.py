@@ -1,8 +1,8 @@
 import numpy as np
-import ngdual as ngd
 import gdual as gd
 import logsign as ls
 import copy
+import cygdual
 
 from util import *
 
@@ -33,7 +33,7 @@ def _lsgdual_zeros(q):
     """instantiate an lsgdual 'object' with all entries equiv to zero"""
     assert q > 0
 
-    F = np.zeros(q, dtype=ls.LS_DTYPE)
+    F = np.zeros(q, dtype=ls.DTYPE)
     F['mag'] = -np.inf
 
     return F
@@ -111,16 +111,6 @@ def lsgd2gd(F):
     return H
 
 
-def lsgd2ngd(F):
-    """convert an lsgdual to an ngdual"""
-    assert(islsgdual(F))
-
-    logZ = np.max(F['mag'])
-    utp  = F['sgn'] * np.exp(F['mag'] - logZ)
-
-    return (logZ, utp)
-
-
 def gd2lsgd(F):
     """convert an (unnormalized) gdual to an lsgdual"""
     assert(isinstance(F, np.ndarray))
@@ -131,20 +121,6 @@ def gd2lsgd(F):
     with np.errstate(divide='ignore'):
         H['mag'] = np.log(np.abs(F))
         H['sgn'] = np.sign(F)
-
-    return H
-
-
-def ngd2lsgd(F):
-    """convert an ngdual to an lsgdual"""
-    assert(isinstance(F, tuple))
-
-    q = len(F[1])
-    H = _lsgdual_empty(q)
-
-    with np.errstate(divide='ignore'):
-        H['mag'] = F[0] + np.log(np.abs(F[1]))
-        H['sgn'] = np.sign(F[1])
 
     return H
 
@@ -197,27 +173,6 @@ def mul_scalar(F, c):
         H[0 ]['sgn'] *= np.sign(c)
 
     return H
-
-def mul_fast(F, G):
-    """compute <f * g, dx>_q from <f, dx>_q and <g, dx>_q
-       lsgduals are first converted to ngduals, then multiplied using ngdual_mul
-       ngduals are relatively stable, and can still use the FFT to do convolution"""
-    assert islsgdual(F)
-    assert islsgdual(G)
-    assert F.shape == G.shape
-
-    q = len(F)
-    H = _lsgdual_empty(q)
-
-    F_ngd = lsgd2ngd(F)
-    G_ngd = lsgd2ngd(G)
-
-    H_ngd = ngd.ngdual_mul(F_ngd, G_ngd)
-
-    H     = ngd2lsgd(H_ngd)
-
-    return H
-
 
 def mul(F, G):
     """compute <f * g, dx>_q from <f, dx>_q and <g, dx>_q
@@ -322,15 +277,15 @@ def inv(F):
     """compute <1/f, dx>_q"""
     return
 
-def compose(G, F):
-    """compose two lsgduals as G(F)"""
-    assert islsgdual(F) and islsgdual(G)
-    assert F.shape == G.shape
 
+def compose(G, F):
+    assert G.shape == F.shape
+
+    """compose two gduals as G(F)"""
     q = len(F)
     H = lsgdual_cdx(0, q)
 
-    # cache first terms of G, F and then clear first terms of F, G
+    # cache first terms of G, F and then clear same
     G_0 = copy.deepcopy(G[0])
     F_0 = copy.deepcopy(F[0])
     G[0] = ls.real2ls(0)
@@ -338,19 +293,30 @@ def compose(G, F):
 
     H[0] = G[q - 1]
     for i in range(q - 2, -1, -1):
-        H = mul(H, F)
+        H = cygdual.mul(H, F)
         H[0] = ls.add(H[0], G[i])
 
-    # restore cached value for G as first value of H
-    H[0] = G_0
+    # restore cached values and copy G[0] to output
+    H[0] = copy.deepcopy(G_0)
     G[0] = G_0
     F[0] = F_0
 
     return H
 
+
 def compose_affine(G, F):
-    """comopse two lsgduals as G(F) where len(F) <= 2"""
-    return
+    """compose two gduals as G(F)"""
+    if F.shape[0] <= 1:
+        # composition with a constant F
+        return copy.deepcopy(G)
+
+    q = G.shape[0]
+
+    # no need for Horner's method, utp composition uses only the 2nd and higher
+    # coefficients, of which F has only 1 nonzero in this case
+    H = ls.mul(G, ls.pow(F[1], np.arange(0, q)))
+
+    return H
 
 #optional methods (in ngdual, don't know yet if we need/want them)
 #add_logscalar (add a scalar as log(C))
