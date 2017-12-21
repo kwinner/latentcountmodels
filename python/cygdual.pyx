@@ -66,7 +66,7 @@ def log(np.ndarray[ls, ndim=1, mode="c"] u not None):
 def inv(np.ndarray[ls, ndim=1, mode="c"] u not None):
     return unary_op(u, 'inv')
 
-def inv(np.ndarray[ls, ndim=1, mode="c"] u not None):
+def neg(np.ndarray[ls, ndim=1, mode="c"] u not None):
     return unary_op(u, 'neg')
 
 ctypedef void (*BINARY_OP)(ls*, ls*, ls*, size_t)

@@ -17,6 +17,7 @@ code/build/
 # Ignore all object and shared object files
 **.o
 **.so
+python/cygdual.c
 
 # Ignore this executable
 c/test_gdual
