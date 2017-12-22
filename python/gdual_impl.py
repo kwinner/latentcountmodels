@@ -102,7 +102,7 @@ def div(x, y):
 def deriv_safe(F, k):
     q = F.shape[0]
 
-    factln = util.fallingfactorialln(k, np.arange(q))
+    factln = util.logfallingfactorial(k, np.arange(q))
 
     # truncate both vectors
     factln = factln[k:]

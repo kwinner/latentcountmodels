@@ -2,12 +2,10 @@ import numpy as np
 import gdual as gd
 from scipy.special import gammaln
 
-def poisson_pgf(s, theta):
-    lmbda = theta[0]
+def poisson_pgf(s, lmbda):
     return gd.exp(lmbda * (s - 1))
 
-def bernoulli_pgf(s, theta):
-    p = theta[0]
+def bernoulli_pgf(s, p):
     return (1 - p) + (p * s)
 
 def binomial_pgf(s, theta):
@@ -56,28 +54,31 @@ def forward(y,
             alpha = GDual(1.0, q_k)
             return alpha
 
-        s_ds = GDual(s, q_k)
-
         # unroll to recurse to the next layer of lift_A
-        u_du = GDual(s_ds, q_k + y[k]) * (1 - theta_observ[k])
+        u_du = GDual( s * (1 - theta_observ[k]), q_k + y[k])
 
-        F = branch_pgf(u_du, theta_branch[k - 1, :])
+        F = branch_pgf(u_du, theta_branch[k - 1])
 
         s_prev = F.as_real()[0]
         
         # recurse
-        beta = lift_A(s_prev, k - 1, q_k + y[k])
+        beta = lift_A(s_prev,
+                      k - 1,
+                      q_k + y[k])
+        
         beta = beta.compose(F)
 
         # construct the arrival pgf, then mix with beta
-        beta *= arrival_pgf(u_du, theta_arrival[k,:])
+        beta *= arrival_pgf(u_du, theta_arrival[k])
+
+        s_ds = GDual(s, q_k)
 
         # observe
         alpha = beta.deriv(y[k])
-        alpha = alpha.compose_affine(s_ds * 1 - theta_observ[k])
+        alpha = alpha.compose_affine(s_ds * (1 - theta_observ[k]))
         
         # UTP for (s * rho)^{y_k} (the conditioning correction)
-        alpha *= (s_ds * theta_observ[k])**y[k]
+        alpha *= pow(s_ds * theta_observ[k], y[k])
 
         # divide by y[k]! (in log space)
         alpha /= GDual.const(gammaln(y[k] + 1), q_k, as_log=True)
@@ -92,10 +93,9 @@ def forward(y,
 if __name__ == "__main__":
 
     y     = np.array([2, 5, 3])
-    
-    lmbda = np.array([ 20. ,  0.  , 0.  ]).reshape(-1, 1)
-    delta = np.array([ 1.0 ,  1.0 , 1.0 ]).reshape(-1, 1)
-    rho   = np.array([ 0.25,  0.25, 0.25]).reshape(-1, 1)
+    lmbda = np.array([   10. ,  0.  , 0.  ])
+    delta = np.array([ 1.0 ,  1.0 , 1.0 ])
+    rho   = np.array([ 0.25,  0.25, 0.25])
     
     Alpha = forward(y,
                     poisson_pgf,
@@ -105,3 +105,9 @@ if __name__ == "__main__":
                     rho,
                     GDual=gd.LSGDual,
                     d = 1)
+
+    lik = Alpha[-1].as_real()[0]
+
+    print lik
+
+    
