@@ -1,3 +1,4 @@
+import scipy
 import numpy as np
 import gdual as gd
 from scipy.special import gammaln
@@ -31,6 +32,7 @@ def geometric2_pgf(s, theta):
     p = theta[0]
     return (p * s) / (1 - ((1 - p) * s))
 
+
 def forward(y,
             arrival_pgf,
             theta_arrival,
@@ -51,14 +53,14 @@ def forward(y,
 
         # base case, alpha = 1
         if k < 0:
-            alpha = GDual(1.0, q_k)
+            alpha = GDual.const(1.0, q_k)
             return alpha
 
         # unroll to recurse to the next layer of lift_A
         u_du = GDual( s * (1 - theta_observ[k]), q_k + y[k])
-
+        
         F = branch_pgf(u_du, theta_branch[k - 1])
-
+        
         s_prev = F.as_real()[0]
         
         # recurse
@@ -67,15 +69,16 @@ def forward(y,
                       q_k + y[k])
         
         beta = beta.compose(F)
-
+        
         # construct the arrival pgf, then mix with beta
         beta *= arrival_pgf(u_du, theta_arrival[k])
 
         s_ds = GDual(s, q_k)
+        u_ds = s_ds * (1 - theta_observ[k])
 
         # observe
         alpha = beta.deriv(y[k])
-        alpha = alpha.compose_affine(s_ds * (1 - theta_observ[k]))
+        alpha = alpha.compose_affine(u_ds)
         
         # UTP for (s * rho)^{y_k} (the conditioning correction)
         alpha *= pow(s_ds * theta_observ[k], y[k])
@@ -93,7 +96,7 @@ def forward(y,
 if __name__ == "__main__":
 
     y     = np.array([2, 5, 3])
-    lmbda = np.array([   10. ,  0.  , 0.  ])
+    lmbda = np.array([   20. ,  0.  , 0.  ])
     delta = np.array([ 1.0 ,  1.0 , 1.0 ])
     rho   = np.array([ 0.25,  0.25, 0.25])
     

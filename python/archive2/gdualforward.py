@@ -1,6 +1,6 @@
 import numpy as np
 from scipy.special import gammaln
-from scipy.misc import factorial
+from scipy.special import factorial
 
 import gdual_impl as gd
 from generatingfunctions import *
@@ -239,7 +239,7 @@ def gdualforward_unnormalized(y,
         u *= (1 - theta_observ[k])
 
         u_du = gd.new(u, q_k + y[k])
-
+        
         assert np.all(np.isfinite(u_du))
 
         F = branch_pgf_gdual(u_du, theta_branch[k - 1, :])
@@ -253,7 +253,7 @@ def gdualforward_unnormalized(y,
                                           k - 1,
                                           q_k + y[k]),
                                    F)
-
+        
         assert np.all(np.isfinite(beta))
 
         G = arrival_pgf_gdual(u_du, theta_arrival[k, :])
