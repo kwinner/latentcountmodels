@@ -112,9 +112,12 @@ class GDualBase:
 
     def set_truncation_order(self, q):
         self.set_coefs(self.coefs, q)
+
+    def order(self):
+        return len(self.coefs)
         
     @classmethod
-    def const(cls, c, q, as_log=False):
+    def const(cls, c, q=1, as_log=False):
         """construct a new gdual object for <c, dx>_q"""
         assert np.isreal(c) and (not hasattr(c, "__len__") or len(c) == 1)
         assert q > 0
@@ -288,6 +291,24 @@ class GDual(GDualBase):
     _compose_affine = staticmethod( gdual.compose_affine )
 
 
+def diff(f, x, k, GDualType=LSGDual):
+    """Compute kth derivative of f evaluated at x
+
+    f : function
+    x : input
+    k : number of times to differentiate
+    """
+    
+    if isinstance(x, (int, float)):
+        y = f( GDualType(x, k+1) )
+        z = y.deriv(k)
+        return z
+    
+    elif isinstance(x, GDualBase):
+        GDualType = x.__class__
+        q = x.order()
+        return f( GDualType(x, q + k)).deriv(k).compose(x)
+    
 if __name__ == "__main__":
 
 

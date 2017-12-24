@@ -18,9 +18,8 @@ def negbin_pgf(s, theta):
 
     return gd.pow(p / (1 - ((1 - p) * s)), r)
 
-def logarithmic_pgf(s, theta):
-    p = theta[0]
-    return gd.log(1 - (p * s)) / gd.log(1 - p)
+def logarithmic_pgf(s, p):
+    return gd.log(1 - (p * s)) / np.log(1 - p)
 
 # PGF for geometric with support 0, 1, 2, ...
 def geometric_pgf(s, theta):
@@ -32,6 +31,9 @@ def geometric2_pgf(s, theta):
     p = theta[0]
     return (p * s) / (1 - ((1 - p) * s))
 
+
+def diff(f, x, q):
+    return f(GDual(x, q)).compose(x)
 
 def forward(y,
             arrival_pgf,
@@ -96,7 +98,7 @@ def forward(y,
 if __name__ == "__main__":
 
     y     = np.array([2, 5, 3])
-    lmbda = np.array([   20. ,  0.  , 0.  ])
+    lmbda = np.array([  20 ,  0.  , 0.  ])
     delta = np.array([ 1.0 ,  1.0 , 1.0 ])
     rho   = np.array([ 0.25,  0.25, 0.25])
     
@@ -109,7 +111,7 @@ if __name__ == "__main__":
                     GDual=gd.LSGDual,
                     d = 1)
 
-    lik = Alpha[-1].as_real()[0]
+    lik = Alpha[-1].coefs[0]
 
     print lik
 
