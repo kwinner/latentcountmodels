@@ -1,7 +1,6 @@
 import cygdual as cygd
 import logsign as ls
 import lsgdual as lsgd
-import gdual as gd
 import numpy as np
 import copy
 import lsgeneratingfunctions as lsgf
@@ -138,10 +137,32 @@ if __name__ == "__main__":
     #
     # print(GF_gd)
 
-    lsgdualforward(np.array([1,2,3]),
+    y = [1,2,3]
+    theta_arrival = np.array([1,2,3]).reshape(-1,1)
+    theta_branch  = np.array([0.1,0.1,0.1]).reshape(-1,1)
+    theta_observ  = np.array([0.8,0.8,0.8])
+
+    Alpha = lsgdualforward(y,
                    lsgf.poisson,
-                   np.array([1,2,3]).reshape(-1,1),
+                   theta_arrival,
                    lsgf.bernoulli,
-                   np.array([0.1, 0.1, 0.1]).reshape(-1,1),
-                   np.array([0.8, 0.8, 0.8]),
+                   theta_branch,
+                   theta_observ,
                    d = 1)
+
+    # import gdualforward
+    # import generatingfunctions as gf
+    #
+    # Alpha2, logZ = gdualforward.gdualforward(y,
+    #                                    gf.poisson_gdual,
+    #                                    theta_arrival,
+    #                                    gf.bernoulli_gdual,
+    #                                    theta_branch,
+    #                                    theta_observ,
+    #                                    d = 1)
+    #
+    # for i in range(len(y)):
+    #     print('lsgd:')
+    #     print(lsgd.lsgd2gd(Alpha[i]))
+    #     print('gd:')
+    #     print(np.exp(logZ[i]) * Alpha2[i])
