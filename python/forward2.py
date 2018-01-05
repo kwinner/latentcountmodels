@@ -94,6 +94,4 @@ if __name__ == "__main__":
                                      GDualType=gd.LSGDual,
                                      d = 0)
     
-    
     print logZ
-    print marginals(50)

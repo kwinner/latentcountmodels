@@ -19,7 +19,7 @@ class GDualBase:
     """
     
     @classmethod
-    def zero_coefs(cls, q):
+    def zero_coefs(cls, k):
         raise NotImplementedError("Please Implement this method")
 
     @classmethod
@@ -103,31 +103,32 @@ class GDualBase:
 
     def set_coefs(self, coefs, q=None):
 
-        # If q is not provided, set equal to length of coefs
-        q = q or len(coefs)
+        # If q is not provided, set equal to order, which is
+        # one less than the number of coefficients
+        if q is None:
+            q = len(coefs)-1
 
         # Initialize to zeros, and then populate. This is a clean way to handle truncation
         # and it ensures the coefficients are copied and we are not retaining a view into
         # an existing array
-        self.coefs = self.zero_coefs(q)
-
-        p = min(q, len(coefs))
+        self.coefs = self.zero_coefs(q+1)
+        p = min(q+1, len(coefs))
         self.coefs[:p] = coefs[:p]
 
-    def set_truncation_order(self, q):
+    def set_order(self, q):
         self.set_coefs(self.coefs, q)
 
     def order(self):
-        return len(self.coefs)
+        return len(self.coefs) - 1
 
     def get(self, k, as_log=False):
         return self.unwrap_coefs(self.coefs, as_log)[k]
     
     @classmethod
-    def const(cls, c, q=1, as_log=False):
+    def const(cls, c, q=0, as_log=False):
         """construct a new gdual object for <c, dx>_q"""
         assert np.isreal(c) and (not hasattr(c, "__len__") or len(c) == 1)
-        assert q > 0
+        assert q >= 0
         return cls(q=q, coefs=cls.wrap_coefs([c], as_log=as_log))
 
     def __repr__(self):
@@ -144,18 +145,18 @@ class GDualBase:
         if isinstance(other, self.__class__): # same type
 
             # Extend to same truncation order if needed
-            p = len(self.coefs)
-            q = len(other.coefs)
+            p = self.order()
+            q = other.order()
             if p < q:
-                self.set_truncation_order(q)
+                self.set_order(q)
             elif q < p:
-                other.set_truncation_order(p)
+                other.set_order(p)
                 
         elif isinstance(other, (int, float)):
-            other = self.const(other, len(self.coefs))
+            other = self.const(other, self.order())
 
         elif isinstance(other, np.ndarray) and other.size == 1:
-            other = self.const(np.asscalar(other), len(self.coefs))
+            other = self.const(np.asscalar(other), self.order())
         else:
             raise('Incompatible other type')
         
@@ -236,8 +237,8 @@ class GDualBase:
 class LSGDual(GDualBase):
 
     @classmethod
-    def zero_coefs(cls, q):
-        return ls.zeros(q)
+    def zero_coefs(cls, k):
+        return ls.zeros(k)
 
     @classmethod
     def wrap_coefs(cls, coefs, as_log=False):
@@ -278,8 +279,8 @@ class GDual(GDualBase):
     DTYPE=np.double
     
     @classmethod
-    def zero_coefs(cls, q):
-        return np.zeros(q, dtype=cls.DTYPE)
+    def zero_coefs(cls, k):
+        return np.zeros(k, dtype=cls.DTYPE)
 
     @classmethod
     def wrap_coefs(cls, coefs, as_log=False):
@@ -320,7 +321,7 @@ def old_diff(f, x, k, GDualType=LSGDual):
     k : number of times to differentiate
     """
     if isinstance(x, (int, float)):
-        y = f( GDualType(x, k+1) )
+        y = f( GDualType(x, k) )
         z = y.deriv(k)
         return z
     
@@ -337,7 +338,7 @@ def diff(f, x, k, GDualType=LSGDual):
     k : number of times to differentiate
     """
     if isinstance(x, (int, float)):
-        y = f( GDualType(x, k+1) )
+        y = f( GDualType(x, k) )
         if isinstance(y, (tuple)):
             return tuple(yi.deriv(k) for yi in y)
         else:
