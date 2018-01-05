@@ -59,7 +59,7 @@ def forward_grad(y,
         dc = df * b
         db = df * c
         da = db * db_da
-        ds = da*(1-rho[k]) + const * y[k] * (s_to_y / s)
+        ds = da*(1-rho[k]) + dc * const * y[k] * (s_to_y / s)
         
         return f, ds
     
@@ -100,7 +100,7 @@ def forward_grad(y,
     dlogZ_dalpha = 1/alpha
     dlogZ_ds = dlogZ_dalpha * dalpha_ds
     
-    return logZ, dlogZ_ds
+    return alpha, logZ, dlogZ_ds
 
 if __name__ == "__main__":
 
@@ -109,14 +109,14 @@ if __name__ == "__main__":
     delta = np.array([ 1.0 ,  1.0 , 1.0 ])
     rho   = np.array([ 0.25,  0.25, 0.25])
     
-    logZ, dlogZ_ds = forward_grad(y,
-                                  poisson_pgf_grad,
-                                  lmbda,
-                                  bernoulli_pgf_grad,
-                                  delta,
-                                  rho,
-                                  GDualType=gd.LSGDual,
-                                  d = 0)
+    alpha, logZ, dlogZ_ds = forward_grad(y,
+                                         poisson_pgf_grad,
+                                         lmbda,
+                                         bernoulli_pgf_grad,
+                                         delta,
+                                         rho,
+                                         GDualType=gd.LSGDual,
+                                         d = 2)
     
     
     print logZ, dlogZ_ds
