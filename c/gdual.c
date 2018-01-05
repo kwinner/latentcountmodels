@@ -4,6 +4,9 @@
 #include "gdual.h"
 #include <strings.h>
 
+#define ERR(s) { fprintf(stderr, "%s\n", s); return; }
+//#define ERR(s) { PyErr_SetString(PyExc_RuntimeError, s); return; }
+
 /*****************************************/
 /* Log-sign number system                */
 /*****************************************/
@@ -256,10 +259,87 @@ void gdual_log( ls* v,      /* The result */
     }
 }
 
+int is_int(double z) {
+    return (fabs(round(z) - z) <= 1e-8);
+}
+
 // Compute v = u^r
 void gdual_pow( ls* v, ls* u, double r, size_t n )
 {
-//    printf("n = %d\n", (int) n);
+
+    // Special case for r = 0
+    if (r == 0.0) {
+        ls ZERO = ls_zero();
+        for (int i = 0; i < n; i++) {
+            v[i] = ZERO;
+        }
+        v[0] = double_to_ls(1.0);
+        return;
+    }
+
+    // Special case for r = 1
+    if (r == 1.0) {
+        for (int i = 0; i < n; i++) {
+            v[i] = u[i];
+        }
+        return;
+    }
+
+    if (is_int(r)) {
+        gdual_pow_int( v, u, (int) round(r), n );
+    }
+    else
+    {
+        gdual_pow_fractional(v, u, r, n);
+    }
+}
+
+void gdual_pow_int( ls* v, ls* u, int r, size_t n ) {
+
+    // This method first normalizes the gdual to have a positive leading coefficient
+    // then calls the fractional version
+
+    // Find index k of first nonzero coefficient
+    int k = 0;
+    while (ls_is_zero(u[k]) && k < n) {
+        k++;
+    }
+
+    // Truncate to trailing n-k coefficients and multiply by sign
+    // so the leading coefficient is positive. This effectively divides by (sign * x^k)
+    ls u_norm[n-k];
+    int sign = u[k].sign;
+    gdual_scalar_mul( u_norm, u+k, sign, n-k);
+    
+    // Now raise u_norm to the rth power
+    ls v_norm[n-k];
+    gdual_pow_fractional(v_norm, u_norm, (double) r, n-k);
+
+    // Multiply by sign^r, which is equal to sign if r is odd and 1 if r is even
+    sign = r % 2 == 0 ? 1 : sign;
+    gdual_scalar_mul(v_norm, v_norm, sign, n-k);
+    
+    // Now multiply by x^kr by first placing k*r leading zeros, and then placing
+    // the coefficients of v_norm
+    ls ZERO = ls_zero();
+    for (int i = 0; i < k*r; i++) {
+        v[i] = ZERO;
+    }
+    for (int i = k*r; i < n; i++) {
+        v[i] = v_norm[i-k*r];
+    }
+    
+    return;
+}
+
+void gdual_pow_fractional( ls* v, ls* u, double r, size_t n ) {
+
+    if ( ls_is_zero(u[0]) ) {
+        ERR("Leading coefficient is zero. Cannot raise to a fractional power using this method");
+    }
+    if ( u[0].sign < 0 ) {
+        ERR("Cannot raise negative number to fractional power");
+    }
     
     /* Reference: Chapter 13 p. 305 from 
        Griewank, A. and Walther, A. Evaluating derivatives: principles and 

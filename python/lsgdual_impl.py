@@ -214,6 +214,12 @@ def deriv(F, k):
 
     return H
 
+def get_derivatives(F):
+    q = len(F)
+    H = copy.deepcopy(F)
+    log_factorial = gammaln(1 + np.arange(q))
+    H['mag'] += log_factorial
+    return H
 
 def exp(F):
     """compute <exp(f), dx>_q"""
@@ -269,9 +275,25 @@ def log(F):
 
     return H
 
-def pow(F, k):
-    """compute <f^k, dx>_q"""
-    return
+def pow(F, y):
+    """Compute F^y"""
+
+    q = len(F)
+    
+    # Determine index k of first nonzero
+    zero = (F['mag'] == -np.inf) | (F['sgn'] == 0)
+    k = np.flatnonzero( ~zero )[0]
+    
+    # Compute (F/x^k)^y
+    out = cygdual.pow( F[k:], y )
+
+    # Multiply by x^{k*y}
+    out = np.append(ls.zeros(k*y), out)
+
+    # Truncate
+    out = out[:q]
+    
+    return out
 
 def inv(F):
     """compute <1/f, dx>_q"""

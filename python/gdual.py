@@ -41,6 +41,10 @@ class GDualBase:
     _exp  = None
     _log  = None
     _inv  = None
+    _deriv = None
+    _get_derivatives = None
+    _compose = None
+    _compose_affine = None
 
     
     def __init__(self, val=None, q=None, as_log=False, coefs=None, wrap=False):
@@ -115,7 +119,10 @@ class GDualBase:
 
     def order(self):
         return len(self.coefs)
-        
+
+    def get(self, k, as_log=False):
+        return self.unwrap_coefs(self.coefs, as_log)[k]
+    
     @classmethod
     def const(cls, c, q=1, as_log=False):
         """construct a new gdual object for <c, dx>_q"""
@@ -220,7 +227,12 @@ class GDualBase:
         return self.__class__(
             coefs = self._deriv(self.coefs, k)
         )
-    
+
+    def get_derivatives(self):
+        return self.__class__(
+            coefs = self._get_derivatives(self.coefs)
+        )
+
 class LSGDual(GDualBase):
 
     @classmethod
@@ -238,8 +250,12 @@ class LSGDual(GDualBase):
             return out            
 
     @classmethod
-    def unwrap_coefs(cls, coefs):
-        return ls.ls2real(coefs)
+    def unwrap_coefs(cls, coefs, as_log=False):
+        if as_log:
+            assert(all(coefs['sgn'] > 0))
+            return coefs['mag']
+        else:
+            return ls.ls2real(coefs)
 
     _div  = staticmethod( cygdual.div )
     _rdiv = staticmethod( cygdual.rdiv )
@@ -253,6 +269,7 @@ class LSGDual(GDualBase):
     _log  = staticmethod( cygdual.log )
     _inv  = staticmethod( cygdual.inv )
     _deriv = staticmethod( lsgdual.deriv )
+    _get_derivatives = staticmethod( lsgdual.get_derivatives )
     _compose = staticmethod( lsgdual.compose )
     _compose_affine = staticmethod( lsgdual.compose_affine )
     
@@ -272,8 +289,11 @@ class GDual(GDualBase):
             return np.array(np.exp(coefs), dtype=cls.DTYPE)
 
     @classmethod
-    def unwrap_coefs(cls, coefs):
-        return coefs
+    def unwrap_coefs(cls, coefs, as_log=False):
+        if as_log:
+            return np.log(coefs)
+        else:
+            return coefs
 
     _div  = staticmethod( gdual.div )
     _rdiv = staticmethod( lambda x,y: gdual.div(y, x) )
@@ -287,18 +307,18 @@ class GDual(GDualBase):
     _log  = staticmethod( gdual.log )
     _inv  = staticmethod( gdual.inv )
     _deriv = staticmethod( gdual.deriv )
+    _get_derivatives = None  # TODO
     _compose = staticmethod( gdual.compose )
     _compose_affine = staticmethod( gdual.compose_affine )
 
 
-def diff(f, x, k, GDualType=LSGDual):
+def old_diff(f, x, k, GDualType=LSGDual):
     """Compute kth derivative of f evaluated at x
 
     f : function
     x : input
     k : number of times to differentiate
     """
-    
     if isinstance(x, (int, float)):
         y = f( GDualType(x, k+1) )
         z = y.deriv(k)
@@ -308,7 +328,30 @@ def diff(f, x, k, GDualType=LSGDual):
         GDualType = x.__class__
         q = x.order()
         return f( GDualType(x, q + k)).deriv(k).compose(x)
+
+def diff(f, x, k, GDualType=LSGDual):
+    """Compute kth derivative of f evaluated at x
+
+    f : function
+    x : input
+    k : number of times to differentiate
+    """
+    if isinstance(x, (int, float)):
+        y = f( GDualType(x, k+1) )
+        if isinstance(y, (tuple)):
+            return tuple(yi.deriv(k) for yi in y)
+        else:
+            return y.deriv(k)
     
+    elif isinstance(x, GDualBase):
+        GDualType = x.__class__
+        q = x.order()
+        y = f( GDualType(x, q + k))
+        if isinstance(y, (tuple)):
+            return tuple(yi.deriv(k).compose(x) for yi in y)
+        else:
+            return y.deriv(k).compose(x)
+
 if __name__ == "__main__":
 
 

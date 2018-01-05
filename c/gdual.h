@@ -38,6 +38,10 @@ void     gdual_scalar_mul( ls* res, ls* u, double c, size_t n);
 void            gdual_pow( ls* res, ls* u, double r, size_t n);
 void      gdual_u_plus_cw( ls* res, ls* u, ls* w, double c, size_t n);
 
+void gdual_pow_int( ls* v, ls* u, int r, size_t n );
+void gdual_pow_fractional( ls* v, ls* u, double r, size_t n );
+
+
 // Binary operations
 void            gdual_mul( ls* res, ls* u, ls* w, size_t n);
 void            gdual_add( ls* res, ls* u, ls* w, size_t n);

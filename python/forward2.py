@@ -31,6 +31,14 @@ def geometric_pgf(s, theta):
 def geometric2_pgf(s, theta):
     p = theta[0]
     return (p * s) / (1 - ((1 - p) * s))
+
+def _pow(s, y):
+    const = 1.0
+    for i in np.arange(y):
+        const *= s
+    return const
+
+import cygdual as cygd
     
 def forward(y,
             immigration_pgf,
@@ -46,47 +54,55 @@ def forward(y,
     Alpha = [None] * K # Alpha = list of gdual objects for each alpha message
     
     def A(s, k):
-        print "A: ", s, k
-
         if k < 0:
             return 1.0
-        
-        Gamma_k = lambda u_k: Gamma( u_k, k )        
-        const = (s * rho[k])**y[k] / GDualType.const(gammaln(y[k] + 1), as_log=True)
-        alpha = const * diff(Gamma_k, s*(1 - rho[k]), y[k] )
+
+        Gamma_k = lambda u_k: Gamma( u_k, k )
+
+        const = s**y[k]
+        const *= GDualType.const(y[k]*np.log(rho[k]) - gammaln(y[k] + 1), as_log=True)
+        alpha = const * diff(Gamma_k, s*(1 - rho[k]), y[k], GDualType=GDualType )
         Alpha[k] = alpha        
         return alpha
         
     def Gamma(u, k):
-        print "Gamma: ", u, k
         F = lambda u:   offspring_pgf(u, theta_offspring[k])
         G = lambda u: immigration_pgf(u, theta_immigration[k])
         return A(F(u), k-1) * G(u)
 
     A_final = lambda s: A(s, K-1)
     
-    diff(A_final, 0.0, d)
+    if d == 0:
+        alpha = A_final( 1.0 )
+    else:
+        alpha = A_final( GDualType(1.0, d) )
+    
+    logZ = alpha.get(0, as_log=True)
 
-    return Alpha
+    def marginals(k):
+        a  = A_final( GDualType(0.0, k) )
+        a /= GDualType.const(logZ, as_log=True)
+        return a
+        
+    return logZ, alpha, marginals
 
 if __name__ == "__main__":
 
     y     = np.array([2, 5, 3])
-    lmbda = np.array([ 10 ,  10.  , 10.  ])
+    lmbda = np.array([ 10 ,  0.  , 0.  ])
     delta = np.array([ 1.0 ,  1.0 , 1.0 ])
     rho   = np.array([ 0.25,  0.25, 0.25])
     
-    Alpha = forward(y,
-                    poisson_pgf,
-                    lmbda,
-                    bernoulli_pgf,
-                    delta,
-                    rho,
-                    GDualType=gd.LSGDual,
-                    d = 20)
-
-    lik = Alpha[-1].as_real()[0]
-
-    print lik
+    logZ, alpha, marginals = forward(y,
+                                     poisson_pgf,
+                                     lmbda,
+                                     bernoulli_pgf,
+                                     delta,
+                                     rho,
+                                     GDualType=gd.LSGDual,
+                                     d = 0)
+    
+    
+    print logZ
 
     
