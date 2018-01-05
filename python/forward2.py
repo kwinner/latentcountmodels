@@ -31,14 +31,6 @@ def geometric_pgf(s, theta):
 def geometric2_pgf(s, theta):
     p = theta[0]
     return (p * s) / (1 - ((1 - p) * s))
-
-def _pow(s, y):
-    const = 1.0
-    for i in np.arange(y):
-        const *= s
-    return const
-
-import cygdual as cygd
     
 def forward(y,
             immigration_pgf,
@@ -104,5 +96,4 @@ if __name__ == "__main__":
     
     
     print logZ
-
-    
+    print marginals(50)
