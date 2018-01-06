@@ -60,7 +60,7 @@ def forward_grad(y,
         db = df * c
         da = db * db_da
         ds = da*(1-rho[k]) + dc * const * y[k] * (s_to_y / s)
-        
+
         return f, ds
     
     def Gamma_grad(u, k):
@@ -119,4 +119,4 @@ if __name__ == "__main__":
                                          d = 2)
     
     
-    print logZ, dlogZ_ds
+    print(logZ, dlogZ_ds)

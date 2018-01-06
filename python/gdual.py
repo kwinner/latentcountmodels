@@ -74,7 +74,7 @@ class GDualBase:
             # If coefs are provided, advance to end
             pass
         
-        elif isinstance(val, (int, float)):
+        elif np.isscalar(val):
             # If scalar is provided, set to val + 1*eps, and ensure wrapping into
             # native data type
             if as_log:
@@ -93,7 +93,7 @@ class GDualBase:
             wrap = False
             
         else:
-            raise('Must supply either coefficients or value of compatible type')
+            raise ValueError('Must supply either coefficients or value of compatible type')
 
         if wrap:
             coefs = self.wrap_coefs(coefs, as_log)
@@ -152,13 +152,13 @@ class GDualBase:
             elif q < p:
                 other.set_order(p)
                 
-        elif isinstance(other, (int, float)):
+        elif np.isscalar(other):
             other = self.const(other, self.order())
 
         elif isinstance(other, np.ndarray) and other.size == 1:
             other = self.const(np.asscalar(other), self.order())
         else:
-            raise('Incompatible other type')
+            raise ValueError('Incompatible other type')
         
         return self.__class__(
             coefs=f(self.coefs, other.coefs)
@@ -320,7 +320,7 @@ def old_diff(f, x, k, GDualType=LSGDual):
     x : input
     k : number of times to differentiate
     """
-    if isinstance(x, (int, float)):
+    if np.isscalar(x):   
         y = f( GDualType(x, k) )
         z = y.deriv(k)
         return z
@@ -337,7 +337,7 @@ def diff(f, x, k, GDualType=LSGDual):
     x : input
     k : number of times to differentiate
     """
-    if isinstance(x, (int, float)):
+    if np.isscalar(x):
         y = f( GDualType(x, k) )
         if isinstance(y, (tuple)):
             return tuple(yi.deriv(k) for yi in y)
@@ -361,35 +361,35 @@ if __name__ == "__main__":
         coefs = np.array([0.5, -1, 100, 0.8])
         x = C(q=30, coefs=coefs, wrap=True)
         
-        print x
-        print exp(x)
+        print(x)
+        print(exp(x))
         
-        print (x*2)
-        print (2*x)
+        print(x*2)
+        print(2*x)
         
-        print ((x/2.0)*2.0)
-        print (0.5*x)
+        print((x/2.0)*2.0)
+        print(0.5*x)
         
-        print exp(log(x))
-        print log(exp(x))
+        print(exp(log(x)))
+        print(log(exp(x)))
         
         y = C.const(10, 100)
-        print "y: ", y
+        print("y: ", y)
         
         z = C.const(1.0, 10)
-        print "z: ",  z
+        print("z: ",  z)
         
         w = C(2.4, 5)
-        print "w: ",  w
+        print("w: ",  w)
         
         u = x + y
-        print "u: ", u
+        print("u: ", u)
         
         v = x * y
-        print "v: ", v
+        print("v: ", v)
         
         a = C.exp(v)
-        print "a: ", a
+        print("a: ", a)
         
         b = C.log(a)
-        print "b: ", b
+        print("b: ", b)
