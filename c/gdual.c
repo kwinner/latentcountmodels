@@ -3,6 +3,7 @@
 #include <assert.h>
 #include "gdual.h"
 #include <strings.h>
+#include <fftw3.h>
 
 #define ERR(s) { fprintf(stderr, "%s\n", s); return; }
 //#define ERR(s) { PyErr_SetString(PyExc_RuntimeError, s); return; }
@@ -26,6 +27,13 @@ long double ls_to_long_double(ls x) {
 ls double_to_ls(double x) {
     ls result;
     result.mag = log(fabs(x));
+    result.sign = SIGN(x);
+    return result;
+}
+
+ls long_double_to_ls(long double x) {
+    ls result;
+    result.mag = (double) logl(fabsl(x));
     result.sign = SIGN(x);
     return result;
 }
@@ -81,22 +89,20 @@ ls ls_add( ls x, ls y ) {
 
     if ( ls_is_zero(y) )
         return x;
-    
-    ls result;
+
     sign_t sign = (x.sign == y.sign) ? 1 : -1;
     if ( x.mag > y.mag ) {
-        result.sign = x.sign;
-        long double arg = sign * expl(y.mag - x.mag);
-        assert(arg >= -1.0);
-        result.mag = (double) (x.mag + log1pl( arg ));
+        return (struct ls) {
+            (double) (x.mag + log1pl( sign * expl(y.mag - x.mag))),
+                x.sign
+                };
     }
     else {
-        result.sign = y.sign;
-        long double arg = sign * expl(x.mag - y.mag);
-        assert(arg >= -1.0);
-        result.mag = (double) (y.mag + log1p( arg ));
+        return (struct ls) {
+            (double) (y.mag + log1pl( sign * expl(x.mag - y.mag))),
+                y.sign
+                };
     }
-    return result;
 }
 
 ls ls_mult( ls x, ls y ) {
@@ -148,7 +154,7 @@ ls ls_pow( ls x, double r ) {
 
 void gdual_print( ls* a, size_t n ) {
     printf("%s", "[");
-    for (int i = 0; i < n; i++ ) {
+    for (size_t i = 0; i < n; i++ ) {
         printf("%d * exp(%.8e)", a[i].sign, (double) a[i].mag);
         if (i < n-1) {
             printf("%s", ", ");
@@ -159,7 +165,7 @@ void gdual_print( ls* a, size_t n ) {
 
 void gdual_print_as_double( ls* a, size_t n ) {
     printf("%s", "[");
-    for (int i = 0; i < n; i++ ) {
+    for (size_t i = 0; i < n; i++ ) {
         printf("%.8e", ls_to_double(a[i]));
         if (i < n-1) {
             printf("%s", ", ");
@@ -174,7 +180,7 @@ void gdual_u_plus_cw( ls* v, ls* u, ls* w, double c, size_t n) {
 
     ls c_ls = double_to_ls(c);
     
-    for (int k = 0; k < n; k++) {
+    for (size_t k = 0; k < n; k++) {
         v[k] = ls_add(u[k], ls_mult(c_ls, w[k]));
     }
     
@@ -182,7 +188,7 @@ void gdual_u_plus_cw( ls* v, ls* u, ls* w, double c, size_t n) {
 
 // Compute v = u + w
 void gdual_add( ls* v, ls* u, ls* w, size_t n) {
-    for (int k = 0; k < n; k++) {
+    for (size_t k = 0; k < n; k++) {
         v[k] = ls_add(u[k], w[k]);
     }
 }
@@ -190,7 +196,7 @@ void gdual_add( ls* v, ls* u, ls* w, size_t n) {
 // Compute v = u * c
 void gdual_scalar_mul( ls* v, ls* u, double c, size_t n) {
     ls c_ls = double_to_ls(c);
-    for (int k = 0; k < n; k++) {
+    for (size_t k = 0; k < n; k++) {
         v[k] = ls_mult(c_ls, u[k]);
     }
 }
@@ -211,15 +217,15 @@ void gdual_exp( ls* v,      /* The result */
     
     ls u_tilde[n];
     
-    for (int i = 0; i < n; i++) {
+    for (size_t i = 0; i < n; i++) {
         u_tilde[i] = ls_mult( u[i], double_to_ls(i) );
     }
 
     v[0] = ls_exp(u[0]);
     
-    for (int k = 1; k < n; k++) { 
+    for (size_t k = 1; k < n; k++) { 
         v[k] = ls_zero();
-        for (int j = 1; j <= k; j++) {
+        for (size_t j = 1; j <= k; j++) {
             v[k] = ls_add( v[k], ls_mult( v[k-j], u_tilde[j] ) );
         }
         v[k] = ls_mult( v[k], double_to_ls(1.0 / k) );
@@ -239,22 +245,22 @@ void gdual_log( ls* v,      /* The result */
     ls u_tilde[n];
     ls v_tilde[n];
 
-    for (int i = 0; i < n; i++) {
+    for (size_t i = 0; i < n; i++) {
         u_tilde[i] = ls_mult( u[i], double_to_ls(i) );
     }
 
     v[0] = ls_log(u[0]);
     
-    for (int k = 1; k < n; k++)
+    for (size_t k = 1; k < n; k++)
     {
         v_tilde[k] = u_tilde[k];
-        for (int j = 1; j < k; j++) {
+        for (size_t j = 1; j < k; j++) {
             v_tilde[k] = ls_subtract( v_tilde[k], ls_mult(u[k-j], v_tilde[j]) );
         }
         v_tilde[k] = ls_div( v_tilde[k], u[0] );
     }
 
-    for (int i = 1; i < n; i++) {
+    for (size_t i = 1; i < n; i++) {
         v[i] = ls_mult( v_tilde[i], double_to_ls(1.0/i) );
     }
 }
@@ -270,7 +276,7 @@ void gdual_pow( ls* v, ls* u, double r, size_t n )
     // Special case for r = 0
     if (r == 0.0) {
         ls ZERO = ls_zero();
-        for (int i = 0; i < n; i++) {
+        for (size_t i = 0; i < n; i++) {
             v[i] = ZERO;
         }
         v[0] = double_to_ls(1.0);
@@ -279,7 +285,7 @@ void gdual_pow( ls* v, ls* u, double r, size_t n )
 
     // Special case for r = 1
     if (r == 1.0) {
-        for (int i = 0; i < n; i++) {
+        for (size_t i = 0; i < n; i++) {
             v[i] = u[i];
         }
         return;
@@ -300,7 +306,7 @@ void gdual_pow_int( ls* v, ls* u, int r, size_t n ) {
     // then calls the fractional version
 
     // Find index k of first nonzero coefficient
-    int k = 0;
+    size_t k = 0;
     while (ls_is_zero(u[k]) && k < n) {
         k++;
     }
@@ -322,10 +328,10 @@ void gdual_pow_int( ls* v, ls* u, int r, size_t n ) {
     // Now multiply by x^kr by first placing k*r leading zeros, and then placing
     // the coefficients of v_norm
     ls ZERO = ls_zero();
-    for (int i = 0; i < k*r; i++) {
+    for (size_t i = 0; i < (size_t) k*r; i++) {
         v[i] = ZERO;
     }
-    for (int i = k*r; i < n; i++) {
+    for (size_t i = (size_t) k*r; i < n; i++) {
         v[i] = v_norm[i-k*r];
     }
     
@@ -348,7 +354,7 @@ void gdual_pow_fractional( ls* v, ls* u, double r, size_t n ) {
     ls u_tilde[n];
     ls v_tilde[n];
 
-    for (int i = 1; i < n; i++) {
+    for (size_t i = 1; i < n; i++) {
         u_tilde[i] = ls_mult( u[i], double_to_ls((double) i) );
     }
 
@@ -356,18 +362,18 @@ void gdual_pow_fractional( ls* v, ls* u, double r, size_t n ) {
     v[0] = ls_pow(u[0], r);
 
     // The recurrence
-    for (int k = 1; k < n; k++) {
+    for (size_t k = 1; k < n; k++) {
 
         v_tilde[k] = ls_zero();
 
-        for (int j = 1; j <=k; j++) { // Upper bound <= k
+        for (size_t j = 1; j <=k; j++) { // Upper bound <= k
             v_tilde[k] = ls_add( v_tilde[k],
                                  ls_mult(v[k-j], u_tilde[j]) );
         }
 
         v_tilde[k] = ls_mult( v_tilde[k], double_to_ls(r) );
 
-        for (int j = 1; j < k; j++) { // Upper bound < k
+        for (size_t j = 1; j < k; j++) { // Upper bound < k
             v_tilde[k] = ls_subtract( v_tilde[k],
                                       ls_mult( u[k-j], v_tilde[j]) );
         }
@@ -394,17 +400,152 @@ void gdual_mul ( ls* v,
        Griewank, A. and Walther, A. Evaluating derivatives: principles and 
        techniques of algorithmic differentiation. SIAM, 2008. */
 
-    for (int k = 0; k < n; k++) {
+    for (size_t k = 0; k < n; k++) {
 
         v[k] = ls_zero();
 
         // Note that j <= k is the correct termination condition, and is
         // different from gdual_div below
-        for (int j = 0; j <= k; j++) { 
+        for (size_t j = 0; j <= k; j++) { 
             v[k] = ls_add( v[k], ls_mult(u[j], w[k-j]) );
         }
     }
 }
+
+#if 0
+typedef double FFTW_REAL;
+typedef fftw_complex FFTW_COMPLEX;
+typedef fftw_plan FFTW_PLAN;
+#define LS2REAL ls_to_double
+#define REAL2LS double_to_ls
+#define FFTW_MALLOC fftw_malloc
+#define FFTW_FREE fftw_free
+#define FFTW_DESTROY_PLAN fftw_destroy_plan
+#define FFTW_PLAN_DFT_R2C_1D fftw_plan_dft_r2c_1d
+#define FFTW_PLAN_DFT_C2R_1D fftw_plan_dft_c2r_1d
+#define FFTW_EXECUTE fftw_execute
+#define LOG_MAXVAL 709.78271289338397
+#else
+typedef long double FFTW_REAL;
+typedef fftwl_complex FFTW_COMPLEX;
+typedef fftwl_plan FFTW_PLAN;
+#define LS2REAL ls_to_long_double
+#define REAL2LS long_double_to_ls
+#define FFTW_MALLOC fftwl_malloc
+#define FFTW_FREE fftwl_free
+#define FFTW_DESTROY_PLAN fftwl_destroy_plan
+#define FFTW_PLAN_DFT_R2C_1D fftwl_plan_dft_r2c_1d
+#define FFTW_PLAN_DFT_C2R_1D fftwl_plan_dft_c2r_1d
+#define FFTW_EXECUTE fftwl_execute
+#define LOG_MAXVAL 11356.52340629414395
+#endif
+
+// compute v = u * w
+void gdual_mul_fft ( ls* v,
+                     ls* u,
+                     ls* w,
+                     size_t n)
+{
+    size_t N = 2*n - 1; // padded size (size of non-truncated convolution)
+    size_t i;
+
+    FFTW_REAL
+        *u_real,   // u coefs as real numbers
+        *w_real,   // w coefs as real numbers
+        *u_conv_w; // inverse FFT of U*W
+    
+    FFTW_COMPLEX
+        *U,        // FFT of u
+        *W,        // FFT of W
+        *UW;       // U*W
+
+    FFTW_PLAN
+        plan_fwd_u,
+        plan_fwd_w,
+        plan_rev_UW;
+
+    // Allocate arrays
+    u_real   = (FFTW_REAL*) FFTW_MALLOC(N * sizeof(FFTW_REAL));
+    w_real   = (FFTW_REAL*) FFTW_MALLOC(N * sizeof(FFTW_REAL));
+    u_conv_w = (FFTW_REAL*) FFTW_MALLOC(N * sizeof(FFTW_REAL));
+    
+    U  = (FFTW_COMPLEX*) FFTW_MALLOC(n * sizeof(FFTW_COMPLEX));
+    W  = (FFTW_COMPLEX*) FFTW_MALLOC(n * sizeof(FFTW_COMPLEX));
+    UW = (FFTW_COMPLEX*) FFTW_MALLOC(n * sizeof(FFTW_COMPLEX));
+
+    // Get maximum of u, w
+    double u_mag_min = POS_INF;
+    double u_mag_max = NEG_INF;
+    double w_mag_min = POS_INF;
+    double w_mag_max = NEG_INF;
+    for(i = 0; i < n; i++) {
+        u_mag_min = u[i].mag < u_mag_min ? u[i].mag : u_mag_min;
+        u_mag_max = u[i].mag > u_mag_max ? u[i].mag : u_mag_max;
+        w_mag_min = w[i].mag < w_mag_min ? w[i].mag : w_mag_min;
+        w_mag_max = w[i].mag > w_mag_max ? w[i].mag : w_mag_max;
+    }
+    if (u_mag_max == NEG_INF) u_mag_max = 0;
+    if (w_mag_max == NEG_INF) w_mag_max = 0;
+
+    printf("u min/max=%.4f/%.4f, w min/max=%.4f/%.4f\n", u_mag_min, u_mag_max, w_mag_min, w_mag_max);
+
+    // Set shift amounts to avoid overflow, but retain as
+    // much precision as possible and minimize overflow given
+    // that we won't overflow
+    double u_shift = (-u_mag_max); // + 0.25*LOG_MAXVAL;
+    double w_shift = (-w_mag_max); // + 0.25*LOG_MAXVAL;
+    // printf("u_shift=%.5f, w_shift=%.4f\n", u_shift, w_shift);
+
+    // Populate first n entries of u_real, w_real with input data,
+    // but scale magnitude of each array by its maximum
+    for (i = 0; i < n; i++) {
+        u_real[i] = LS2REAL( (struct ls) {u[i].mag + u_shift, u[i].sign} );
+        w_real[i] = LS2REAL( (struct ls) {w[i].mag + w_shift, w[i].sign} );
+    }
+    // Zero-pad: append N-n zeros to u_real, w_real
+    bzero(u_real + n, (N-n)*sizeof(FFTW_REAL));
+    bzero(w_real + n, (N-n)*sizeof(FFTW_REAL));
+
+    // Plan FFT 
+    plan_fwd_u = FFTW_PLAN_DFT_R2C_1D(N, u_real, U, FFTW_ESTIMATE);
+    plan_fwd_w = FFTW_PLAN_DFT_R2C_1D(N, w_real, W, FFTW_ESTIMATE);
+
+    // Execute FFT
+    FFTW_EXECUTE(plan_fwd_u);
+    FFTW_EXECUTE(plan_fwd_w);
+
+    // Multiply in frequency domain (complex numbers)
+    for(i = 0; i < n; i++) {
+        UW[i][0] = U[i][0] * W[i][0] - U[i][1] * W[i][1]; // real part
+        UW[i][1] = U[i][0] * W[i][1] + U[i][1] * W[i][0]; // imaginary part
+    }
+
+    // Plan inverse FFT
+    plan_rev_UW = FFTW_PLAN_DFT_C2R_1D(N, UW, u_conv_w, FFTW_ESTIMATE);
+
+    // Execute inverse FFT
+    FFTW_EXECUTE(plan_rev_UW);
+
+    // Extract first n coefficients of u_conv_w,
+    // convert to logsign, and store in v. Also
+    // restore original scaling once back in log-space
+    for(i = 0; i < n; i++) {
+        v[i] = REAL2LS( u_conv_w[i] / N );
+        v[i].mag -= (u_shift + w_shift); // Restore original scaling
+    }
+
+    FFTW_DESTROY_PLAN(plan_fwd_u);
+    FFTW_DESTROY_PLAN(plan_fwd_w);
+    FFTW_DESTROY_PLAN(plan_rev_UW);
+
+    FFTW_FREE(u_real);
+    FFTW_FREE(w_real);
+    FFTW_FREE(u_conv_w);
+    FFTW_FREE(U);
+    FFTW_FREE(W);
+    FFTW_FREE(UW);
+}
+
 
 // compute v = u / w
 void gdual_div ( ls* v,
@@ -416,13 +557,13 @@ void gdual_div ( ls* v,
        Griewank, A. and Walther, A. Evaluating derivatives: principles and 
        techniques of algorithmic differentiation. SIAM, 2008. */
 
-    for (int k = 0; k < n; k++) {
+    for (size_t k = 0; k < n; k++) {
 
         v[k] = u[k];
 
         // Note that j < k is the correct termination condition, and is
         // different from gdual_mul below
-        for (int j = 0; j < k; j++) {
+        for (size_t j = 0; j < k; j++) {
             v[k] = ls_subtract( v[k], ls_mult(v[j], w[k-j]) );
         }
 
@@ -440,7 +581,7 @@ void gdual_inv( ls* v, /* the result */
     // Create a gdual equal to the scalar one
     ls one[n];
     one[0] = double_to_ls( 1.0 );
-    for (int i = 1; i < n; i++) {
+    for (size_t i = 1; i < n; i++) {
         one[i] = ls_zero();
     }
     gdual_div(v, one, w, n);
@@ -470,7 +611,7 @@ void gdual_compose_affine( ls* res,
 /*******************************************************************/
 void magsign2ls( ls* x, mag_t* mag, sign_t* sign, size_t n)
 {
-    for (int i = 0; i < n; i++) {
+    for (size_t i = 0; i < n; i++) {
         x[i].mag = mag[i];
         x[i].sign = sign[i];
     }
@@ -478,7 +619,7 @@ void magsign2ls( ls* x, mag_t* mag, sign_t* sign, size_t n)
 
 void ls2magsign( mag_t* mag, sign_t* sign, ls *x, size_t n)
 {
-    for (int i = 0; i < n; i++) {
+    for (size_t i = 0; i < n; i++) {
         mag[i] = x[i].mag;
         sign[i] = x[i].sign;
     }

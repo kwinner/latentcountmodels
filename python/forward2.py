@@ -54,7 +54,8 @@ def forward(y,
         const = s**y[k]
         const *= GDualType.const(y[k]*np.log(rho[k]) - gammaln(y[k] + 1), as_log=True)
         alpha = const * diff(Gamma_k, s*(1 - rho[k]), y[k], GDualType=GDualType )
-        Alpha[k] = alpha        
+        alpha.trunc_neg_coefs()
+        Alpha[k] = alpha
         return alpha
         
     def Gamma(u, k):
@@ -78,20 +79,22 @@ def forward(y,
         
     return logZ, alpha, marginals
 
+import cygdual
+
 if __name__ == "__main__":
 
-    y     = np.array([2, 5, 3])
+    y     = 20*np.array([2, 5, 3])
     lmbda = np.array([ 10 ,  0.  , 0.  ])
     delta = np.array([ 1.0 ,  1.0 , 1.0 ])
     rho   = np.array([ 0.25,  0.25, 0.25])
-    
+
     logZ, alpha, marginals = forward(y,
                                      poisson_pgf,
                                      lmbda,
                                      bernoulli_pgf,
                                      delta,
                                      rho,
-                                     GDualType=gd.LSGDual,
+                                     GDualType=gd.GDual,
                                      d = 0)
     
     print(logZ)

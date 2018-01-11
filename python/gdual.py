@@ -234,6 +234,9 @@ class GDualBase:
             coefs = self._get_derivatives(self.coefs)
         )
 
+    def trunc_neg_coefs(self):
+        self.coefs = self._trunc_neg_coefs(self.coefs)
+
 class LSGDual(GDualBase):
 
     @classmethod
@@ -253,10 +256,17 @@ class LSGDual(GDualBase):
     @classmethod
     def unwrap_coefs(cls, coefs, as_log=False):
         if as_log:
-            assert(all(coefs['sgn'] > 0))
+            assert(all(coefs['sgn'] >= 0))
             return coefs['mag']
         else:
             return ls.ls2real(coefs)
+
+    @classmethod
+    def _trunc_neg_coefs(cls, coefs):
+        out = coefs.copy()
+        neg = np.where(out['sgn'] < 0)
+        out[neg] = ls.zeros(len(neg))
+        return out
 
     _div  = staticmethod( cygdual.div )
     _rdiv = staticmethod( cygdual.rdiv )
@@ -296,9 +306,15 @@ class GDual(GDualBase):
         else:
             return coefs
 
+    @classmethod
+    def _trunc_neg_coefs(cls, coefs):
+        out = coefs.copy()
+        out[out < 0] = 0.0
+        return out
+    
     _div  = staticmethod( gdual.div )
     _rdiv = staticmethod( lambda x,y: gdual.div(y, x) )
-    _mul  = staticmethod( gdual.mul )
+    _mul  = staticmethod( gdual.mul3 )
     _add  = staticmethod( lambda x,y: x + y )
     _sub  = staticmethod( lambda x,y: x - y )
     _rsub = staticmethod( lambda x,y: y - x )
@@ -309,7 +325,7 @@ class GDual(GDualBase):
     _inv  = staticmethod( gdual.inv )
     _deriv = staticmethod( gdual.deriv )
     _get_derivatives = None  # TODO
-    _compose = staticmethod( gdual.compose )
+    _compose = staticmethod( gdual.compose_brent_kung )
     _compose_affine = staticmethod( gdual.compose_affine )
 
 
@@ -339,8 +355,8 @@ def diff(f, x, k, GDualType=LSGDual):
     """
     if np.isscalar(x):
         y = f( GDualType(x, k) )
-        if isinstance(y, (tuple)):
-            return tuple(yi.deriv(k) for yi in y)
+        if isinstance(y, (tuple,list)):
+            return [yi.deriv(k) for yi in y]
         else:
             return y.deriv(k)
     
@@ -348,8 +364,8 @@ def diff(f, x, k, GDualType=LSGDual):
         GDualType = x.__class__
         q = x.order()
         y = f( GDualType(x, q + k))
-        if isinstance(y, (tuple)):
-            return tuple(yi.deriv(k).compose(x) for yi in y)
+        if isinstance(y, (tuple,list)):
+            return [yi.deriv(k).compose(x) for yi in y]
         else:
             return y.deriv(k).compose(x)
 

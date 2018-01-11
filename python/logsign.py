@@ -51,8 +51,8 @@ def add(x, y):
     elif y['sgn'] == 0:
         return x
 
-    mag, sign = logsumexp(x['mag'] + y['mag'],
-                          b = x['sgn'] * y['sgn'],
+    mag, sign = logsumexp([x['mag'], y['mag']],
+                          b = [x['sgn'], y['sgn']],
                           return_sign = True)
 
     z = ls(mag.shape)

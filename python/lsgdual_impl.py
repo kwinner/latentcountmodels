@@ -310,12 +310,12 @@ def compose(G, F):
     # cache first terms of G, F and then clear same
     G_0 = copy.deepcopy(G[0])
     F_0 = copy.deepcopy(F[0])
-    G[0] = ls.real2ls(0)
-    F[0] = ls.real2ls(0)
+    G[0] = ls.real2ls(0.0)
+    F[0] = ls.real2ls(0.0)
 
     H[0] = G[q - 1]
     for i in range(q - 2, -1, -1):
-        H = cygdual.mul(H, F)
+        H = cygdual.mul_fft(H, F)
         H[0] = ls.add(H[0], G[i])
 
     # restore cached values and copy G[0] to output

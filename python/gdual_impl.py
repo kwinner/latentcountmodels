@@ -13,6 +13,62 @@ def new(x, q):
 
     return out
 
+def compose_brent_kung(G, F):
+    out = np.zeros_like(G)
+    q = out.shape[0]
+    
+    # cache first terms of F, G and then clear
+    G_0_cache = G[0]
+    F_0_cache = F[0]
+
+    G[0] = 0
+    F[0] = 0
+
+    k         = int(np.ceil(np.sqrt(q)))
+    n_chunks  = int(np.ceil(q / k))
+
+    B = np.zeros((n_chunks, k)) # holds chunks of G of len k
+    A = np.zeros((k, q))        # holds powers of F
+
+    # Fill rows of B with chunks of G
+    n_full_chunks, rem = int(q / k), q % k
+    for i in range(n_full_chunks):
+        B[i,:] = G[i*k:(i+1)*k]
+    # There may be a final partial row
+    if rem > 0:
+        start = (n_chunks-1)*k
+        B[-1,:rem] = G[start:(start+rem)]
+
+    # Fill rows of A with powers of F
+    A[0,0] = 1.0
+    for i in np.arange(1,k):
+        A[i,:] = mul(A[i-1], F)
+
+    # Multiplication: the ith row of C now contains
+    # the coefficients of G_i(F(t)) where G_i is the
+    # ith segment of G divided by t^ki
+    C = B.dot(A)
+
+    # Now we need to compute \sum_i G_i(F(t))(F(t))^ki
+    # This can be viewed as block "composition", where
+    # the rows of C are the "coefficients" of a polynomial
+    # to be evaluated at (F(t)^k). We will use Horner's
+    # method to do this block composition
+
+    res = C[-1,:];        # last "coefficient"
+    val = mul(A[-1,:], F) # F^k
+
+    for i in range(n_chunks-2, -1, -1):
+        tmp = mul(res, val)
+        res = tmp + C[i,:]
+
+    # restore cached values
+    res[0] = G_0_cache
+    G[0]   = G_0_cache
+    F[0]   = F_0_cache
+    
+    return res
+    
 
 def compose(G, F):
     out = np.zeros_like(G)
@@ -133,7 +189,6 @@ def mul(F, G):
 
     return np.convolve(F, G)[:q]
 
-
 def mul2(F, G):
     H = np.zeros_like(F)
     for k in range(0, F.shape[0]):
@@ -142,6 +197,11 @@ def mul2(F, G):
 
     return H
 
+import scipy.signal
+def mul3(F, G):
+    q = max(F.shape[0], G.shape[0])
+
+    return scipy.signal.fftconvolve(F, G)[:q]
 
 def exp(F):
     out = np.empty_like(F)

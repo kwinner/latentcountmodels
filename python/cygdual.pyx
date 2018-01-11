@@ -25,6 +25,7 @@ cdef extern from "gdual.h":
     void gdual_neg( ls* res, ls* u, size_t n)
 
     void gdual_mul( ls* res, ls* u, ls* w, size_t n )
+    void gdual_mul_fft( ls* res, ls* u, ls* w, size_t n )
     void gdual_add( ls* res, ls* u, ls* w, size_t n )
     void gdual_div( ls* res, ls* u, ls* w, size_t n )
 
@@ -83,6 +84,8 @@ def binary_op(np.ndarray[ls, ndim=1, mode="c"] u not None,
     cdef BINARY_OP fun
     if op == 'mul':
         fun = &gdual_mul
+    elif op == 'mul_fft':
+        fun = &gdual_mul_fft
     elif op == 'add':
         fun = &gdual_add
     elif op == 'div':
@@ -98,6 +101,10 @@ def binary_op(np.ndarray[ls, ndim=1, mode="c"] u not None,
 def mul(np.ndarray[ls, ndim=1, mode="c"] u not None,
         np.ndarray[ls, ndim=1, mode="c"] w not None):
     return binary_op(u, w, 'mul')
+
+def mul_fft(np.ndarray[ls, ndim=1, mode="c"] u not None,
+        np.ndarray[ls, ndim=1, mode="c"] w not None):
+    return binary_op(u, w, 'mul_fft')
 
 def add(np.ndarray[ls, ndim=1, mode="c"] u not None,
         np.ndarray[ls, ndim=1, mode="c"] w not None):
