@@ -300,6 +300,61 @@ def inv(F):
     return
 
 
+def compose_brent_kung(G, F):
+    q = G.shape[0]
+    
+    # cache first terms of F, G and then clear
+    # cache first terms of G, F and then clear same
+    G_0 = copy.deepcopy(G[0])
+    F_0 = copy.deepcopy(F[0])
+    G[0] = ls.real2ls(0.0)
+    F[0] = ls.real2ls(0.0)
+
+    k         = int(np.ceil(np.sqrt(q)))
+    n_chunks  = int(np.ceil(q / k))
+
+    B = ls.zeros((n_chunks, k)) # holds chunks of G of len k
+    A = ls.zeros((k, q))        # holds powers of F
+
+    # Fill rows of B with chunks of G
+    n_full_chunks, rem = int(q / k), q % k
+    for i in range(n_full_chunks):
+        B[i,:] = G[i*k:(i+1)*k]
+    # There may be a final partial row
+    if rem > 0:
+        start = (n_chunks-1)*k
+        B[-1,:rem] = G[start:(start+rem)]
+
+    # Fill rows of A with powers of F
+    A[0,0] = ls.real2ls(1.0)
+    for i in np.arange(1,k):
+        A[i,:] = cygdual.mul(A[i-1], F)
+
+    # Multiplication: the ith row of C now contains
+    # the coefficients of G_i(F(t)) where G_i is the
+    # ith segment of G divided by t^ki
+    C = ls.dot(B, A)
+    
+    # Now we need to compute \sum_i G_i(F(t))(F(t))^ki
+    # This can be viewed as block "composition", where
+    # the rows of C are the "coefficients" of a polynomial
+    # to be evaluated at (F(t)^k). We will use Horner's
+    # method to do this block composition
+
+    H = C[-1,:];        # last "coefficient"
+    val = cygdual.mul(A[-1,:], F) # F^k
+    
+    for i in range(n_chunks-2, -1, -1):
+        tmp = cygdual.mul(H, val)
+        H = cygdual.add(tmp, C[i,:])
+
+    # restore cached values
+    H[0] = copy.deepcopy(G_0)
+    G[0] = G_0
+    F[0] = F_0
+
+    return H
+
 def compose(G, F):
     assert G.shape == F.shape
 
@@ -315,7 +370,7 @@ def compose(G, F):
 
     H[0] = G[q - 1]
     for i in range(q - 2, -1, -1):
-        H = cygdual.mul_fft(H, F)
+        H = cygdual.mul(H, F, truncation_order=q)
         H[0] = ls.add(H[0], G[i])
 
     # restore cached values and copy G[0] to output

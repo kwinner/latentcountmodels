@@ -14,8 +14,7 @@ def new(x, q):
     return out
 
 def compose_brent_kung(G, F):
-    out = np.zeros_like(G)
-    q = out.shape[0]
+    q = G.shape[0]
     
     # cache first terms of F, G and then clear
     G_0_cache = G[0]

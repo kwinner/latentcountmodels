@@ -42,12 +42,16 @@ void gdual_pow_int( ls* v, ls* u, int r, size_t n );
 void gdual_pow_fractional( ls* v, ls* u, double r, size_t n );
 
 
-// Binary operations
-void            gdual_mul( ls* res, ls* u, ls* w, size_t n);
+// Binary operations: different-sized operands
+void            gdual_mul( ls* res, size_t n, ls* u, size_t u_len, ls* w, size_t w_len);
+void        gdual_compose( ls* res, size_t n, ls* u, size_t u_len, ls* w, size_t w_len);
+
+// Binary operations: same-sized operands
+void       gdual_mul_same( ls* res, ls* u, ls* w, size_t n);
 void        gdual_mul_fft( ls* res, ls* u, ls* w, size_t n);
 void            gdual_add( ls* res, ls* u, ls* w, size_t n);
 void            gdual_div( ls* res, ls* u, ls* w, size_t n);
-void        gdual_compose( ls* res, ls* u, ls* w, size_t n);
+void   gdual_compose_same( ls* res, ls* u, ls* w, size_t n);
 void gdual_compose_affine( ls* res, ls* u, ls* w, size_t n);
 
 // Wrappers that accept separate log-magnitude and sign arrays

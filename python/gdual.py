@@ -140,26 +140,28 @@ class GDualBase:
     def as_real(self):
         return self.unwrap_coefs(self.coefs)
 
-    def binary_op(self, other, f):
+    def binary_op(self, other, f, require_same_size=True):
 
-        if isinstance(other, self.__class__): # same type
+        # Promote other to class instance if needed
+        if isinstance(other, self.__class__):
+            pass
+        elif np.isscalar(other):
+            other = self.const(other, 0)
+        elif isinstance(other, np.ndarray) and other.size == 1:
+            other = self.const(np.asscalar(other), 0)
+        else:
+            raise ValueError('Incompatible other type')
 
-            # Extend to same truncation order if needed
+        # Extend to same truncation order if required
+        if require_same_size:
             p = self.order()
             q = other.order()
             if p < q:
                 self.set_order(q)
             elif q < p:
                 other.set_order(p)
-                
-        elif np.isscalar(other):
-            other = self.const(other, self.order())
 
-        elif isinstance(other, np.ndarray) and other.size == 1:
-            other = self.const(np.asscalar(other), self.order())
-        else:
-            raise ValueError('Incompatible other type')
-        
+        # Execute the operation
         return self.__class__(
             coefs=f(self.coefs, other.coefs)
         )
@@ -281,9 +283,16 @@ class LSGDual(GDualBase):
     _inv  = staticmethod( cygdual.inv )
     _deriv = staticmethod( lsgdual.deriv )
     _get_derivatives = staticmethod( lsgdual.get_derivatives )
-    _compose = staticmethod( lsgdual.compose )
+#    _compose = staticmethod( lsgdual.compose_brent_kung )
+    _compose = staticmethod( cygdual.compose )
     _compose_affine = staticmethod( lsgdual.compose_affine )
-    
+
+    def __mul__(self, other):
+        return self.binary_op(other, self._mul, require_same_size=False)
+
+    def __rmul__(self, other):
+        return self.binary_op(other, self._mul, require_same_size=False)
+
 class GDual(GDualBase):
 
     DTYPE=np.double
@@ -314,7 +323,7 @@ class GDual(GDualBase):
     
     _div  = staticmethod( gdual.div )
     _rdiv = staticmethod( lambda x,y: gdual.div(y, x) )
-    _mul  = staticmethod( gdual.mul3 )
+    _mul  = staticmethod( gdual.mul )
     _add  = staticmethod( lambda x,y: x + y )
     _sub  = staticmethod( lambda x,y: x - y )
     _rsub = staticmethod( lambda x,y: y - x )

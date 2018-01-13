@@ -3,21 +3,12 @@ from distutils.extension import Extension
 from Cython.Distutils import build_ext
 from os.path import realpath, dirname
 import numpy
-import sysconfig
 
 libgdual_dir = dirname(dirname(realpath(__file__))) + "/c"
 
-_DEBUG = False
-_DEBUG_LEVEL = 0
-
 # Common flags for both release and debug builds.
-extra_compile_args = sysconfig.get_config_var('CFLAGS').split()
-extra_compile_args += ["-Wall"]
-extra_link_args = ["-lfftw3l"]
-if _DEBUG:
-    extra_compile_args += ["-g3", "-O0", "-DDEBUG=%s" % _DEBUG_LEVEL, "-UNDEBUG"]
-else:
-    extra_compile_args += ["-DNDEBUG", "-O3"]
+extra_compile_args = ["-g"]
+extra_link_args = ["-g", "-lfftw3l"]
 
 setup(
     name='lsgdual',
@@ -37,8 +28,8 @@ setup(
                 libgdual_dir
             ],
             define_macros=[('LONG_DOUBLE_INTERNALS', '1')],
-            extra_compile_args=extra_compile_args,
             extra_link_args=extra_link_args,
+            extra_compile_args=extra_compile_args,
         )
     ],
     url='',

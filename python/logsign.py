@@ -60,6 +60,18 @@ def add(x, y):
     z['sgn'] = sign
 
     return z
+    
+def dot(x, y):
+    if x.ndim == 1 and y.ndim == 1:
+        return sum(mul(x, y))
+    elif x.ndim == 1 and y.ndim == 2 and x.shape[0] == y.shape[0]:
+        return np.array([sum(mul(x,c)) for c in y.T])
+    elif x.ndim == 2 and y.ndim == 1 and x.shape[1] == y.shape[0]:
+        return np.array([sum(mul(r,y)) for r in x])
+    elif x.ndim == 2 and y.ndim == 2 and x.shape[1] == y.shape[0]:
+        return np.array([[sum(mul(r,c)) for c in y.T] for r in x])
+    else:
+        raise(ValueError('Incompatible shapes'))
 
 def sum(x, axis=None):
     """sum all values in the vector of numbers in ls-space along some axis"""

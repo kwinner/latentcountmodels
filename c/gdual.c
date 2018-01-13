@@ -3,6 +3,7 @@
 #include <assert.h>
 #include "gdual.h"
 #include <strings.h>
+#include <stdlib.h>
 #include <fftw3.h>
 
 #define ERR(s) { fprintf(stderr, "%s\n", s); return; }
@@ -15,6 +16,8 @@
 #define POS_INF INFINITY
 #define SIGN(x) ((x) >= 0 ? 1 : -1)
 #define LS(s, m) ((struct ls) {s, m})
+#define MAX(a, b) ((a) > (b) ? (a) : (b))
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
 
 double ls_to_double(ls x) {
     return exp(x.mag) * x.sign;
@@ -148,6 +151,26 @@ ls ls_pow( ls x, double r ) {
 }
 
 
+void ls_mat_mul(ls *Z, ls *X, ls *Y, size_t m, size_t n, size_t p) {
+    // Compute Z = X * Y
+    //    X: m x n
+    //    Y: n x p
+    //    Z: m x p
+    
+    for (size_t i = 0; i < m; i++) {
+        for (size_t j = 0; j < p; j++) {
+            Z[i*p + j] = ls_zero();
+            for (size_t k = 0; k < n; k++) {
+                // Z[i,j] += X[i,k]*Y[k,j]
+                Z[i*p + j] = ls_add( Z[i*p + j],
+                                     ls_mult( X[i*n + k],
+                                              Y[k*p + j] ));
+            }
+            
+        }
+    }
+}
+
 /**************************************************************************/
 /* Gdual implementation                                                   */
 /**************************************************************************/
@@ -186,12 +209,43 @@ void gdual_u_plus_cw( ls* v, ls* u, ls* w, double c, size_t n) {
     
 }
 
-// Compute v = u + w
+// Compute v = u + w (same sizes)
 void gdual_add( ls* v, ls* u, ls* w, size_t n) {
     for (size_t k = 0; k < n; k++) {
         v[k] = ls_add(u[k], w[k]);
     }
 }
+
+// Compute v = u + w (different sizes)
+void gdual_add_different( ls* v, size_t n, ls* u, size_t u_len, ls* w, size_t w_len) {
+    
+    size_t k = 0;
+
+    // Both u[k] and w[k] exist
+    while(k < n && k < u_len && k < w_len) {
+        v[k] = ls_add(u[k], w[k]);
+        k++;
+    }
+
+    // Only u[k] exists. Assume w[k] = 0
+    while(k < n && k < u_len) {
+        v[k] = u[k];
+        k++;
+    }
+
+    // Only w[k] exists. Assume u[k] = 0
+    while(k < n && k < w_len) {
+        v[k] = w[k];
+        k++;
+    }
+
+    // Neither exist
+    while(k < n) {
+        v[k] = ls_zero();
+        k++;
+    }
+}
+
 
 // Compute v = u * c
 void gdual_scalar_mul( ls* v, ls* u, double c, size_t n) {
@@ -390,27 +444,72 @@ void gdual_pow_fractional( ls* v, ls* u, double r, size_t n ) {
 /* Binary gdual operations */
 /***************************/
 
+
 // compute v = u * w
-void gdual_mul ( ls* v,
-                 ls* u,
-                 ls* w,
-                 size_t n)
+void gdual_mul ( ls* v,         /* output */
+                 size_t n,      /* truncation order */
+                 ls* u,         /* first input */
+                 size_t u_len,  /* length of u */
+                 ls* w,         /* second input */
+                 size_t w_len)  /* length of w */
 {
     /* Reference: Chapter 13 p. 305 from 
        Griewank, A. and Walther, A. Evaluating derivatives: principles and 
        techniques of algorithmic differentiation. SIAM, 2008. */
-
+    
     for (size_t k = 0; k < n; k++) {
 
         v[k] = ls_zero();
 
-        // Note that j <= k is the correct termination condition, and is
-        // different from gdual_div below
-        for (size_t j = 0; j <= k; j++) { 
+        // If u and w are long enough, we will iterate over 0 <= j <= k
+        size_t lower = 0, upper = k;
+        if (u_len - 1 < k)
+        {
+            upper = u_len - 1;     // u too short --> set upper = last entry of u
+        }
+        if (w_len - 1 < k)
+        {
+            lower = k - w_len + 1; // w too short --> set lower so k - lower = last entry of w
+        }
+        for (size_t j = lower; j <= upper; j++) { 
             v[k] = ls_add( v[k], ls_mult(u[j], w[k-j]) );
         }
     }
 }
+
+
+#if 1
+// compute v = u * w
+void gdual_mul_same ( ls* v,         /* output */
+                      ls* u,
+                      ls* w,
+                      size_t n)
+{
+    gdual_mul(v, n, u, n, w, n);
+}
+#else
+// compute v = u * w 
+void gdual_mul_same ( ls* v, 
+                      ls* u, 
+                      ls* w, 
+                      size_t n) 
+{ 
+    /* Reference: Chapter 13 p. 305 from  
+       Griewank, A. and Walther, A. Evaluating derivatives: principles and  
+       techniques of algorithmic differentiation. SIAM, 2008. */ 
+
+    for (size_t k = 0; k < n; k++) { 
+
+        v[k] = ls_zero(); 
+
+        // Note that j <= k is the correct termination condition, and is 
+        // different from gdual_div below 
+        for (size_t j = 0; j <= k; j++) {  
+            v[k] = ls_add( v[k], ls_mult(u[j], w[k-j]) ); 
+        } 
+    } 
+} 
+#endif
 
 #if 0
 typedef double FFTW_REAL;
@@ -587,12 +686,113 @@ void gdual_inv( ls* v, /* the result */
     gdual_div(v, one, w, n);
 }
 
-void gdual_compose( ls* res,
-                    ls* u,
-                    ls* v,
-                    size_t n)
+void gdual_compose_same( ls* res,
+                         ls* u,
+                         ls* w,
+                         size_t n )
 {
-    assert(0);    
+    gdual_compose( res, n, u, n, w, n);
+}
+
+void gdual_compose( ls* res,
+                    size_t n,
+                    ls* u,
+                    size_t u_len,
+                    ls* w,
+                    size_t w_len)
+{
+    ls *A, *B, *C;
+    size_t i, j;
+
+    // Store and zero constant entry of w
+    ls w0 = w[0];
+    w[0] = ls_zero();
+
+    // Determine size and number of chunks of u
+    size_t k        = (int) ceil(sqrt(u_len));
+    size_t n_chunks = (int) ceil(u_len / k);
+
+    // Create arrays
+    B = (ls*) malloc( n_chunks *     k * sizeof(ls) );
+    A = (ls*) malloc(        k * w_len * sizeof(ls) );
+    C = (ls*) malloc( n_chunks * w_len * sizeof(ls) ); // C = B*A
+
+    ls ZERO = ls_zero();
+    
+    // Fill B with chunks of u
+    for (i = 0; i < n_chunks; i++) {
+
+        // Fill row as long as there is data in u
+        for (j = 0; j < k && i*k + j < u_len; j++) {
+            B[i*k + j] = u[i*k + j];
+        }
+        
+        // Fill remainder of row with zeros. Will only
+        // apply to last row
+        for ( ; j < k; j++)
+        {
+            B[i*k + j] = ZERO;
+        }
+    }
+    
+    // Fill rows of A with powers of w
+    ls *row, *prev;
+
+    // First row: set to 1
+    row  = A;
+    prev = NULL;
+    row[0] = double_to_ls(1.0);
+    for (j = 1; j < w_len; j++) {
+        A[j] = ZERO;
+    }
+
+    // Remaining rows: multiply previous row times w
+    for (row = A + w_len, prev = A; row < A + k * w_len; row += w_len, prev += w_len) {
+        gdual_mul_same( row, prev, w, w_len);        
+    }
+
+    // Multiply B and C
+    ls_mat_mul(C, B, A, n_chunks, k, w_len);
+
+    // Now we need to compute
+    //
+    //   sum_i u_i(w) w^{ki}
+    //
+    // where u_i(w) is the composition of the ith chunk of u with
+    // w, which is now stored in the ith row of C
+    //
+    // We can treat this as a block composition of the polynomial
+    // with "coefficents" u_i(w) evaluated at the input value w^k.
+    //
+    // We will use Horner's method for the block composition
+    
+    ls *val = (ls *) malloc(n * sizeof(ls));
+    ls *tmp = (ls *) malloc(n * sizeof(ls));
+    
+    // Compute val = w^k, the "input value" for the Horner's method
+    // by multiplying the final row of A, which is equal to w^{k-1},
+    // by w. Truncate to order n, the requested ouptut truncation order.
+    gdual_mul(val, n, prev, w_len, w, w_len);
+    
+    // Begin Horner's method
+
+    // Set res to last row of C
+    ls *C_row = C + (n_chunks-1) * w_len;
+    memcpy(res, C_row, n * sizeof(ls));
+    
+    for (C_row -= w_len; C_row >= C; C_row -= w_len ) {
+        gdual_mul_same(tmp, res, val, n);
+        gdual_add_different(res, n, tmp, n, C_row, w_len);
+    }
+    
+    free(val);
+    free(tmp);
+    free(A);
+    free(B);
+    free(C);
+
+    // restore constant entry of w
+    w[0] = w0;
 }
 
 void gdual_compose_affine( ls* res,
