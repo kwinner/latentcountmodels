@@ -14,6 +14,7 @@ from logsign import DTYPE as LS_DTYPE
 import numpy as np
 cimport numpy as np
 
+DEF WITH_FFT = False
 
 cdef extern from "gdual.h":
     struct ls:
@@ -29,10 +30,12 @@ cdef extern from "gdual.h":
 
     void gdual_mul_same( ls* res, ls* u, ls* w, size_t n )
     void gdual_compose_same( ls* res, ls* u, ls* w, size_t n )
-    void gdual_mul_fft( ls* res, ls* u, ls* w, size_t n )
     void gdual_add( ls* res, ls* u, ls* w, size_t n )
     void gdual_div( ls* res, ls* u, ls* w, size_t n )
 
+    IF WITH_FFT:
+        void gdual_mul_fft( ls* res, ls* u, ls* w, size_t n )
+        
     void gdual_pow( ls* res, ls* u, double r, size_t n)
     void gdual_scalar_mul( ls* res, ls* u, double c, size_t n)
     void gdual_u_plus_cw( ls* res, ls* u, ls* w, double c, size_t n)
@@ -116,7 +119,7 @@ def binary_op_same(np.ndarray[ls, ndim=1, mode="c"] u not None,
     cdef BINARY_OP_SAME fun
     if op == 'mul':
         fun = &gdual_mul_same
-    elif op == 'mul_fft':
+    elif WITH_FFT and op == 'mul_fft':
         fun = &gdual_mul_fft
     elif op == 'add':
         fun = &gdual_add

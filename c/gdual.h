@@ -48,11 +48,14 @@ void        gdual_compose( ls* res, size_t n, ls* u, size_t u_len, ls* w, size_t
 
 // Binary operations: same-sized operands
 void       gdual_mul_same( ls* res, ls* u, ls* w, size_t n);
-void        gdual_mul_fft( ls* res, ls* u, ls* w, size_t n);
 void            gdual_add( ls* res, ls* u, ls* w, size_t n);
 void            gdual_div( ls* res, ls* u, ls* w, size_t n);
 void   gdual_compose_same( ls* res, ls* u, ls* w, size_t n);
 void gdual_compose_affine( ls* res, ls* u, ls* w, size_t n);
+
+#ifdef WITH_FFT
+void        gdual_mul_fft( ls* res, ls* u, ls* w, size_t n);
+#endif
 
 // Wrappers that accept separate log-magnitude and sign arrays
 void magsign2ls( ls* x, mag_t* mag, sign_t* sign, size_t n);

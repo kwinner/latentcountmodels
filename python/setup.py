@@ -6,9 +6,16 @@ import numpy
 
 libgdual_dir = dirname(dirname(realpath(__file__))) + "/c"
 
+WITH_FFT = False # Need to also set compile-time constant in cygdual.pyx. Would be
+                 # nice to figure out how to set that from here
+
 # Common flags for both release and debug builds.
-extra_compile_args = ["-g"]
-extra_link_args = ["-g", "-lfftw3l"]
+extra_compile_args = []
+extra_link_args = []
+
+if WITH_FFT:
+    extra_link_args += ["-lfftw3l"]
+    extra_compile_args += ["-DWITH_FFT", "-DFFTW_USE_LONGDOUBLE"]
 
 setup(
     name='lsgdual',

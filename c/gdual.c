@@ -4,7 +4,10 @@
 #include "gdual.h"
 #include <strings.h>
 #include <stdlib.h>
+
+#ifdef WITH_FFT
 #include <fftw3.h>
+#endif
 
 #define ERR(s) { fprintf(stderr, "%s\n", s); return; }
 //#define ERR(s) { PyErr_SetString(PyExc_RuntimeError, s); return; }
@@ -511,20 +514,10 @@ void gdual_mul_same ( ls* v,
 } 
 #endif
 
-#if 0
-typedef double FFTW_REAL;
-typedef fftw_complex FFTW_COMPLEX;
-typedef fftw_plan FFTW_PLAN;
-#define LS2REAL ls_to_double
-#define REAL2LS double_to_ls
-#define FFTW_MALLOC fftw_malloc
-#define FFTW_FREE fftw_free
-#define FFTW_DESTROY_PLAN fftw_destroy_plan
-#define FFTW_PLAN_DFT_R2C_1D fftw_plan_dft_r2c_1d
-#define FFTW_PLAN_DFT_C2R_1D fftw_plan_dft_c2r_1d
-#define FFTW_EXECUTE fftw_execute
-#define LOG_MAXVAL 709.78271289338397
-#else
+#ifdef WITH_FFT
+
+#if FFTW_USE_LONGDOUBLE
+/* Types/functions for long double FFT */
 typedef long double FFTW_REAL;
 typedef fftwl_complex FFTW_COMPLEX;
 typedef fftwl_plan FFTW_PLAN;
@@ -537,7 +530,21 @@ typedef fftwl_plan FFTW_PLAN;
 #define FFTW_PLAN_DFT_C2R_1D fftwl_plan_dft_c2r_1d
 #define FFTW_EXECUTE fftwl_execute
 #define LOG_MAXVAL 11356.52340629414395
-#endif
+#else 
+/* Types/functions for double precision FFT */
+typedef double FFTW_REAL;
+typedef fftw_complex FFTW_COMPLEX;
+typedef fftw_plan FFTW_PLAN;
+#define LS2REAL ls_to_double
+#define REAL2LS double_to_ls
+#define FFTW_MALLOC fftw_malloc
+#define FFTW_FREE fftw_free
+#define FFTW_DESTROY_PLAN fftw_destroy_plan
+#define FFTW_PLAN_DFT_R2C_1D fftw_plan_dft_r2c_1d
+#define FFTW_PLAN_DFT_C2R_1D fftw_plan_dft_c2r_1d
+#define FFTW_EXECUTE fftw_execute
+#define LOG_MAXVAL 709.78271289338397
+#endif // FFTW_USE_LONGDOUBLE
 
 // compute v = u * w
 void gdual_mul_fft ( ls* v,
@@ -645,6 +652,7 @@ void gdual_mul_fft ( ls* v,
     FFTW_FREE(UW);
 }
 
+#endif // #if WITH_FFTW
 
 // compute v = u / w
 void gdual_div ( ls* v,
