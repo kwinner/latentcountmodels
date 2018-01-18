@@ -83,9 +83,9 @@ import cygdual
 
 if __name__ == "__main__":
 
-    y     = 100*np.array([2, 5, 3])
-    lmbda = 100*np.array([ 20 ,  0.  , 0.  ])
-    delta = 0.5*np.array([ 1.0 ,  1.0 , 1.0 ])
+    y     = np.array([2, 5, 3])
+    lmbda = np.array([ 10 ,  0.  , 0.  ])
+    delta = np.array([ 1.0 ,  1.0 , 1.0 ])
     rho   = np.array([ 0.25,  0.25, 0.25])
 
     logZ, alpha, marginals = forward(y,

@@ -338,7 +338,7 @@ class GDual(GDualBase):
     _compose_affine = staticmethod( gdual.compose_affine )
 
 
-def old_diff(f, x, k, GDualType=LSGDual):
+def diff(f, x, k, GDualType=LSGDual):
     """Compute kth derivative of f evaluated at x
 
     f : function
@@ -355,28 +355,65 @@ def old_diff(f, x, k, GDualType=LSGDual):
         q = x.order()
         return f( GDualType(x, q + k)).deriv(k).compose(x)
 
-def diff(f, x, k, GDualType=LSGDual):
+def diff_grad(f, x, params, k, GDualType=LSGDual):
     """Compute kth derivative of f evaluated at x
 
     f : function
     x : input
     k : number of times to differentiate
     """
+
     if np.isscalar(x):
-        y = f( GDualType(x, k) )
-        if isinstance(y, (tuple,list)):
-            return [yi.deriv(k) for yi in y]
-        else:
-            return y.deriv(k)
+
+        # Forward pass: call fprop on base function, then deriv(k)
+        y, backprop_dy_dx = f( GDualType(x, k) )
+
+        # Backward pass: call bacprop on base function, then deriv(k)
+        # on backprop outputs, which include parameter gradients as well as dx
+        def backprop_dy_deriv_dx(dy):
+            
+            # Since dy is a GDual in the outer scope, we can't seed backprop
+            # using dy. Instead, we seed it with 1.0, perform the deriv(k).compose(x)
+            # so the gradients are GDuals in the outer scope, and only then
+            # multiply by dy.
+            dy_dx = backprop_dy_dx(1.0)  # side effect: sets p.grad for p in params
+
+            for p in params:
+                if p.need_grad and p.grad is not None:
+                    p.grad = dy * p.grad.deriv(k)
+
+            dx = dy * dy_dx.deriv(k)
+            
+            return dx
+
+        return y.deriv(k), backprop_dy_deriv_dx
     
     elif isinstance(x, GDualBase):
+
+        # Forward pass: call fprop on base function, and then deriv(k).compose(x)
         GDualType = x.__class__
         q = x.order()
-        y = f( GDualType(x, q + k))
-        if isinstance(y, (tuple,list)):
-            return [yi.deriv(k).compose(x) for yi in y]
-        else:
-            return y.deriv(k).compose(x)
+        y, backprop_dy_dx = f( GDualType(x, q + k) )
+        
+        # Backward pass: call backprop on base function, then deriv(k).compose(x)
+        # on backprop outputs, which include params and dx
+        def backprop_dy_deriv_dx(dy):
+
+            # Since dy is a GDual in the outer scope, we can't seed backprop
+            # using dy. Instead, we seed it with 1.0, perform the deriv(k).compose(x)
+            # so the gradients are GDuals in the outer scope, and only then
+            # multiply by dy.
+            
+            dy_dx = backprop_dy_dx(1.0) # side effect: sets p.grad for p in params
+
+            for p in params:
+                if p.need_grad and p.grad is not None:
+                    p.grad = dy * p.grad.deriv(k).compose(x)
+
+            dx = dy * dy_dx.deriv(k).compose(x)
+            return dx
+
+        return y.deriv(k).compose(x), backprop_dy_deriv_dx
 
 if __name__ == "__main__":
 

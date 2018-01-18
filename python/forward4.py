@@ -2,27 +2,42 @@ import scipy
 import numpy as np
 import gdual as gd
 from gdual import log, exp
-from gdual import GDual, LSGDual, diff
+from gdual import GDual, LSGDual, diff_grad
 from scipy.special import gammaln
 
-def poisson_pgf(s, lmbda):
-    return exp(lmbda * (s - 1))
+class Parameter():
+    def __init__(self, val, need_grad=False, grad=None):
+        self.val = val
+        self.need_grad = need_grad
+        self.grad = grad
 
 def poisson_pgf_grad(s, lmbda):
-    y  = exp(lmbda * (s - 1))
-    dy = y * lmbda
-    dlmbda = y * (s - 1)
-    return y, dy, dlmbda
+    # Forward
+    y  = exp(lmbda.val * (s - 1))
+
+    # Backward
+    def backprop_dy_ds(dy):
+        ds = dy * (y * lmbda.val)
+        if lmbda.need_grad:
+            lmbda.grad = dy * (y * (s - 1))
+        return ds
     
-def bernoulli_pgf(s, p):
-    return (1 - p) + (p * s)
+    return y, backprop_dy_ds
 
 def bernoulli_pgf_grad(s, p):
-    y  = (1 - p) + (p * s)
-    dy = p
-    dp = -1 + s
-    return y, dy, dp
 
+    # Forward
+    y  = (1 - p.val) + (p.val * s)
+
+    # Backward
+    def backprop_dy_ds(dy):
+        ds = dy * p.val
+        if p.need_grad:
+            p.grad = dy * (-1 + s)
+        return ds
+        
+    return y, backprop_dy_ds
+            
 def forward_grad(y,
                  immigration_pgf_grad,
                  theta_immigration,
@@ -31,38 +46,53 @@ def forward_grad(y,
                  rho,
                  GDualType=gd.LSGDual,
                  d = 0):
-
+    
     K = len(y) # K = length of chain/number of observations
-
+    
     def A_grad(s, k):
         """Return A(s, k) and d/ds A(s, k)"""
         if k < 0:
-            return 1.0, 0.0
-
-        # Forward prop
-        a = s * (1 - rho[k])
+            def backprop_dalpha_ds(dalpha):
+                return 0.0
+            return 1.0, backprop_dalpha_ds
         
+        # Forward pass
+        a = s * (1 - rho[k].val)
+
         Gamma_k_grad = lambda u: Gamma_grad( u, k )
 
-        b, db_da, *db_dtheta = diff(Gamma_k_grad, a, y[k], GDualType=GDualType)
+        Gamma_k_params = theta_immigration[:k+1] + \
+                         theta_offspring[:k+1] + \
+                         rho[:k]
         
-        const = GDualType.const(y[k]*np.log(rho[k]) - gammaln(y[k] + 1), as_log=True)
+        b, backprop_db_da = diff_grad(Gamma_k_grad, a,
+                                      Gamma_k_params, y[k],
+                                      GDualType=GDualType)
+        
+        const = GDualType.const(y[k]*np.log(rho[k].val) - \
+                                gammaln(y[k] + 1),
+                                as_log=True)
+        
         c = const * s**y[k]
-        f = b*c
+        alpha = b*c
 
-        # Back prop
-        df = 1.0
-        dc = df * b
-        db = df * c
-        da = db * db_da
-        ds = da*(1-rho[k]) + dc * const * y[k] * (s**(y[k]-1))
+        # Backward
+        def backprop_dalpha_ds(dalpha):
+            dc = dalpha * b
+            db = dalpha * c
+            da = backprop_db_da(db)
+            ds = da * (1-rho[k].val) + \
+                 dc * const * y[k] * (s**(y[k]-1))
 
-        drho = da * -s + \
-               dc * (s**y[k]) * y[k] * GDualType.const( (y[k]-1)*np.log(rho[k]) - gammaln(y[k]+1), as_log=True)
+            if rho[k].need_grad:
+                rho[k].grad = da * -s + \
+                              dc * (s**y[k]) * y[k] * \
+                              GDualType.const( (y[k]-1)*np.log(rho[k].val) \
+                                               - gammaln(y[k]+1),
+                                               as_log=True)
+            return ds
 
-        dtheta = [db * x for x in db_dtheta] + [drho]
-
-        return [f, ds] + dtheta
+        return alpha, backprop_dalpha_ds
     
     def Gamma_grad(u, k):
         """Return Gamma(u, k) and d/du Gamma(u, k)"""
@@ -71,87 +101,76 @@ def forward_grad(y,
         G_grad = lambda u: immigration_pgf_grad(u, theta_immigration[k])
 
         # Forward prop
-        a, da_du, *da_dtheta_offspring_k = F_grad(u)
-        b, db_da, *db_dtheta_lt_k = A_grad(a, k-1)
-        c, dc_du, *dc_dtheta_immigration_k = G_grad(u)
+        a, backprop_da_du = F_grad(u)
+        b, backprop_db_da = A_grad(a, k-1)
+        c, backprop_dc_du = G_grad(u)
 
-        f =  b * c  # output value
-
-        # Back prop
-        df = 1.0
-        dc = df * b
-        db = df * c
-        da = db * db_da
-        du = da * da_du + dc * dc_du
-
-        dtheta = [db * x for x in db_dtheta_lt_k] + \
-                 [da * x for x in da_dtheta_offspring_k] + \
-                 [dc * x for x in dc_dtheta_immigration_k]
+        gamma =  b * c  # output value
         
-        return [f, du] + dtheta
+        # Back prop
+        def backprop_dgamma_du(dgamma):
+            dc = dgamma * b
+            db = dgamma * c
+            da = backprop_db_da(db)
+            du = backprop_da_du(da) + backprop_dc_du(dc)
+            return du
 
-    A_final = lambda s: A_grad(s, K-1)
-    
+        return gamma, backprop_dgamma_du
+
     if d == 0:
-        alpha, dalpha_ds, *dtheta = A_final( 1.0 )
+        alpha, backprop = A_grad( 1.0, K-1 )
     else:
-        alpha, dalpha_ds, *dtheta = A_final( GDualType(1.0, d) )
+        alpha, backprop = A_grad( GDualType(1.0, d), K-1 )
+        
+    logZ = alpha.get(0, as_log=True)
 
-    logZ = log( alpha )
+    # Backprop with 1/alpha = dlogZ/dalpha
+    #  side effect: computes gradient of parameters
+    backprop(1/alpha)
     
-    dlogZ_dalpha = 1/alpha
-    dlogZ_ds = dlogZ_dalpha * dalpha_ds
-    dlogZ_dtheta = [dlogZ_dalpha * x for x in dtheta]
-    
-    return logZ, dlogZ_ds, dlogZ_dtheta
-    
+    return logZ
+
+
+def unpack(theta, wrap=True):
+    '''Convert numpy array into parameter vectors'''
+    if wrap:
+        theta = [Parameter(t, need_grad=True) for t in theta]
+
+    k = int(len(theta) / 3)
+    delta = theta[:k]
+    lmbda = theta[k:2*k]
+    rho   = theta[2*k:]
+    return delta, lmbda, rho
+
+def pack(delta, lmbda, rho):
+    return np.concatenate((delta, lmbda, rho))
+
+def recover_grad(params):
+    return np.array([t.grad.get(0) for t in params])
 
 if __name__ == "__main__":
     
-    y     = 10*np.array([2, 5, 3])
+    y     = 100*np.array([2, 5, 3])
     delta = np.array([ 1.0 ,  1.0 , 1.0 ])
-    lmbda = np.array([ 10 ,  10.  , 10.  ])
+    lmbda = np.array([ 10 ,  0.  , 0.  ])
     rho   = np.array([ 0.25,  0.25, 0.25])
 
-    def pack_params(delta, lmbda, rho):
-        '''Pack all parameters into single vector'''
-        theta = np.zeros((3*len(y),))
-        theta[0::3] = delta
-        theta[1::3] = lmbda
-        theta[2::3] = rho
-        return theta
-    
-    def unpack_params(theta):
-        '''Unpack parameters into delta, lmbda, rho'''
-        delta = theta[0::3]
-        lmbda = theta[1::3]
-        rho   = theta[2::3]
-        return delta, lmbda, rho
-
-    theta0 = pack_params(delta, lmbda, rho)
-
-    def unpack_single(x):
-        '''Copy single parameter into theta0 and return entire vector'''
-        theta = theta0.copy()
-        theta[1] = x[0]
-        return unpack_params(theta)
-            
     def nll_grad(theta):
-
-        delta, lmbda, rho = unpack_single(theta)
         
-        (logZ, ds, dtheta) = forward_grad(y,
-                                          poisson_pgf_grad,
-                                          lmbda,
-                                          poisson_pgf_grad,
-                                          delta,
-                                          rho,
-                                          GDualType=gd.LSGDual,
-                                          d = 0)
+        delta, lmbda, rho = unpack(theta)
+        
+        logZ = forward_grad(y,
+                            poisson_pgf_grad,
+                            lmbda,
+                            bernoulli_pgf_grad,
+                            delta,
+                            rho,
+                            GDualType=gd.LSGDual,
+                            d = 0)
 
-        nll = -logZ.get(0)
-        grad = np.array([-x.get(0) for x in dtheta])
-        return nll, grad[1:2]
+        nll = -logZ
+        grad = -recover_grad(delta + lmbda + rho)
+        return nll, grad
         
     def nll(theta):
         nll, _ = nll_grad(theta)
@@ -162,28 +181,33 @@ if __name__ == "__main__":
         return grad
 
 
-    optimize = True
-    
-    if not optimize:
-        (logZ, ds, dtheta) = forward_grad(y,
-                                          poisson_pgf_grad,
-                                          lmbda,
-                                          poisson_pgf_grad,
-                                          delta,
-                                          rho,
-                                          GDualType=gd.LSGDual,
-                                          d = 0)
-    else:
+    #test = "simple"
+    test = "grad_check"
+    #test = "optimize"
+
+    if test == "simple":
+
+        theta0 = pack(delta, lmbda, rho)
+        (nll, grad) = nll_grad(theta0)
+        print("nll: ", nll)
+        print("grad: ", grad)
         
-        x0 = np.array([lmbda[0]])
+    elif test == "grad_check":
         
-        import time
-        from scipy.optimize import check_grad, minimize
+        from scipy.optimize import check_grad
         
-        #print("Gradient check");
-        #print(check_grad(nll, grad, x0))
-        
-        start_time = time.time()
+        print("Gradient check");
+        theta0 = pack(delta, lmbda, rho)
+        print(check_grad(nll, grad, theta0))
+
+    elif test == "optimize":
+
+        theta0 = pack(delta, lmbda, rho)
+
+        from scipy.optimize import minimize
         print("Starting optimization....")
-        theta = minimize(nll_grad, x0, jac=True)
-        print("done in %f seconds\n" % (time.time() - start_time))
+        theta = minimize(nll_grad, theta0, jac=True)
+        print("done")
+
+    else:
+        raise(ValueError('unknown test'))
