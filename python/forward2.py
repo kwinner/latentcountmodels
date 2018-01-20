@@ -1,11 +1,11 @@
 import scipy
 import numpy as np
 import gdual as gd
-from gdual import GDual, LSGDual, diff
+from gdual import GDual, LSGDual, diff, exp, log
 from scipy.special import gammaln
 
 def poisson_pgf(s, lmbda):
-    return gd.exp(lmbda * (s - 1))
+    return exp(lmbda * (s - 1))
 
 def bernoulli_pgf(s, p):
     return (1 - p) + (p * s)
@@ -50,7 +50,7 @@ def forward(y,
             return 1.0
 
         Gamma_k = lambda u_k: Gamma( u_k, k )
-
+        
         const = s**y[k]
         const *= GDualType.const(y[k]*np.log(rho[k]) - gammaln(y[k] + 1), as_log=True)
         alpha = const * diff(Gamma_k, s*(1 - rho[k]), y[k], GDualType=GDualType )
@@ -79,22 +79,20 @@ def forward(y,
         
     return logZ, alpha, marginals
 
-import cygdual
-
 if __name__ == "__main__":
 
     y     = np.array([2, 5, 3])
     lmbda = np.array([ 10 ,  0.  , 0.  ])
-    delta = np.array([ 1.0 ,  1.0 , 1.0 ])
+    delta = 50*np.array([ 1.0 ,  1.0 , 1.0 ])
     rho   = np.array([ 0.25,  0.25, 0.25])
 
     logZ, alpha, marginals = forward(y,
                                      poisson_pgf,
                                      lmbda,
-                                     bernoulli_pgf,
+                                     poisson_pgf,
                                      delta,
                                      rho,
-                                     GDualType=gd.LSGDual,
+                                     GDualType=gd.GDual,
                                      d = 0)
     
     print(logZ)

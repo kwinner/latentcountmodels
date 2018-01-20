@@ -326,6 +326,8 @@ int is_int(double z) {
     return (fabs(round(z) - z) <= 1e-8);
 }
 
+void gdual_pow_int_deprecated( ls* v, ls* u, int r, size_t n ) ;
+
 // Compute v = u^r
 void gdual_pow( ls* v, ls* u, double r, size_t n )
 {
@@ -348,8 +350,9 @@ void gdual_pow( ls* v, ls* u, double r, size_t n )
         return;
     }
 
-    if (is_int(r)) {
+    if (is_int(r) && r > 0) {
         gdual_pow_int( v, u, (int) round(r), n );
+        //gdual_pow_int_deprecated( v, u, (int) round(r), n );
     }
     else
     {
@@ -358,6 +361,60 @@ void gdual_pow( ls* v, ls* u, double r, size_t n )
 }
 
 void gdual_pow_int( ls* v, ls* u, int r, size_t n ) {
+    
+    // This version uses repeated squaring to compute u^k for k equal to
+    // all powers of 2 less then r, and then constructs u^k by multiplying
+    // together the needed powers of 2.
+
+    assert(r >= 2);   // We check for the special cases r=0 and r=1 before getting here
+
+    size_t num_powers = 1 + ((size_t) log2(r));
+    assert(num_powers >= 1);
+
+    ls *powers = malloc(n * num_powers * sizeof(ls));
+    ls *v_copy = malloc(             n * sizeof(ls));
+    
+    // Set first row of powers to u
+    memcpy(powers, u, n * sizeof(ls));
+
+    // For each subsequent row, square the previous row
+    for( size_t i = 1; i < num_powers; i++) {
+        ls *cur  = powers +     i*n;
+        ls *prev = powers + (i-1)*n;
+        gdual_mul_same(cur, prev, prev, n);
+    }
+
+    // Initialize result to 1
+    v[0] = double_to_ls(1.0);
+    ls ZERO = ls_zero();
+    for(size_t j = 1; j < n; j++) {
+        v[j] = ZERO;
+    }
+
+    // Greedily multiply by powers of u starting with the biggest
+    int rem = r;
+    int i = num_powers-1;
+    int k = 1 << i;
+    while(rem > 0 && i >= 0) {
+        
+        // Consider u^k
+        if(rem >= k) {
+            memcpy(v_copy, v, n * sizeof(ls));
+            gdual_mul_same(v, v_copy, powers + i*n, n);
+            rem -= k;
+        }
+        
+        i--;
+        k = k >> 1;
+    }
+    assert(rem == 0);
+
+    free(powers);
+    free(v_copy);
+    
+}
+
+void gdual_pow_int_deprecated( ls* v, ls* u, int r, size_t n ) {
 
     // This method first normalizes the gdual to have a positive leading coefficient
     // then calls the fractional version
@@ -593,7 +650,7 @@ void gdual_mul_fft ( ls* v,
     if (u_mag_max == NEG_INF) u_mag_max = 0;
     if (w_mag_max == NEG_INF) w_mag_max = 0;
 
-    printf("u min/max=%.4f/%.4f, w min/max=%.4f/%.4f\n", u_mag_min, u_mag_max, w_mag_min, w_mag_max);
+    //printf("u min/max=%.4f/%.4f, w min/max=%.4f/%.4f\n", u_mag_min, u_mag_max, w_mag_min, w_mag_max);
 
     // Set shift amounts to avoid overflow, but retain as
     // much precision as possible and minimize overflow given
@@ -717,8 +774,8 @@ void gdual_compose( ls* res,
     w[0] = ls_zero();
 
     // Determine size and number of chunks of u
-    size_t k        = (int) ceil(sqrt(u_len));
-    size_t n_chunks = (int) ceil(u_len / k);
+    size_t k        = (int) ceil(sqrt((double) u_len));
+    size_t n_chunks = (int) ceil(((double) u_len) / k);
 
     // Create arrays
     B = (ls*) malloc( n_chunks *     k * sizeof(ls) );

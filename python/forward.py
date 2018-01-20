@@ -98,21 +98,21 @@ def forward(y,
 if __name__ == "__main__":
 
     y     = np.array([2, 5, 3])
-    lmbda = np.array([  20 ,  0.  , 0.  ])
+    lmbda = np.array([  10 ,  0.  , 0.  ])
     delta = np.array([ 1.0 ,  1.0 , 1.0 ])
     rho   = np.array([ 0.25,  0.25, 0.25])
     
     Alpha = forward(y,
                     poisson_pgf,
                     lmbda,
-                    bernoulli_pgf,
+                    poisson_pgf,
                     delta,
                     rho,
-                    GDual=gd.LSGDual,
+                    GDual=gd.GDual,
                     d = 1)
 
     lik = Alpha[-1].coefs[0]
 
-    print lik
+    print(lik)
 
     

@@ -150,12 +150,12 @@ def recover_grad(params):
 
 if __name__ == "__main__":
     
-    y     = 100*np.array([2, 5, 3])
+    y     = np.array([2, 5, 3])
     delta = np.array([ 1.0 ,  1.0 , 1.0 ])
     lmbda = np.array([ 10 ,  0.  , 0.  ])
     rho   = np.array([ 0.25,  0.25, 0.25])
 
-    def nll_grad(theta):
+    def nll_grad(theta, y):
         
         delta, lmbda, rho = unpack(theta)
         
@@ -172,12 +172,12 @@ if __name__ == "__main__":
         grad = -recover_grad(delta + lmbda + rho)
         return nll, grad
         
-    def nll(theta):
-        nll, _ = nll_grad(theta)
+    def nll(theta, y):
+        nll, _ = nll_grad(theta, y)
         return nll
         
-    def grad(theta):
-        _, grad = nll_grad(theta)
+    def grad(theta, y):
+        _, grad = nll_grad(theta, y)
         return grad
 
 
@@ -188,17 +188,20 @@ if __name__ == "__main__":
     if test == "simple":
 
         theta0 = pack(delta, lmbda, rho)
-        (nll, grad) = nll_grad(theta0)
+        (nll, grad) = nll_grad(theta0, y)
         print("nll: ", nll)
         print("grad: ", grad)
         
     elif test == "grad_check":
         
         from scipy.optimize import check_grad
-        
-        print("Gradient check");
-        theta0 = pack(delta, lmbda, rho)
-        print(check_grad(nll, grad, theta0))
+
+        for i in range(60):            
+            f      = lambda theta: nll(theta, i*y)
+            f_grad = lambda theta: grad(theta, i*y)
+            theta0 = pack(delta, lmbda, rho)
+            val = check_grad(f, f_grad, theta0)
+            print(i, "gradient check: ", val)
 
     elif test == "optimize":
 

@@ -283,8 +283,9 @@ class LSGDual(GDualBase):
     _inv  = staticmethod( cygdual.inv )
     _deriv = staticmethod( lsgdual.deriv )
     _get_derivatives = staticmethod( lsgdual.get_derivatives )
-#    _compose = staticmethod( lsgdual.compose_brent_kung )
-    _compose = staticmethod( cygdual.compose )
+    #_compose = staticmethod( lsgdual.compose )
+    _compose = staticmethod( lsgdual.compose_brent_kung )
+    #_compose = staticmethod( cygdual.compose )
     _compose_affine = staticmethod( lsgdual.compose_affine )
 
     def __mul__(self, other):
