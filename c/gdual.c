@@ -178,6 +178,10 @@ void ls_mat_mul(ls *Z, ls *X, ls *Y, size_t m, size_t n, size_t p) {
 /* Gdual implementation                                                   */
 /**************************************************************************/
 
+typedef void (gdual_unary_op_t)  (ls*, ls*, size_t);
+typedef void (gdual_binary_op_t) (ls*, ls*, ls*, size_t);
+typedef void (gdual_scalar_op_t) (ls*, ls*, double, size_t);
+
 void gdual_print( ls* a, size_t n ) {
     printf("%s", "[");
     for (size_t i = 0; i < n; i++ ) {
@@ -896,21 +900,146 @@ void ls2magsign( mag_t* mag, sign_t* sign, ls *x, size_t n)
 /*************************************************************/
 
 
-void _gdual_exp( mag_t*  u_mag,
-                 sign_t* u_sign,
-                 mag_t*  v_mag,
-                 sign_t* v_sign,
-                 int *nin)
+void _gdual_unary_op(gdual_unary_op_t* fun,
+                     mag_t*  v_mag,
+                     sign_t* v_sign,
+                     mag_t*  u_mag,
+                     sign_t* u_sign,
+                     int *nin)
 {
-
     int n = *nin;
     
     ls u[n];
     ls v[n];
-
+    
     magsign2ls(u, u_mag, u_sign, n);
-
-    gdual_exp(u, v, n);
+    
+    fun(v, u, n);
     
     ls2magsign(v_mag, v_sign, v, n);
+}
+
+void _gdual_binary_op(gdual_binary_op_t* fun,
+                      mag_t*  v_mag,
+                      sign_t* v_sign,
+                      mag_t*  u_mag,
+                      sign_t* u_sign,
+                      mag_t*  w_mag,
+                      sign_t* w_sign,
+                      int *nin)
+{
+    int n = *nin;
+    
+    ls u[n];
+    ls v[n];
+    ls w[n];
+    
+    magsign2ls(u, u_mag, u_sign, n);
+    magsign2ls(w, w_mag, w_sign, n);
+    
+    fun(v, u, w, n);
+    
+    ls2magsign(v_mag, v_sign, v, n);
+}
+
+void _gdual_scalar_op(gdual_scalar_op_t* fun,
+                      mag_t*  v_mag,
+                      sign_t* v_sign,
+                      mag_t*  u_mag,
+                      sign_t* u_sign,
+                      double *k,
+                      int *nin)
+{
+    int    n = *nin;
+    double _k = *k;
+    
+    // printf("n = %d\n", (int) *nin);
+    
+    ls u[n];
+    ls v[n];
+    
+    magsign2ls(u, u_mag, u_sign, n);
+    
+    fun(v, u, _k, n);
+    
+    ls2magsign(v_mag, v_sign, v, n);
+}
+
+void _gdual_add(mag_t*  v_mag,
+                sign_t* v_sign,
+                mag_t*  u_mag,
+                sign_t* u_sign,
+                mag_t*  w_mag,
+                sign_t* w_sign,
+                int *nin)
+{
+    _gdual_binary_op(gdual_add, v_mag, v_sign, u_mag, u_sign, w_mag, w_sign, nin);
+}
+
+void _gdual_neg(mag_t*  v_mag,
+                sign_t* v_sign,
+                mag_t*  u_mag,
+                sign_t* u_sign,
+                int *nin)
+{
+    _gdual_unary_op(gdual_neg, v_mag, v_sign, u_mag, u_sign, nin);
+}
+
+void _gdual_exp(mag_t*  v_mag,
+                sign_t* v_sign,
+                mag_t*  u_mag,
+                sign_t* u_sign,
+                int *nin)
+{
+    _gdual_unary_op(gdual_exp, v_mag, v_sign, u_mag, u_sign, nin);
+}
+
+void _gdual_log(mag_t*  v_mag,
+                sign_t* v_sign,
+                mag_t*  u_mag,
+                sign_t* u_sign,
+                int *nin)
+{
+    _gdual_unary_op(gdual_log, v_mag, v_sign, u_mag, u_sign, nin);
+}
+
+void _gdual_pow(mag_t*  v_mag,
+                sign_t* v_sign,
+                mag_t*  u_mag,
+                sign_t* u_sign,
+                double *k,
+                int *nin)
+{
+    _gdual_scalar_op(gdual_pow, v_mag, v_sign, u_mag, u_sign, k, nin);
+}
+
+void _gdual_inv(mag_t*  v_mag,
+                sign_t* v_sign,
+                mag_t*  u_mag,
+                sign_t* u_sign,
+                int *nin)
+{
+    _gdual_unary_op(gdual_inv, v_mag, v_sign, u_mag, u_sign, nin);
+}
+
+void _gdual_mul(mag_t*  v_mag,
+                sign_t* v_sign,
+                mag_t*  u_mag,
+                sign_t* u_sign,
+                mag_t*  w_mag,
+                sign_t* w_sign,
+                int *nin)
+{
+    _gdual_binary_op(gdual_mul_same, v_mag, v_sign, u_mag, u_sign, w_mag, w_sign, nin);
+}
+
+void _gdual_div(mag_t*  v_mag,
+                sign_t* v_sign,
+                mag_t*  u_mag,
+                sign_t* u_sign,
+                mag_t*  w_mag,
+                sign_t* w_sign,
+                int *nin)
+{
+    _gdual_binary_op(gdual_div, v_mag, v_sign, u_mag, u_sign, w_mag, w_sign, nin);
 }

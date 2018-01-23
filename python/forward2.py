@@ -12,24 +12,22 @@ def bernoulli_pgf(s, p):
 
 def binomial_pgf(s, theta):
     n, p = theta[:]
-    return gd.pow((1 - theta[1]) + (p * s), n)
+    return (((1 - theta[1]) + (p * s)) ** n)
 
 def negbin_pgf(s, theta):
     r, p = theta[:]
 
-    return gd.pow(p / (1 - ((1 - p) * s)), r)
+    return ((p / (1 - ((1 - p) * s))) ** r)
 
 def logarithmic_pgf(s, p):
     return gd.log(1 - (p * s)) / np.log(1 - p)
 
 # PGF for geometric with support 0, 1, 2, ...
-def geometric_pgf(s, theta):
-    p = theta[0]
+def geometric_pgf(s, p):
     return p / (1 - ((1 - p) * s))
 
 # PGF for geometric with support 1, 2, ...
-def geometric2_pgf(s, theta):
-    p = theta[0]
+def geometric2_pgf(s, p):
     return (p * s) / (1 - ((1 - p) * s))
     
 def forward(y,
