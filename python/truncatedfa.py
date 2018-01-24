@@ -9,8 +9,8 @@ NOTE: If p(n_k|n_k-1) is very unlikely, convolution will return negative
 probabilities, which will be truncated to zero
 """
 
-def truncated_forward_log(arrival_dist, arrival_params, branching_fn,
-                          branching_params, rho, y, n_max=None, silent=False, conv_method='auto'):
+def truncated_forward(arrival_dist, arrival_params, branching_fn,
+                      branching_params, rho, y, n_max=None, silent=False, conv_method='auto'):
     """
     Input:
     - arrival_dist    : probability distribution object of new arrivals
@@ -135,8 +135,8 @@ if __name__ == "__main__":
     rho   = np.array([ 0.25,  0.25, 0.25])
     n_max = 250
 
-    alpha, logz = truncated_forward_log(stats.poisson, lmbda, poisson_branching,
-                                        delta, rho, y, n_max, silent=False, conv_method='direct')
+    alpha, logz = truncated_forward(stats.poisson, lmbda, poisson_branching,
+                                    delta, rho, y, n_max, silent=False, conv_method='fft')
 
     print(logz)
     
