@@ -1,5 +1,5 @@
 from scipy import optimize
-from stabilityworkspace.ngdualforward import ngdualforward
+from forward2 import forward
 
 import csv, sys, warnings
 import numpy as np
@@ -14,7 +14,7 @@ def run_mle(T, arrival, branch, observ, y=None, true_params=None, n=1, n_reps=1,
     if y is None:
         assert true_params is not None, 'Must provide true_params'
     if y is not None and true_params is not None:
-        print 'true_params will be ignored'
+        print('true_params will be ignored')
 
     # Save results if out is not None
     if out:
@@ -29,14 +29,14 @@ def run_mle(T, arrival, branch, observ, y=None, true_params=None, n=1, n_reps=1,
         flog = None
 
     n_successes = 0
-    for i in xrange(n):
+    for i in range(n):
         # Generate data
         if true_params is not None: y = generate_data(true_params, T, arrival, branch, observ, n_reps)
-        print y
+        print(y)
 
         success, n_attempts = False, 0
         while (not success) and n_attempts < max_attempts:
-            if n_attempts > 0: print 'Restarting'
+            if n_attempts > 0: print('Restarting')
             res = mle(y, T, arrival, branch, observ, flog)
             success = res.success
             n_attempts += 1
@@ -48,16 +48,16 @@ def run_mle(T, arrival, branch, observ, y=None, true_params=None, n=1, n_reps=1,
             ci_width = np.absolute(1.96*np.sqrt(np.diagonal(res.hess_inv.todense())))
             ci_left = theta_hat - ci_width
             ci_right = theta_hat + ci_width
-            #print theta_hat, ci_width
+            #print(theta_hat, ci_width)
     
             # Write to out
             if out: writer.writerow(np.concatenate((y[0], theta_hat, ci_left, ci_right)))
             n_successes += 1
 
-        print res.success, res.message, n_successes, 'successes out of', i + 1, 'trials'
+        print(res.success, res.message, n_successes, 'successes out of', i + 1, 'trials')
 
-    print 'Number of successes:', n_successes
-    print 'Number of trials:', n
+    print('Number of successes:', n_successes)
+    print('Number of trials:', n)
 
     if out: fout.close()
     if log:
@@ -73,7 +73,7 @@ def run_mle(T, arrival, branch, observ, y=None, true_params=None, n=1, n_reps=1,
 def mle(y, T, arrival, branch, observ, log):
     theta0 = unpack('init', y, arrival, branch, observ)
     bounds = unpack('bounds', y, arrival, branch, observ)
-    print theta0
+    print(theta0)
 
     # Call the optimizer
     objective_args = (y, T, arrival, branch, observ, log)
@@ -88,21 +88,20 @@ def objective(theta, y, T, arrival, branch, observ, log):
 
     # Turn theta from np array into dictionary
     arrival_theta, branch_theta, observ_theta = theta_array2dict(theta, T, arrival, branch, observ)
-    #print 'arrival', arrival_theta
-    #print 'branch', branch_theta
-    #print 'observ', observ_theta
+    #print('arrival', arrival_theta)
+    #print('branch', branch_theta)
+    #print('observ', observ_theta)
 
     # Compute log likelihood and return negative log likelihood
     arrival_pgf = arrival['pgf']
     branch_pgf = branch['pgf']
-    #print arrival_pgf, branch_pgf
+    #print(arrival_pgf, branch_pgf)
     
     ll = 0
     for i in range(len(y)):
         try:
-            alpha_i = ngdualforward(y[i], arrival_pgf, arrival_theta,
-                                    branch_pgf, branch_theta, observ_theta)
-            ll_i = alpha_i[-1][0] + np.log(alpha_i[-1][1][0])            
+            ll_i, _, _ = forward(y[i], arrival_pgf, arrival_theta,
+                                 branch_pgf, branch_theta, observ_theta)
         except RuntimeWarning as w:
             if log:
                 line = ' '.join([str(x) for x in [y, theta, ll, w]])
@@ -115,7 +114,8 @@ def objective(theta, y, T, arrival, branch, observ, log):
             ll_i = -1e12
 
         ll += ll_i
-    
+
+    #print(theta, ll)
     return -ll
 
 def theta_array2dict(theta_array, T, arrival, branch, observ):
@@ -168,7 +168,7 @@ def count_params(dist):
     return np.sum(learn_mask)
 
 def unpack(k, y, arrival, branch, observ):
-    tmp = [d[k](y) for d in [arrival, branch, observ]]
+    tmp = [d[k](y[0]) for d in [arrival, branch, observ]]
     tmp = [v if isinstance(v, list) else [v] for v in tmp]
     return [v for l in tmp for v in l]
     

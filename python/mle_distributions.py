@@ -1,5 +1,5 @@
 from scipy import stats
-from stabilityworkspace.generatingfunctions import *
+from forward2 import *
 from truncatedfa import poisson_branching, binomial_branching, nbinom_branching
 
 """
@@ -15,7 +15,7 @@ Output: parameters that are used by FA of size (K, n_params)
 # Constant param across time
 constant_poisson_arrival = {
     'learn_mask': True,
-    'pgf': poisson_ngdual,
+    'pgf': poisson_pgf,
     'sample': stats.poisson.rvs,
     'hyperparam2param': lambda x, T: np.tile(x, (len(T), 1)),
     'init': lambda y: np.median(y),
@@ -24,7 +24,7 @@ constant_poisson_arrival = {
 
 constant_nbinom_arrival = {
     'learn_mask': [True, True],
-    'pgf': negbin_ngdual,
+    'pgf': negbin_pgf,
     'sample': stats.nbinom.rvs,
     'hyperparam2param': lambda x, T: np.tile(x, (len(T), 1)),
     'init': lambda y: [np.mean(y), 0.5],
@@ -34,7 +34,7 @@ constant_nbinom_arrival = {
 # N-mixture (parameter for the first time step, no subsequent new arrivals)
 nmixture_poisson_arrival = {
     'learn_mask': True,
-    'pgf': poisson_ngdual,
+    'pgf': poisson_pgf,
     'sample': stats.poisson.rvs,
     'hyperparam2param': lambda x, T: np.concatenate((x, np.zeros(len(T) - 1))).reshape((-1, 1)),
     'init': lambda y: y[0],
@@ -46,7 +46,7 @@ nmixture_poisson_arrival = {
 # Constant parameter across time
 constant_poisson_branch = {
     'learn_mask': True,
-    'pgf': poisson_ngdual,
+    'pgf': poisson_pgf,
     'sample': lambda n, lmbda: stats.poisson.rvs(n * lmbda),
     'hyperparam2param': lambda x, T: np.tile(x, (len(T)-1, 1)),
     'init': lambda y: 1,
@@ -55,16 +55,25 @@ constant_poisson_branch = {
 
 constant_nbinom_branch = {
     'learn_mask': True,
-    'pgf': geometric_ngdual,
+    'pgf': geometric_pgf,
     'sample': stats.nbinom.rvs,
     'hyperparam2param': lambda x, T: 1/(np.tile(x, (len(T)-1, 1)) + 1),
     'init': lambda y: 1,
     'bounds': lambda y: (1e-6, None)
 }
 
+fix_binom_observ = {
+    'learn_mask': False,
+    'pgf': None,
+    'sample': stats.binom.rvs,
+    'hyperparam2param': lambda x, T: np.tile(0.6, len(T)),
+    'init': lambda y: 0.6,
+    'bounds': lambda y: (None, None)
+}
+
 constant_binom_branch = {
     'learn_mask' : True,
-    'pgf': bernoulli_ngdual,
+    'pgf': bernoulli_pgf,
     'sample': stats.binom.rvs,
     'hyperparam2param': lambda x, T: np.tile(x, (len(T)-1, 1)),
     'init': lambda y: 1e-6,
@@ -74,7 +83,7 @@ constant_binom_branch = {
 # Time-varying parameters across time
 var_poisson_branch = {
     'learn_mask': [True] * (K - 1),
-    'pgf': 'poisson',
+    'pgf': 'poisson_pgf',
     'sample': lambda n, gamma: stats.poisson.rvs(n * gamma),
     'hyperparam2param': lambda x, T: x.reshape((-1, 1)),
     'init': lambda y: [1] * (K - 1),
@@ -83,7 +92,7 @@ var_poisson_branch = {
 
 var_nbinom_branch = {
     'learn_mask': [True] * (K - 1),
-    'pgf': 'geometric',
+    'pgf': 'geometric_pgf',
     'sample': stats.nbinom.rvs,
     'hyperparam2param': lambda x, T: 1/(x.reshape((-1, 1)) + 1),
     'init': lambda y: [1] * (K - 1),

@@ -1,7 +1,7 @@
 import os, sys
 import numpy as np
 
-from mle_distributions_kev import *
+from mle_distributions import *
 from mle import *
 
 def mean2p(mu, size):
@@ -18,7 +18,7 @@ def run_experiment(mode, params, n, n_reps, max_attempts, out_dir, out_mode):
     arrival = [constant_poisson_arrival, constant_nbinom_arrival][arrival_idx]
     branch = [constant_binom_branch, constant_poisson_branch, constant_nbinom_branch][branch_idx]
     observ = fix_binom_observ
-    print arrival['pgf'], branch['pgf']
+    print(arrival['pgf'], branch['pgf'])
 
     # Arrival params
     p = mean2p(lmbda, v) # ignored in Poisson arrival cases
@@ -48,11 +48,11 @@ def run_experiment(mode, params, n, n_reps, max_attempts, out_dir, out_mode):
 
     # MLE for each delta
     for delta in deltas:
-        print 'delta =', delta
+        print('delta =', delta)
         true_params['branch'] = delta
         out = '{}/{}.csv'.format(path, delta)
         log = '{}/warnings.log'.format(path)
-        print out
+        print(out)
 
         run_mle(T, arrival, branch, observ, log=log, n=n, n_reps=n_reps,
                 max_attempts=max_attempts, out=out, out_mode=out_mode,
@@ -69,7 +69,7 @@ if __name__ == "__main__":
     6. Negative binomial arrival, negative binomial branching
     """
     mode = int(sys.argv[1]) - 1   # experiment number
-    n = 50                        # number of estimates
+    n = 10                        # number of estimates
     n_reps = 10                   # number of replicates for each estimate
     max_attempts = 10             # max number of random restarts (incl first attempt)
     out_dir = '../data/mle_out3/'

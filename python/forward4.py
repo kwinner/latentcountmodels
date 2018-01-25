@@ -118,23 +118,43 @@ def forward_grad(y,
         return gamma, backprop_dgamma_du
 
     if d == 0:
-        alpha, backprop = A_grad( 1.0, K-1 )
+        alpha, alpha_backprop = A_grad( 1.0, K-1 )
     else:
-        alpha, backprop = A_grad( GDualType(1.0, d), K-1 )
+        alpha, alpha_backprop = A_grad( GDualType(1.0, d), K-1 )
         
     logZ = alpha.get(0, as_log=True)
 
     # Backprop with 1/alpha = dlogZ/dalpha
     #  side effect: computes gradient of parameters
-    backprop(1/alpha)
-    
-    return logZ
+    alpha_backprop(1/alpha)
+
+    theta_immigration_grad = [[t.grad.get(0) for t in theta_k if t.need_grad] for theta_k in theta_immigration]
+    theta_offspring_grad   = [[t.grad.get(0) for t in theta_k if t.need_grad] for theta_k in theta_offspring]
+    rho_grad = [t.grad.get(0) for t in rho if t.need_grad]
+        
+    return logZ, theta_immigration_grad, theta_offspring_grad, rho_grad
 
 
 def unpack(theta, wrap=True):
     '''Convert numpy array into parameter vectors'''
+
+    k = int(len(theta) / 3)
+
+    '''First unpack into separate arrays'''
+    n_immigration_params = k
+    n_observ_params = k
+
+    immigration_params = theta_array[:n_immigration_params]
+    if n_observ_params > 0:
+        branch_params = theta_array[n_immigration_params:-n_observ_params]
+        observ_params = theta_array[-n_observ_params:]
+    else:
+        branch_params = theta_array[n_immigration_params:]
+        observ_params = []
+
+
     if wrap:
-        theta = [Parameter(t, need_grad=True) for t in theta]
+        theta = [[Parameter(t, need_grad=True) for t in theta_k] for theta_k in theta]
 
     k = int(len(theta) / 3)
     delta = theta[:k]
@@ -146,30 +166,30 @@ def pack(delta, lmbda, rho):
     return np.concatenate((delta, lmbda, rho))
 
 def recover_grad(params):
-    return np.array([t.grad.get(0) for t in params])
+    return np.array([t.grad.get(0) for t in params if t.need_grad])
 
 if __name__ == "__main__":
     
     y     = np.array([2, 5, 3])
-    delta = np.array([ 1.0 ,  1.0 , 1.0 ])
-    lmbda = np.array([ 10 ,  0.  , 0.  ])
-    rho   = np.array([ 0.25,  0.25, 0.25])
+    delta = np.array([ 1.0 ,  1.0 , 1.0 ]).reshape(-1,1)
+    lmbda = np.array([ 10 ,  0.  , 0.  ]).reshape(-1,1)
+    rho   = np.array([ 0.25,  0.25, 0.25]).reshape(-1, 1)
 
     def nll_grad(theta, y):
         
         delta, lmbda, rho = unpack(theta)
         
-        logZ = forward_grad(y,
-                            poisson_pgf_grad,
-                            lmbda,
-                            bernoulli_pgf_grad,
-                            delta,
-                            rho,
-                            GDualType=gd.LSGDual,
-                            d = 0)
-
+        logZ, lmbda_grad, delta_grad, rho_grad = forward_grad(y,
+                                                              poisson_pgf_grad,
+                                                              lmbda,
+                                                              bernoulli_pgf_grad,
+                                                              delta,
+                                                              rho,
+                                                              GDualType=gd.LSGDual,
+                                                            d = 0)
+        
         nll = -logZ
-        grad = -recover_grad(delta + lmbda + rho)
+        grad = -np.concatenate((lmbda_grad, delta_grad, rho_grad))
         return nll, grad
         
     def nll(theta, y):

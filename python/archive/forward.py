@@ -3,10 +3,12 @@ import numpy as np
 import gdual as gd
 from scipy.special import gammaln
 
-def poisson_pgf(s, lmbda):
+def poisson_pgf(s, theta):
+    lmbda = theta[0]
     return gd.exp(lmbda * (s - 1))
 
-def bernoulli_pgf(s, p):
+def bernoulli_pgf(s, theta):
+    p = theta[0]
     return (1 - p) + (p * s)
 
 def binomial_pgf(s, theta):
@@ -18,7 +20,8 @@ def negbin_pgf(s, theta):
 
     return gd.pow(p / (1 - ((1 - p) * s)), r)
 
-def logarithmic_pgf(s, p):
+def logarithmic_pgf(s, theta):
+    p = theta[0]
     return gd.log(1 - (p * s)) / np.log(1 - p)
 
 # PGF for geometric with support 0, 1, 2, ...
