@@ -1,5 +1,5 @@
 from scipy import stats
-from forward2 import *
+from forward import *
 from truncatedfa import poisson_branching, binomial_branching, nbinom_branching
 
 """

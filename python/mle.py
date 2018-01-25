@@ -1,5 +1,5 @@
 from scipy import optimize
-from forward2 import forward
+from forward import forward
 
 import csv, sys, warnings
 import numpy as np
