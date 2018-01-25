@@ -5,14 +5,40 @@ from gdual import log, exp
 from gdual import GDual, LSGDual, diff_grad
 from scipy.special import gammaln
 
+from collections import Iterable
+
+# Simple version of recursive map. All Iterables converted to lists
+def recursive_map(v, f):
+    if isinstance(v, Iterable):
+        return [recursive_map(i, f) for i in v]
+    else:
+        return f(v)
+
+# Flatten a 2d list into 1d
+def flatten(l):
+    return [i for row in l for i in row]
+
 class Parameter():
     def __init__(self, val, need_grad=False, grad=None):
         self.val = val
         self.need_grad = need_grad
         self.grad = grad
 
-def poisson_pgf_grad(s, lmbda):
+    def __str__(self):
+        return "Parameter: " + self.val.__str__()
+
+    def __repr__(self):
+        return "Parameter: " + self.val.__repr__()
+
+    @classmethod
+    def wrap(cls, x, **kwargs):
+        f = lambda val: cls(val, **kwargs)
+        y = recursive_map(x, f)
+        return y
+    
+def poisson_pgf_grad(s, theta):
     # Forward
+    lmbda = theta[0]
     y  = exp(lmbda.val * (s - 1))
 
     # Backward
@@ -24,8 +50,9 @@ def poisson_pgf_grad(s, lmbda):
     
     return y, backprop_dy_ds
 
-def bernoulli_pgf_grad(s, p):
-
+def bernoulli_pgf_grad(s, theta):
+    p = theta[0]
+    
     # Forward
     y  = (1 - p.val) + (p.val * s)
 
@@ -61,8 +88,8 @@ def forward_grad(y,
 
         Gamma_k_grad = lambda u: Gamma_grad( u, k )
 
-        Gamma_k_params = theta_immigration[:k+1] + \
-                         theta_offspring[:k+1] + \
+        Gamma_k_params = flatten(theta_immigration[:k+1]) + \
+                         flatten(theta_offspring[:k])     + \
                          rho[:k]
         
         b, backprop_db_da = diff_grad(Gamma_k_grad, a,
@@ -97,7 +124,7 @@ def forward_grad(y,
     def Gamma_grad(u, k):
         """Return Gamma(u, k) and d/du Gamma(u, k)"""
         
-        F_grad = lambda u:   offspring_pgf_grad(u, theta_offspring[k])
+        F_grad = lambda u:   offspring_pgf_grad(u, theta_offspring[k-1])
         G_grad = lambda u: immigration_pgf_grad(u, theta_immigration[k])
 
         # Forward prop
@@ -128,109 +155,34 @@ def forward_grad(y,
     #  side effect: computes gradient of parameters
     alpha_backprop(1/alpha)
 
-    theta_immigration_grad = [[t.grad.get(0) for t in theta_k if t.need_grad] for theta_k in theta_immigration]
-    theta_offspring_grad   = [[t.grad.get(0) for t in theta_k if t.need_grad] for theta_k in theta_offspring]
-    rho_grad = [t.grad.get(0) for t in rho if t.need_grad]
+    theta_immigration_grad = np.array([[t.grad.get(0) for t in theta_k if t.need_grad] for theta_k in theta_immigration])
+    theta_offspring_grad   = np.array([[t.grad.get(0) for t in theta_k if t.need_grad] for theta_k in theta_offspring])
+    rho_grad               = np.array( [t.grad.get(0) for t in rho if t.need_grad])
         
     return logZ, theta_immigration_grad, theta_offspring_grad, rho_grad
 
-
-def unpack(theta, wrap=True):
-    '''Convert numpy array into parameter vectors'''
-
-    k = int(len(theta) / 3)
-
-    '''First unpack into separate arrays'''
-    n_immigration_params = k
-    n_observ_params = k
-
-    immigration_params = theta_array[:n_immigration_params]
-    if n_observ_params > 0:
-        branch_params = theta_array[n_immigration_params:-n_observ_params]
-        observ_params = theta_array[-n_observ_params:]
-    else:
-        branch_params = theta_array[n_immigration_params:]
-        observ_params = []
-
-
-    if wrap:
-        theta = [[Parameter(t, need_grad=True) for t in theta_k] for theta_k in theta]
-
-    k = int(len(theta) / 3)
-    delta = theta[:k]
-    lmbda = theta[k:2*k]
-    rho   = theta[2*k:]
-    return delta, lmbda, rho
-
-def pack(delta, lmbda, rho):
-    return np.concatenate((delta, lmbda, rho))
-
-def recover_grad(params):
-    return np.array([t.grad.get(0) for t in params if t.need_grad])
-
 if __name__ == "__main__":
     
-    y     = np.array([2, 5, 3])
-    delta = np.array([ 1.0 ,  1.0 , 1.0 ]).reshape(-1,1)
+    y     = 100*np.array([2, 5, 3])
     lmbda = np.array([ 10 ,  0.  , 0.  ]).reshape(-1,1)
-    rho   = np.array([ 0.25,  0.25, 0.25]).reshape(-1, 1)
+    delta = np.array([ 1.0 ,  1.0]).reshape(-1,1)
+    rho   = np.array([ 0.25,  0.25, 0.25])
 
-    def nll_grad(theta, y):
-        
-        delta, lmbda, rho = unpack(theta)
-        
-        logZ, lmbda_grad, delta_grad, rho_grad = forward_grad(y,
-                                                              poisson_pgf_grad,
-                                                              lmbda,
-                                                              bernoulli_pgf_grad,
-                                                              delta,
-                                                              rho,
-                                                              GDualType=gd.LSGDual,
-                                                            d = 0)
-        
-        nll = -logZ
-        grad = -np.concatenate((lmbda_grad, delta_grad, rho_grad))
-        return nll, grad
-        
-    def nll(theta, y):
-        nll, _ = nll_grad(theta, y)
-        return nll
-        
-    def grad(theta, y):
-        _, grad = nll_grad(theta, y)
-        return grad
+    # Wrap all parameters in Parameter objects
+    lmbda = Parameter.wrap(lmbda, need_grad=True)
+    delta = Parameter.wrap(delta, need_grad=True)
+    rho   = Parameter.wrap(rho  , need_grad=False)
 
-
-    #test = "simple"
-    test = "grad_check"
-    #test = "optimize"
-
-    if test == "simple":
-
-        theta0 = pack(delta, lmbda, rho)
-        (nll, grad) = nll_grad(theta0, y)
-        print("nll: ", nll)
-        print("grad: ", grad)
-        
-    elif test == "grad_check":
-        
-        from scipy.optimize import check_grad
-
-        for i in range(60):            
-            f      = lambda theta: nll(theta, i*y)
-            f_grad = lambda theta: grad(theta, i*y)
-            theta0 = pack(delta, lmbda, rho)
-            val = check_grad(f, f_grad, theta0)
-            print(i, "gradient check: ", val)
-
-    elif test == "optimize":
-
-        theta0 = pack(delta, lmbda, rho)
-
-        from scipy.optimize import minimize
-        print("Starting optimization....")
-        theta = minimize(nll_grad, theta0, jac=True)
-        print("done")
-
-    else:
-        raise(ValueError('unknown test'))
+    logZ, lmbda_grad, delta_grad, rho_grad = forward_grad(y,
+                                                          poisson_pgf_grad,
+                                                          lmbda,
+                                                          bernoulli_pgf_grad,
+                                                          delta,
+                                                          rho,
+                                                          GDualType=gd.LSGDual,
+                                                          d = 0)
+    
+    print("logZ: ", logZ)
+    print("lmbda_grad: ", lmbda_grad)
+    print("delta_grad: ", delta_grad)
+    print("rho_grad: ", rho_grad)
