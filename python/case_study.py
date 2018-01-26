@@ -19,13 +19,18 @@ y = np.array([[ 1, 14, 25, 18, 28, 32, 40, 43, 46]])
 K = len(y[0])
 print(K)
 
+def flatten(l):
+    return [i for row in l for i in row]
+
 var_poisson_branch = {
     'learn_mask': [True] * (K - 1),
     'pmf': poisson_branching,
-    'pgf': 'poisson_pgf',
-    'pgf_grad': 'poisson_pgf_grad',
+    'pgf': poisson_pgf,
+    'pgf_grad': poisson_pgf_grad,
+    'need_grad': lambda T: [[True]] * (len(T)-1),
     'sample': lambda n, gamma: stats.poisson.rvs(n * gamma),
     'hyperparam2param': lambda x, T: x.reshape((-1, 1)),
+    'backprop': lambda dtheta: flatten(dtheta),
     'init': lambda y: [1.5] * (K - 1),
     'bounds': lambda y: [(0.1, None)] * (K - 1)
 }
@@ -67,9 +72,9 @@ arrival = nmixture_poisson_arrival
 
 #branch = grr_nbinom_branch
 #branch = var_nbinom_branch
-#branch = var_poisson_branch
+branch = var_poisson_branch
 #branch = constant_nbinom_branch
-branch = constant_poisson_branch
+#branch = constant_poisson_branch
 
 observ = constant_binom_observ
 #observ = full_binom_observ
