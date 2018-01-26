@@ -8,15 +8,27 @@ from scipy.special import gammaln
 from collections import Iterable
 
 # Simple version of recursive map. All Iterables converted to lists
-def recursive_map(v, f):
-    if isinstance(v, Iterable):
-        return [recursive_map(i, f) for i in v]
+def recursive_map(f, theta):
+    if isinstance(theta, Iterable):
+        return [recursive_map(f, t) for t in theta]
     else:
-        return f(v)
+        return f(theta)
+
+# This recursively iterates through a pair of lists
+def recursive_map_pair(f, theta, need_grad):
+    if isinstance(theta, Iterable):
+        return [recursive_map_pair(f, t, ng) for t, ng in zip(theta, need_grad)]
+    else:
+        return f(theta, need_grad)
 
 # Flatten a 2d list into 1d
 def flatten(l):
     return [i for row in l for i in row]
+
+def get_grad(theta):
+    f = lambda t: t.grad.get(0) if t.need_grad else None
+    theta_grad = recursive_map(f, theta)
+    return theta_grad
 
 class Parameter():
     def __init__(self, val, need_grad=False, grad=None):
@@ -31,10 +43,15 @@ class Parameter():
         return "Parameter: " + self.val.__repr__()
 
     @classmethod
-    def wrap(cls, x, **kwargs):
-        f = lambda val: cls(val, **kwargs)
-        y = recursive_map(x, f)
-        return y
+    def wrap(cls, theta, need_grad=False):
+        if need_grad is True or need_grad is False:
+            f = lambda val: cls(val, need_grad=need_grad)
+            return recursive_map(f, theta)
+        elif isinstance(need_grad, Iterable):
+            f = lambda theta_val, need_grad_val: cls(theta_val, need_grad=need_grad_val)
+            return recursive_map_pair(f, theta, need_grad)
+        else:
+            raise(ValueError('need_grad must be Boolean or a list'))
     
 def poisson_pgf_grad(s, theta):
     # Forward
@@ -155,9 +172,9 @@ def forward_grad(y,
     #  side effect: computes gradient of parameters
     alpha_backprop(1/alpha)
 
-    theta_immigration_grad = np.array([[t.grad.get(0) for t in theta_k if t.need_grad] for theta_k in theta_immigration])
-    theta_offspring_grad   = np.array([[t.grad.get(0) for t in theta_k if t.need_grad] for theta_k in theta_offspring])
-    rho_grad               = np.array( [t.grad.get(0) for t in rho if t.need_grad])
+    theta_immigration_grad = get_grad(theta_immigration)
+    theta_offspring_grad = get_grad(theta_offspring)
+    rho_grad = get_grad(rho)
         
     return logZ, theta_immigration_grad, theta_offspring_grad, rho_grad
 
@@ -168,7 +185,8 @@ if __name__ == "__main__":
     delta = np.array([ 1.0 ,  1.0]).reshape(-1,1)
     rho   = np.array([ 0.25,  0.25, 0.25])
 
-    # Wrap all parameters in Parameter objects
+    ## Test 1: simple usage
+    
     lmbda = Parameter.wrap(lmbda, need_grad=True)
     delta = Parameter.wrap(delta, need_grad=True)
     rho   = Parameter.wrap(rho  , need_grad=False)
@@ -186,3 +204,40 @@ if __name__ == "__main__":
     print("lmbda_grad: ", lmbda_grad)
     print("delta_grad: ", delta_grad)
     print("rho_grad: ", rho_grad)
+    
+
+    ## Test 1: more advanced usage. mimic how this function
+    ## will be called from MLE
+
+    T = np.arange(3)
+    theta = np.array([1.0])
+    
+    hyperparam2param = lambda x, T: np.concatenate((x, np.zeros(len(T) - 1))).reshape((-1, 1))
+    need_grad = lambda T: [[True]] + [[False]] * (len(T)-1)
+    backprop = lambda dtheta: dtheta[0][0]
+
+    lmbda = hyperparam2param(theta, T)
+    grad_mask = need_grad(T)
+
+    print("lmbda, grad_mask: ", lmbda, grad_mask)
+
+    lmbda = Parameter.wrap(lmbda, need_grad=grad_mask)
+    
+    
+    logZ, lmbda_grad, delta_grad, rho_grad = forward_grad(y,
+                                                          poisson_pgf_grad,
+                                                          lmbda,
+                                                          bernoulli_pgf_grad,
+                                                          delta,
+                                                          rho,
+                                                          GDualType=gd.LSGDual,
+                                                          d = 0)
+
+    hyperparam_grad = backprop(lmbda_grad)
+    
+    print("logZ: ", logZ)
+    print("lmbda_grad: ", lmbda_grad)
+    print("delta_grad: ", delta_grad)
+    print("rho_grad: ", rho_grad)
+
+    print("hyperparam_grad: ", hyperparam_grad)

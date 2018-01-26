@@ -8,13 +8,13 @@ from mle import *
 # First wave
 #y = np.array([ 1, 14, 25, 18, 28, 32, 40, 43, 46, 33, 27, 28, 22, 20, 20, 15])
 # First half of the first wave
-#y = np.array([[ 1, 14, 25, 18, 28, 32, 40, 43, 46]])
+y = np.array([[ 1, 14, 25, 18, 28, 32, 40, 43, 46]])
 
 # All H1N1 cases in the US, first half of the first wave
 #y = np.array([14, 1354, 2484, 1741, 2796, 3144, 3967, 4203, 4587])
 
 # All H1N1 cases in New England, first half of the first wave
-y = np.array([[1, 82, 104, 111, 391, 499]])
+#y = np.array([[1, 82, 104, 111, 391, 499]])
 
 K = len(y[0])
 print(K)
@@ -22,7 +22,8 @@ print(K)
 var_poisson_branch = {
     'learn_mask': [True] * (K - 1),
     'pmf': poisson_branching,
-    'pgf': 'poisson',
+    'pgf': 'poisson_pgf',
+    'pgf_grad': 'poisson_pgf_grad',
     'sample': lambda n, gamma: stats.poisson.rvs(n * gamma),
     'hyperparam2param': lambda x, T: x.reshape((-1, 1)),
     'init': lambda y: [1.5] * (K - 1),
@@ -76,7 +77,7 @@ observ = constant_binom_observ
 T = np.arange(K) # vector of observation times
 
 theta_hat, ci_left, ci_right = run_mle(T, arrival, branch, observ,
-                                       y=y.astype(np.int32))
+                                       y=y.astype(np.int32), grad=False)
 print(theta_hat, ci_left, ci_right)
 """
 # Clean output format
