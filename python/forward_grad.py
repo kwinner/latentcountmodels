@@ -180,7 +180,7 @@ def forward_grad(y,
 
 if __name__ == "__main__":
     
-    y     = 100*np.array([2, 5, 3])
+    y     = 300*np.array([2, 5, 3])
     lmbda = np.array([ 10 ,  0.  , 0.  ]).reshape(-1,1)
     delta = np.array([ 1.0 ,  1.0]).reshape(-1,1)
     rho   = np.array([ 0.25,  0.25, 0.25])

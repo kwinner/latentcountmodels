@@ -29,6 +29,7 @@ cdef extern from "gdual.h":
     void gdual_mul( ls* res, size_t n, ls* u, size_t u_len, ls* w, size_t w_len )
 
     void gdual_mul_same( ls* res, ls* u, ls* w, size_t n )
+    void gdual_compose_many( ls* res, ls* u, size_t m, ls* w, size_t n )
     void gdual_compose_same( ls* res, ls* u, ls* w, size_t n )
     void gdual_add( ls* res, ls* u, ls* w, size_t n )
     void gdual_div( ls* res, ls* u, ls* w, size_t n )
@@ -180,6 +181,33 @@ def sub(np.ndarray[ls, ndim=1, mode="c"] u not None,
 def compose(np.ndarray[ls, ndim=1, mode="c"] u not None,
             np.ndarray[ls, ndim=1, mode="c"] w not None):
     return binary_op_same(u, w, 'compose')
+
+
+# Compose each row of u with w
+def compose_many(np.ndarray[ls, ndim=2, mode="c"] u not None,
+                 np.ndarray[ls, ndim=1, mode="c"] w not None): 
+
+
+    # cdef size_t n = w.shape[0]
+    # cdef size_t m = u.shape[0]/n
+    # assert(u.shape[0] == m*n)
+    
+    # cdef np.ndarray[ls, ndim=1, mode="c"] res = np.zeros(m*n, dtype=LS_DTYPE)
+    
+    # gdual_compose_many(<ls *> res.data, <ls *> u.data, m, <ls *> w.data, n)
+    
+    # return res.reshape((m,n))
+
+    cdef size_t m = u.shape[0]
+    cdef size_t n = u.shape[1]
+    assert(w.shape[0] == n)
+    
+    cdef np.ndarray[ls, ndim=2, mode="c"] res = np.zeros((m,n), dtype=LS_DTYPE)
+    
+    gdual_compose_many(<ls *> res.data, <ls *> u.data, m, <ls *> w.data, n)
+    
+    return res
+
 
 def pow(np.ndarray[ls, ndim=1, mode="c"] u not None, r):
 

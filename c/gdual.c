@@ -755,12 +755,65 @@ void gdual_inv( ls* v, /* the result */
     gdual_div(v, one, w, n);
 }
 
+// Helper for gdual_compose variants:
+//   compute first k powers of w (w^0 up to w^{k-1}) and store in rows of A
+void compute_powers(ls* A, ls *w, size_t w_len, size_t k) {
+    
+    ls *row, *prev;
+
+    ls ZERO = ls_zero();
+
+    // First row: set to 1
+    row  = A;
+    prev = NULL;
+    row[0] = double_to_ls(1.0);
+    for (size_t j = 1; j < w_len; j++) {
+        A[j] = ZERO;
+    }
+
+    // Remaining rows: multiply previous row times w
+    for (row = A + w_len, prev = A; row < A + k * w_len; row += w_len, prev += w_len) {
+        gdual_mul_same( row, prev, w, w_len);        
+    }
+}
+
 void gdual_compose_same( ls* res,
                          ls* u,
                          ls* w,
                          size_t n )
 {
-    gdual_compose( res, n, u, n, w, n);
+    gdual_compose( res, n, u, n, w, n, NULL);
+}
+
+size_t chunk_size(double len) {    
+    // Determine size 
+    size_t k = (int) ceil(sqrt((double) len));
+    return k;
+}
+
+void gdual_compose_many( ls* res,
+                         ls* u,
+                         size_t m,
+                         ls* w,
+                         size_t n )
+{
+    // Compose m different gduals (stored in u) with one gdual w. 
+    // Some work can be saved by only computing the powers of w once.
+    // All gduals must have same size n (this could be generalized if needed)
+    
+    size_t k = chunk_size(n);
+
+    ls *w_powers = (ls*) malloc( k * n * sizeof(ls) );
+    ls w0 = w[0];
+    w[0] = ls_zero();
+    compute_powers(w_powers, w, n, k);
+
+    for (size_t i = 0; i < m; i++) {
+        gdual_compose( res + i*n, n, u + i*n, n, w, n, w_powers);
+    }
+    
+    free(w_powers);
+    w[0] = w0;
 }
 
 void gdual_compose( ls* res,
@@ -768,7 +821,8 @@ void gdual_compose( ls* res,
                     ls* u,
                     size_t u_len,
                     ls* w,
-                    size_t w_len)
+                    size_t w_len,
+                    ls *w_powers)
 {
     ls *A, *B, *C;
     size_t i, j;
@@ -777,14 +831,26 @@ void gdual_compose( ls* res,
     ls w0 = w[0];
     w[0] = ls_zero();
 
-    // Determine size and number of chunks of u
-    size_t k        = (int) ceil(sqrt((double) u_len));
+    size_t k = chunk_size(u_len);
     size_t n_chunks = (int) ceil(((double) u_len) / k);
 
     // Create arrays
     B = (ls*) malloc( n_chunks *     k * sizeof(ls) );
-    A = (ls*) malloc(        k * w_len * sizeof(ls) );
     C = (ls*) malloc( n_chunks * w_len * sizeof(ls) ); // C = B*A
+
+    // Fill rows of A with powers of w if they are not preovided
+    int free_A;
+    if (w_powers == NULL) {
+        A = (ls*) malloc( k * w_len * sizeof(ls) );
+        compute_powers(A, w, w_len, k);
+        free_A = 1;
+    }
+    else {
+        A = w_powers;
+        free_A = 0;
+    }
+
+    //gdual_print_as_double(A, n*k);
 
     ls ZERO = ls_zero();
     
@@ -804,22 +870,6 @@ void gdual_compose( ls* res,
         }
     }
     
-    // Fill rows of A with powers of w
-    ls *row, *prev;
-
-    // First row: set to 1
-    row  = A;
-    prev = NULL;
-    row[0] = double_to_ls(1.0);
-    for (j = 1; j < w_len; j++) {
-        A[j] = ZERO;
-    }
-
-    // Remaining rows: multiply previous row times w
-    for (row = A + w_len, prev = A; row < A + k * w_len; row += w_len, prev += w_len) {
-        gdual_mul_same( row, prev, w, w_len);        
-    }
-
     // Multiply B and C
     ls_mat_mul(C, B, A, n_chunks, k, w_len);
 
@@ -841,7 +891,8 @@ void gdual_compose( ls* res,
     // Compute val = w^k, the "input value" for the Horner's method
     // by multiplying the final row of A, which is equal to w^{k-1},
     // by w. Truncate to order n, the requested ouptut truncation order.
-    gdual_mul(val, n, prev, w_len, w, w_len);
+    ls *w_to_k_minus_one = A + (k-1)*w_len;
+    gdual_mul(val, n, w_to_k_minus_one, w_len, w, w_len);
     
     // Begin Horner's method
 
@@ -856,7 +907,7 @@ void gdual_compose( ls* res,
     
     free(val);
     free(tmp);
-    free(A);
+    if (free_A) free(A);
     free(B);
     free(C);
 

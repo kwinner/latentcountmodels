@@ -29,6 +29,10 @@ class GDualBase:
     @classmethod
     def unwrap_coefs(cls, coefs):
         raise NotImplementedError("Please Implement this method")
+
+    @classmethod
+    def compose_many(cls, y, x):
+        return [yi.compose(x) for yi in y]
     
     _div  = None
     _rdiv = None
@@ -288,6 +292,15 @@ class LSGDual(GDualBase):
     _compose = staticmethod( cygdual.compose )
     _compose_affine = staticmethod( lsgdual.compose_affine )
 
+    if True:
+        
+        @classmethod
+        def compose_many(cls, y, x):
+            y_coefs = np.stack( [yi.coefs for yi in y] )
+            res = cygdual.compose_many(y_coefs, x.coefs)
+            res = [cls(coefs = r) for r in res]
+            return res
+    
     def __mul__(self, other):
         return self.binary_op(other, self._mul, require_same_size=False)
 
@@ -337,7 +350,6 @@ class GDual(GDualBase):
     _get_derivatives = None  # TODO
     _compose = staticmethod( gdual.compose_brent_kung )
     _compose_affine = staticmethod( gdual.compose_affine )
-
 
 def diff(f, x, k, GDualType=LSGDual):
     """Compute kth derivative of f evaluated at x
@@ -395,26 +407,30 @@ def diff_grad(f, x, params, k, GDualType=LSGDual):
         GDualType = x.__class__
         q = x.order()
         y, backprop_dy_dx = f( GDualType(x, q + k) )
+
+        # Do backprop seeded with 1.0 during *forward* pass, then later multiply
+        # by dy once it is availble
+        
+        dy_dx = backprop_dy_dx(1.0) # side effect: sets p.grad for p in params
+
+        # Filter to params that need gradient
+        params = [p for p in params if p.need_grad]
+        
+        # Build list of things to compose and compose with x in one batch
+        compose_list = [y.deriv(k)] + [dy_dx.deriv(k)] + [p.grad.deriv(k) for p in params];
+        (y_deriv, dy_dx_deriv, *params_deriv) = x.compose_many(compose_list, x)
         
         # Backward pass: call backprop on base function, then deriv(k).compose(x)
         # on backprop outputs, which include params and dx
         def backprop_dy_deriv_dx(dy):
 
-            # Since dy is a GDual in the outer scope, we can't seed backprop
-            # using dy. Instead, we seed it with 1.0, perform the deriv(k).compose(x)
-            # so the gradients are GDuals in the outer scope, and only then
-            # multiply by dy.
-            
-            dy_dx = backprop_dy_dx(1.0) # side effect: sets p.grad for p in params
+            for p, p_deriv in zip(params, params_deriv):
+                p.grad = dy * p_deriv
 
-            for p in params:
-                if p.need_grad and p.grad is not None:
-                    p.grad = dy * p.grad.deriv(k).compose(x)
-
-            dx = dy * dy_dx.deriv(k).compose(x)
+            dx = dy * dy_dx_deriv
             return dx
 
-        return y.deriv(k).compose(x), backprop_dy_deriv_dx
+        return y_deriv, backprop_dy_deriv_dx
 
 if __name__ == "__main__":
 

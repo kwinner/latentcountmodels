@@ -82,7 +82,7 @@ observ = constant_binom_observ
 T = np.arange(K) # vector of observation times
 
 theta_hat, ci_left, ci_right = run_mle(T, arrival, branch, observ,
-                                       y=y.astype(np.int32), grad=False)
+                                       y=y.astype(np.int32), grad=True)
 print(theta_hat, ci_left, ci_right)
 """
 # Clean output format
