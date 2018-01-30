@@ -22,11 +22,58 @@ print(K)
 def flatten(l):
     return [i for row in l for i in row]
 
+''' 
+ "hyperparameters": learned parameters
+ "parameters": exploded parameters (full lambda, delta, rho arrays)
+
+
+GENERAL
+
+T              vector of time steps
+
+theta_arrival  2d array of arrival parameters: size K x p, where p = number of arrival pgf parameters
+
+theta_branch   2d array of branching parameters: size K x p, where p = number of branching pgf parameters
+
+theta_observ   1d array (double-check that all code expects 1d array)
+
+
+
+DICT
+
+learn_mask     (existing) number of True values here is the number of hyperparameters
+               could change to just be a function that accepts T and returns number of hyperparameters
+
+pmf            (existing) function to compute *log* pmf, defined in truncatedfa.py. used only by trunc
+               (NOTE: if this is used outside trunc alg., it needs to be updated to accept logpmf)
+
+pgf            (existing) pgf from forward.py. passed to forward(). computes only pgf value
+
+pgf_grad       (new) pgf from forward_grad.py. passed to forward_grad(). computes pgf + grad
+
+need_grad      (new) function that, given T, returns an array of Booleans the same size size
+               as the corresponding _expanded_ parameter vector indicating which parameter partial
+               derivatives are needed
+
+hyperparam2param  (existing) maps from hyperparameters to full parameter array (2d/1d depending on component)
+
+backprop       (new) takes gradient wrt expanded parameters, and returns gradient wrt hyperparameters.
+               gradient dtheta has same shape as theta; entries that are not needed are None. It is
+               a list, not a numpy array
+
+init           (existing) accepts y, and returns array of initial hyperparameter values
+
+bounds         (existing) accepts y, and returns array of bounds for hyperparameters
+
+'''
+
+# TODO: eliminate references to K within this dictionary
+
 var_poisson_branch = {
-    'learn_mask': [True] * (K - 1),
+    'learn_mask': [True] * (K - 1),   # TODO: 'num_hyperparams': lambda K: K-1,  (return number of parameters)
     'pmf': poisson_branching,
     'pgf': poisson_pgf,
-    'pgf_grad': poisson_pgf_grad,
+    'pgf_grad': poisson_pgf_grad,  # new: version of branching that supports backprop
     'need_grad': lambda T: [[True]] * (len(T)-1),
     'sample': lambda n, gamma: stats.poisson.rvs(n * gamma),
     'hyperparam2param': lambda x, T: x.reshape((-1, 1)),
@@ -82,7 +129,7 @@ observ = constant_binom_observ
 T = np.arange(K) # vector of observation times
 
 theta_hat, ci_left, ci_right = run_mle(T, arrival, branch, observ,
-                                       y=y.astype(np.int32), grad=True)
+                                       y=y.astype(np.int32), grad=False)
 print(theta_hat, ci_left, ci_right)
 """
 # Clean output format
