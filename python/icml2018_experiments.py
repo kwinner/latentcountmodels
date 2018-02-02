@@ -3,6 +3,7 @@ import sys
 from glob import glob
 import pwd
 import time
+import datetime
 import cProfile
 import pickle
 import itertools
@@ -30,7 +31,8 @@ def stability_experiment(
         branch      = 'bernoulli',
         Lambda_eval = None,
         Delta_eval  = None,
-        Rho_eval    = None
+        Rho_eval    = None,
+        y_given     = None   # if provided, will override all sampling with this y instead
         ):
     if(Lambda_eval is None): Lambda_eval = Lambda_gen
     if(Delta_eval  is None): Delta_eval  = Delta_gen
@@ -86,15 +88,18 @@ def stability_experiment(
             print("Iteration %d of %d" % (rep+1, n_reps))
 
         # sample data
-        for i in range(0, K):
-            if i == 0:
-                N[rep, i] = arrival_pmf.rvs(Lambda_gen[i])
-            else:
-                if branch == 'bernoulli':
-                    N[rep, i] = arrival_pmf.rvs(Lambda_gen[i]) + stats.binom.rvs(N[rep, i - 1], Delta_gen[i - 1])
-                elif branch == 'poisson':
-                    N[rep, i] = arrival_pmf.rvs(Lambda_gen[i]) + stats.poisson.rvs(N[rep, i - 1] * Delta_gen[i - 1])
-            y[rep, i] = stats.binom.rvs(N[rep, i], Rho_gen[i])
+        if y_given is not None:
+            y[rep, :] = np.copy(y_given[:])
+        else:
+            for i in range(0, K):
+                if i == 0:
+                    N[rep, i] = arrival_pmf.rvs(Lambda_gen[i])
+                else:
+                    if branch == 'bernoulli':
+                        N[rep, i] = arrival_pmf.rvs(Lambda_gen[i]) + stats.binom.rvs(N[rep, i - 1], Delta_gen[i - 1])
+                    elif branch == 'poisson':
+                        N[rep, i] = arrival_pmf.rvs(Lambda_gen[i]) + stats.poisson.rvs(N[rep, i - 1] * Delta_gen[i - 1])
+                y[rep, i] = stats.binom.rvs(N[rep, i], Rho_gen[i])
 
         if N_init < np.max(y[rep, :]):
             N_init = np.max(y[rep, :])
@@ -248,9 +253,17 @@ def stability_experiment(
 #         ):
 
 def stability_experiment_suite(experiment = 'demo'):
+    resultdir = '/Users/kwinner/Work/Data/Results'
+
     silent = False
     if experiment == 'demo':
         # vary Y via a scaling parameter on all entries of Lambda
+        experiment_folder_prefix = 'Lambda_scale'
+        experiment_timestamp = datetime.datetime.now().strftime("%y%m%d%H%M%S%f")
+        experiment_folder = os.path.join(resultdir, experiment_folder_prefix + experiment_timestamp)
+
+        if (not os.path.exists(experiment_folder)):
+            os.makedirs(experiment_folder)
 
         # Lambda_scale = [10, 50, 100, 300, 500, 1000, 1500, 3000]
         Lambda_scale = [10, 50, 100, 500, 1500, 3000]
@@ -260,17 +273,42 @@ def stability_experiment_suite(experiment = 'demo'):
         Delta = np.array([0.2636, 0.2636, 0.2636, 0.2636]).reshape(-1, 1)
         Rho = 0.5 * np.ones(5)
         epsilon = 1e-5
-        n_reps = 3
+        n_reps = 20
         N_init = 0
         N_LIMIT = 1500
         arrival = 'poisson'
         branch = 'bernoulli'
+
+        # write meta file
+        meta_file = open(os.path.join(experiment_folder, 'meta.txt'), 'w')
+        meta_file.write('experiment: ' + experiment + '\n')
+        meta_file.write('Lambda_gen: ' + str(Lambda_base) + '\n')
+        meta_file.write('Delta_gen: ' + str(Lambda_scale) + '\n')
+        meta_file.write('Delta_eval: ' + str(Delta) + '\n')
+        meta_file.write('Rho: ' + str(Rho) + '\n')
+        meta_file.write('epsilon: ' + str(epsilon) + '\n')
+        meta_file.write('n_reps: ' + str(n_reps) + '\n')
+        meta_file.write('N_init: ' + str(N_init) + '\n')
+        meta_file.write('arrival: ' + arrival + '\n')
+        meta_file.write('branch: ' + branch + '\n')
+        meta_file.close()
 
         # RMSE records
         RMSE_LL_lsgdual     = np.zeros(n_experiments)
         RMSE_LL_gdual     = np.zeros(n_experiments)
         # RMSE_LL_trfwd_dir = np.zeros(n_experiments)
         RMSE_LL_trfwd_fft = np.zeros(n_experiments)
+        # RMSE records
+        RMSE_LL_lsgdual = np.zeros(n_experiments)
+        RMSE_LL_gdual = np.zeros(n_experiments)
+        # RMSE_LL_trfwd_dir = np.zeros(n_experiments)
+        RMSE_LL_trfwd_fft = np.zeros(n_experiments)
+
+        # Runtime records
+        meanRT_lsgdual = np.zeros(n_experiments)
+        meanRT_gdual = np.zeros(n_experiments)
+        meanRT_trfwd_dir = np.zeros(n_experiments)
+        meanRT_trfwd_fft = np.zeros(n_experiments)
 
         for i_experiment in range(n_experiments):
             result = stability_experiment(Lambda_scale[i_experiment] * Lambda_base,
@@ -283,26 +321,77 @@ def stability_experiment_suite(experiment = 'demo'):
                                           silent,
                                           arrival,
                                           branch)
+
+            pickle.dump(result, open(os.path.join(experiment_folder, 'result'+str(i_experiment)+'.pickle'), 'wb'))
+
             LL_lsgdual, LL_gdual, LL_trunc_dir, LL_trunc_fft, y, N_max_trunc_dir, N_max_trunc_fft, RT_lsgdual, RT_gdual, RT_trunc_dir, RT_trunc_fft = result[:]
 
             RMSE_LL_lsgdual[i_experiment] = np.sqrt(np.nanmean((LL_lsgdual - LL_trunc_dir) ** 2))
             RMSE_LL_gdual[i_experiment] = np.sqrt(np.nanmean((LL_gdual - LL_trunc_dir) ** 2))
             RMSE_LL_trfwd_fft[i_experiment] = np.sqrt(np.nanmean((LL_trunc_fft - LL_trunc_dir) ** 2))
 
+            meanRT_lsgdual[i_experiment] = np.mean(RT_lsgdual)
+            meanRT_gdual[i_experiment] = np.mean(RT_gdual)
+            meanRT_trfwd_dir[i_experiment] = np.mean(RT_trunc_dir)
+            meanRT_trfwd_fft[i_experiment] = np.mean(RT_trunc_fft)
+
             # RMSE_LL_gdual[i_experiment]     = np.sqrt(np.nanmean((LL_gdual     - LL_lsgdual) ** 2))
             # RMSE_LL_trfwd_dir[i_experiment] = np.sqrt(np.nanmean((LL_trunc_dir - LL_lsgdual) ** 2))
             # RMSE_LL_trfwd_fft[i_experiment] = np.sqrt(np.nanmean((LL_trunc_fft - LL_lsgdual) ** 2))
 
-        x_axis_data  = Lambda_scale
+        pickle.dump([RMSE_LL_lsgdual, RMSE_LL_gdual, RMSE_LL_trfwd_fft, meanRT_lsgdual, meanRT_gdual, meanRT_trfwd_dir, meanRT_trfwd_fft], open(os.path.join(experiment_folder, 'result_means.pickle'), 'wb'))
+
         x_axis_label = r'$\Lambda$'
-        y_axis_data  = [RMSE_LL_lsgdual, RMSE_LL_gdual, RMSE_LL_trfwd_fft]
-        y_axis_label = r'RMSE'
+        RMSE_y_axis_label = r'RMSE'
+        RT_y_axis_label = r'RT'
+        method_names = ['LSGDual', 'GDual', 'Trunc w/ FFT', 'Trunc w/ Direct Conv']
+        method_filenames = ['lsgd', 'gdual', 'trfft', 'trdir']
+        RMSEsuffix = '_rmse.png'
+        RTsuffix = '_rt.png'
+
+        # plot RMSE results
+        RMSE_data = [RMSE_LL_lsgdual, RMSE_LL_gdual, RMSE_LL_trfwd_fft]
+        for i_method in range(3):
+            fig = plt.figure()
+            plt.plot(Lambda_scale, RMSE_data[i_method])
+
+            plt.xlabel(x_axis_label)
+            plt.ylabel(RMSE_y_axis_label)
+
+            plt.title(method_names[i_method])
+
+            fig.savefig(os.path.join(experiment_folder, method_filenames[i_method] + RMSEsuffix))
+
+        RT_data = [meanRT_lsgdual, meanRT_gdual, meanRT_trfwd_fft, meanRT_trfwd_dir]
+        for i_method in range(4):
+            fig = plt.figure()
+            plt.plot(Lambda_scale, RT_data[i_method])
+
+            plt.xlabel(x_axis_label)
+            plt.ylabel(RT_y_axis_label)
+
+            plt.title(method_names[i_method])
+
+            fig.savefig(os.path.join(experiment_folder, method_filenames[i_method] + RTsuffix))
     elif experiment == 'gen_vs_eval: delta':
+        fix_y = False
+
+        if fix_y:
+            experiment_folder_prefix = 'genvseval_delta_fixedy'
+        else:
+            experiment_folder_prefix = 'genvseval_delta'
+        experiment_timestamp     = datetime.datetime.now().strftime("%y%m%d%H%M%S%f")
+        experiment_folder        = os.path.join(resultdir, experiment_folder_prefix + experiment_timestamp)
+
+        if (not os.path.exists(experiment_folder)):
+            os.makedirs(experiment_folder)
+
         # vary the survival parameter used for evaluation of LL
 
         # Lambda_scale = [10, 50, 100, 300, 500, 1000, 1500, 3000]
         Delta_true = 0.5
-        Delta_eval = np.linspace(0, 1.0, 11)
+        Delta_eval = np.linspace(0, 1.0, 21)
+        # Delta_eval = np.linspace(0, 1.0, 11)
         n_experiments = len(Delta_eval)
 
         Lambda_scale = 500
@@ -310,11 +399,26 @@ def stability_experiment_suite(experiment = 'demo'):
         Delta_gen = (Delta_true * np.ones(4)).reshape(-1, 1)
         Rho = 0.5 * np.ones(5)
         epsilon = 1e-5
-        n_reps = 3
+        n_reps = 20
         N_init = 0
-        N_LIMIT = 1500
+        N_LIMIT = 2000
         arrival = 'poisson'
         branch = 'bernoulli'
+
+        # write meta file
+        meta_file = open(os.path.join(experiment_folder, 'meta.txt'), 'w')
+        meta_file.write('experiment: ' + experiment + '\n')
+        meta_file.write('Lambda_gen: ' + str(Lambda) + '\n')
+        meta_file.write('Delta_gen: ' + str(Delta_gen) + '\n')
+        meta_file.write('Delta_eval: ' + str(Delta_eval) + '\n')
+        meta_file.write('Rho: ' + str(Rho) + '\n')
+        meta_file.write('epsilon: ' + str(epsilon) + '\n')
+        meta_file.write('n_reps: ' + str(n_reps) + '\n')
+        meta_file.write('N_init: ' + str(N_init) + '\n')
+        meta_file.write('arrival: ' + arrival + '\n')
+        meta_file.write('branch: ' + branch + '\n')
+        meta_file.write('fix-y: ' + str(fix_y) + '\n')
+        meta_file.close()
 
         # RMSE records
         RMSE_LL_lsgdual     = np.zeros(n_experiments)
@@ -328,20 +432,50 @@ def stability_experiment_suite(experiment = 'demo'):
         meanRT_trfwd_dir = np.zeros(n_experiments)
         meanRT_trfwd_fft = np.zeros(n_experiments)
 
+        # Sample data
+        if fix_y:
+            K = len(Lambda)
+            N = np.zeros(K, dtype=np.int64)
+            y_given = np.zeros(K, dtype=np.int64)
+            for i in range(0, K):
+                if i == 0:
+                    N[i] = stats.poisson.rvs(Lambda[i])
+                else:
+                    if branch == 'bernoulli':
+                        N[i] = stats.poisson.rvs(Lambda[i]) + stats.binom.rvs(N[i - 1], Delta_gen[i - 1])
+                    elif branch == 'poisson':
+                        N[i] = stats.poisson.rvs(Lambda[i]) + stats.poisson.rvs(N[i - 1] * Delta_gen[i - 1])
+                y_given[i] = stats.binom.rvs(N[i], Rho[i])
+
         for i_experiment in range(n_experiments):
             Delta_eval_iter = (Delta_eval[i_experiment] * np.ones(4)).reshape(-1, 1)
 
-            result = stability_experiment(Lambda,
-                                          Delta_gen,
-                                          Rho,
-                                          epsilon,
-                                          n_reps,
-                                          N_init,
-                                          N_LIMIT,
-                                          silent,
-                                          arrival,
-                                          branch,
-                                          Delta_eval=Delta_eval_iter)
+            if fix_y:
+                result = stability_experiment(Lambda,
+                                              Delta_gen,
+                                              Rho,
+                                              epsilon,
+                                              n_reps,
+                                              N_init,
+                                              N_LIMIT,
+                                              silent,
+                                              arrival,
+                                              branch,
+                                              Delta_eval=Delta_eval_iter,
+                                              y_given = y_given)
+            else:
+                result = stability_experiment(Lambda,
+                                              Delta_gen,
+                                              Rho,
+                                              epsilon,
+                                              n_reps,
+                                              N_init,
+                                              N_LIMIT,
+                                              silent,
+                                              arrival,
+                                              branch,
+                                              Delta_eval=Delta_eval_iter)
+            pickle.dump(result, open(os.path.join(experiment_folder, 'result' + str(i_experiment) + '.pickle'), 'wb'))
             LL_lsgdual, LL_gdual, LL_trunc_dir, LL_trunc_fft, y, N_max_trunc_dir, N_max_trunc_fft, RT_lsgdual, RT_gdual, RT_trunc_dir, RT_trunc_fft = result[:]
 
             RMSE_LL_lsgdual[i_experiment] = np.sqrt(np.nanmean((LL_lsgdual - LL_trunc_dir) ** 2))
@@ -356,178 +490,311 @@ def stability_experiment_suite(experiment = 'demo'):
             # RMSE_LL_gdual[i_experiment]     = np.sqrt(np.nanmean((LL_gdual     - LL_lsgdual) ** 2))
             # RMSE_LL_trfwd_dir[i_experiment] = np.sqrt(np.nanmean((LL_trunc_dir - LL_lsgdual) ** 2))
             # RMSE_LL_trfwd_fft[i_experiment] = np.sqrt(np.nanmean((LL_trunc_fft - LL_lsgdual) ** 2))
-        elif experiment == 'fixedY':
-            None
-        elif experiment == 'poissonbranching_RT':
-            None
-        elif experiment == 'RT wrt Y directly'
 
-        x_axis_data  = Delta_eval
+        pickle.dump([RMSE_LL_lsgdual, RMSE_LL_gdual, RMSE_LL_trfwd_fft, meanRT_lsgdual, meanRT_gdual, meanRT_trfwd_dir,
+                     meanRT_trfwd_fft], open(os.path.join(experiment_folder, 'result_means.pickle'), 'wb'))
+
+        x_axis_label     = r'$\delta$'
+        RMSE_y_axis_label = r'RMSE'
+        RT_y_axis_label  = r'RT'
+        method_names     = ['LSGDual', 'GDual', 'Trunc w/ FFT', 'Trunc w/ Direct Conv']
+        method_filenames = ['lsgd', 'gdual', 'trfft', 'trdir']
+        RMSEsuffix       = '_rmse.png'
+        RTsuffix         = '_rt.png'
+
+        # plot RMSE results
+        RMSE_data = [RMSE_LL_lsgdual, RMSE_LL_gdual, RMSE_LL_trfwd_fft]
+        for i_method in range(3):
+            fig = plt.figure()
+            plt.plot(Delta_eval, RMSE_data[i_method])
+
+            plt.xlabel(x_axis_label)
+            plt.ylabel(RMSE_y_axis_label)
+
+            plt.title(method_names[i_method])
+
+            fig.savefig(os.path.join(experiment_folder, method_filenames[i_method] + RMSEsuffix))
+
+        RT_data = [meanRT_lsgdual, meanRT_gdual, meanRT_trfwd_fft, meanRT_trfwd_dir]
+        for i_method in range(4):
+            fig = plt.figure()
+            plt.plot(Delta_eval, RT_data[i_method])
+
+            plt.xlabel(x_axis_label)
+            plt.ylabel(RT_y_axis_label)
+
+            plt.title(method_names[i_method])
+
+            fig.savefig(os.path.join(experiment_folder, method_filenames[i_method] + RTsuffix))
+    elif experiment == 'poissonbranching_RT':
+        fix_y = False
+
+        if fix_y:
+            experiment_folder_prefix = 'poisson_branch_fixedy'
+        else:
+            experiment_folder_prefix = 'poisson_branch_delta'
+
+        experiment_timestamp = datetime.datetime.now().strftime("%y%m%d%H%M%S%f")
+        experiment_folder = os.path.join(resultdir, experiment_folder_prefix + experiment_timestamp)
+
+        if (not os.path.exists(experiment_folder)):
+            os.makedirs(experiment_folder)
+
+        # vary the survival parameter used for evaluation of LL
+
+        # Lambda_scale = [10, 50, 100, 300, 500, 1000, 1500, 3000]
+        Delta_true = 0.5
+        Delta_eval = np.linspace(0, 1.0, 21)
+        # Delta_eval = np.linspace(0, 1.0, 11)
+        n_experiments = len(Delta_eval)
+
+        Lambda_scale = 500
+        Lambda = Lambda_scale * np.array([0.0257, 0.1163, 0.2104, 0.1504, 0.0428]).reshape(-1, 1)
+        Delta_gen = (Delta_true * np.ones(4)).reshape(-1, 1)
+        Rho = 0.5 * np.ones(5)
+        epsilon = 1e-5
+        n_reps = 20
+        N_init = 0
+        N_LIMIT = 2000
+        arrival = 'poisson'
+        branch = 'poisson'
+
+        # write meta file
+        meta_file = open(os.path.join(experiment_folder, 'meta.txt'), 'w')
+        meta_file.write('experiment: ' + experiment + '\n')
+        meta_file.write('Lambda_gen: ' + str(Lambda) + '\n')
+        meta_file.write('Delta_gen: ' + str(Delta_gen) + '\n')
+        meta_file.write('Delta_eval: ' + str(Delta_eval) + '\n')
+        meta_file.write('Rho: ' + str(Rho) + '\n')
+        meta_file.write('epsilon: ' + str(epsilon) + '\n')
+        meta_file.write('n_reps: ' + str(n_reps) + '\n')
+        meta_file.write('N_init: ' + str(N_init) + '\n')
+        meta_file.write('arrival: ' + arrival + '\n')
+        meta_file.write('branch: ' + branch + '\n')
+        meta_file.write('fix-y: ' + str(fix_y) + '\n')
+        meta_file.close()
+
+        # RMSE records
+        RMSE_LL_lsgdual = np.zeros(n_experiments)
+        RMSE_LL_gdual = np.zeros(n_experiments)
+        # RMSE_LL_trfwd_dir = np.zeros(n_experiments)
+        RMSE_LL_trfwd_fft = np.zeros(n_experiments)
+
+        # Runtime records
+        meanRT_lsgdual = np.zeros(n_experiments)
+        meanRT_gdual = np.zeros(n_experiments)
+        meanRT_trfwd_dir = np.zeros(n_experiments)
+        meanRT_trfwd_fft = np.zeros(n_experiments)
+
+        # Sample data
+        if fix_y:
+            K = len(Lambda)
+            N = np.zeros(K, dtype=np.int64)
+            y_given = np.zeros(K, dtype=np.int64)
+            for i in range(0, K):
+                if i == 0:
+                    N[i] = stats.poisson.rvs(Lambda[i])
+                else:
+                    if branch == 'bernoulli':
+                        N[i] = stats.poisson.rvs(Lambda[i]) + stats.binom.rvs(N[i - 1], Delta_gen[i - 1])
+                    elif branch == 'poisson':
+                        N[i] = stats.poisson.rvs(Lambda[i]) + stats.poisson.rvs(N[i - 1] * Delta_gen[i - 1])
+                y_given[i] = stats.binom.rvs(N[i], Rho[i])
+
+        for i_experiment in range(n_experiments):
+            Delta_eval_iter = (Delta_eval[i_experiment] * np.ones(4)).reshape(-1, 1)
+
+            if fix_y:
+                result = stability_experiment(Lambda,
+                                              Delta_gen,
+                                              Rho,
+                                              epsilon,
+                                              n_reps,
+                                              N_init,
+                                              N_LIMIT,
+                                              silent,
+                                              arrival,
+                                              branch,
+                                              Delta_eval=Delta_eval_iter,
+                                              y_given = y_given)
+            else:
+                result = stability_experiment(Lambda,
+                                              Delta_gen,
+                                              Rho,
+                                              epsilon,
+                                              n_reps,
+                                              N_init,
+                                              N_LIMIT,
+                                              silent,
+                                              arrival,
+                                              branch,
+                                              Delta_eval=Delta_eval_iter)
+            pickle.dump(result, open(os.path.join(experiment_folder, 'result' + str(i_experiment) + '.pickle'), 'wb'))
+            LL_lsgdual, LL_gdual, LL_trunc_dir, LL_trunc_fft, y, N_max_trunc_dir, N_max_trunc_fft, RT_lsgdual, RT_gdual, RT_trunc_dir, RT_trunc_fft = result[
+                                                                                                                                                      :]
+
+            RMSE_LL_lsgdual[i_experiment] = np.sqrt(np.nanmean((LL_lsgdual - LL_trunc_dir) ** 2))
+            RMSE_LL_gdual[i_experiment] = np.sqrt(np.nanmean((LL_gdual - LL_trunc_dir) ** 2))
+            RMSE_LL_trfwd_fft[i_experiment] = np.sqrt(np.nanmean((LL_trunc_fft - LL_trunc_dir) ** 2))
+
+            meanRT_lsgdual[i_experiment] = np.mean(RT_lsgdual)
+            meanRT_gdual[i_experiment] = np.mean(RT_gdual)
+            meanRT_trfwd_dir[i_experiment] = np.mean(RT_trunc_dir)
+            meanRT_trfwd_fft[i_experiment] = np.mean(RT_trunc_fft)
+
+            # RMSE_LL_gdual[i_experiment]     = np.sqrt(np.nanmean((LL_gdual     - LL_lsgdual) ** 2))
+            # RMSE_LL_trfwd_dir[i_experiment] = np.sqrt(np.nanmean((LL_trunc_dir - LL_lsgdual) ** 2))
+            # RMSE_LL_trfwd_fft[i_experiment] = np.sqrt(np.nanmean((LL_trunc_fft - LL_lsgdual) ** 2))
+
+        pickle.dump([RMSE_LL_lsgdual, RMSE_LL_gdual, RMSE_LL_trfwd_fft, meanRT_lsgdual, meanRT_gdual, meanRT_trfwd_dir,
+                     meanRT_trfwd_fft], open(os.path.join(experiment_folder, 'result_means.pickle'), 'wb'))
+
         x_axis_label = r'$\delta$'
-        y_axis_data  = [RMSE_LL_lsgdual, RMSE_LL_gdual, RMSE_LL_trfwd_fft]
-        y_axis_label = r'RMSE'
+        RMSE_y_axis_label = r'RMSE'
+        RT_y_axis_label = r'RT'
+        method_names = ['LSGDual', 'GDual', 'Trunc w/ FFT', 'Trunc w/ Direct Conv']
+        method_filenames = ['lsgd', 'gdual', 'trfft', 'trdir']
+        RMSEsuffix = '_rmse.png'
+        RTsuffix = '_rt.png'
 
+        # plot RMSE results
+        RMSE_data = [RMSE_LL_lsgdual, RMSE_LL_gdual, RMSE_LL_trfwd_fft]
+        for i_method in range(3):
+            fig = plt.figure()
+            plt.plot(Delta_eval, RMSE_data[i_method])
 
-    # plot results
-    fig = plt.figure()
-    for data in y_axis_data:
-        plt.plot(x_axis_data, data)
+            plt.xlabel(x_axis_label)
+            plt.ylabel(RMSE_y_axis_label)
 
-    plt.xlabel(x_axis_label)
-    plt.ylabel(y_axis_label)
+            plt.title(method_names[i_method])
 
-    fig.savefig('test.png')
+            fig.savefig(os.path.join(experiment_folder, method_filenames[i_method] + RMSEsuffix))
 
+        RT_data = [meanRT_lsgdual, meanRT_gdual, meanRT_trfwd_fft, meanRT_trfwd_dir]
+        for i_method in range(4):
+            fig = plt.figure()
+            plt.plot(Delta_eval, RT_data[i_method])
 
+            plt.xlabel(x_axis_label)
+            plt.ylabel(RT_y_axis_label)
 
-# def runtime_hmm(
-#         Lambda  = 10 * np.array([0.0257, 0.1163, 0.2104, 0.1504, 0.0428]),
-#         Delta   = np.array([0.2636, 0.2636, 0.2636, 0.2636]),
-#         Rho     = 0.5 * np.ones(5),
-#         epsilon = 1e-10, # allowable error in truncated fa
-#         n_reps  = 10,   # number of times to repeat the experiment
-#         N_LIMIT = 1000, # hard cap on the max value for the truncated algorithm
-#         verbose = True,
-#         arrival = 'poisson',
-#         branch  = 'bernoulli',
-#         observ  = 'binomial'
-#         ):
-#
-#     K = len(Lambda)
-#
-#     # sample record
-#     N = np.zeros((n_reps, K), dtype=np.int32)
-#     y = np.zeros((n_reps, K), dtype=np.int32)
-#
-#     # runtime record
-#     runtime_trunc_final = np.zeros(n_reps)
-#     runtime_trunc_total = np.zeros(n_reps)
-#     runtime_pgffa       = np.zeros(n_reps)
-#     runtime_utppgffa    = np.zeros(n_reps)
-#
-#     # truncated fa final truncation value
-#     n_max = np.zeros(n_reps).astype(int)
-#
-#     # organize parameters for pgffa, utppgffa and trunfa
-#     Theta  = {'arrival': Lambda.reshape((-1, 1)),
-#               'branch':  Delta.reshape((-1, 1)),
-#               'observ':  Rho}
-#
-#     Lambda_trunc = Lambda.reshape((-1, 1))
-#     Delta_trunc  = Delta.reshape((-1, 1))
-#
-#     # configure distributions
-#     if arrival == 'poisson':
-#         arrival_pmf = stats.poisson
-#         arrival_pgf = poisson_utppgf_cython
-#         arrival_pgf_name = 'poisson'
-#     elif arrival == 'logser':
-#         arrival_pmf = stats.logser
-#         arrival_pgf = logarithmic_utppgf_cython
-#     elif arrival == 'geom':
-#         arrival_pmf = stats.geom
-#         # arrival_pgf = lambda s, theta: geometric_pgf(s, theta)
-#         arrival_pgf = geometric_utppgf_cython
-#
-#     if branch  == 'bernoulli':
-#         branch_fun  = truncatedfa.binomial_branching
-#         # branch_pgf  = lambda s, theta: bernoulli_pgf(s, theta)
-#         branch_pgf = bernoulli_utppgf_cython
-#         branch_pgf_name = 'bernoulli'
-#     elif branch == 'poisson':
-#         branch_fun  = truncatedfa.poisson_branching
-#         # branch_pgf  = lambda s, theta: poisson_pgf(s, theta)
-#         branch_pgf = poisson_utppgf_cython
-#         branch_pgf_name = 'poisson'
-#
-#     if observ  == 'binomial':
-#         observ_pgf  = None
-#
-#     for iter in range(0, n_reps):
-#         if verbose == "full": print "Iteration %d of %d" % (iter, n_reps)
-#
-#         attempt = 1
-#         while True:
-#             # try:
-#                 # sample data
-#                 for i in range(0, K):
-#                     if i == 0:
-#                         N[iter, i] = arrival_pmf.rvs(Lambda[i])
-#                     else:
-#                         if branch == 'binomial':
-#                             N[iter, i] = arrival_pmf.rvs(Lambda[i]) + stats.binom.rvs(N[iter, i-1], Delta[i-1])
-#                         elif branch == 'poisson':
-#                             N[iter, i] = arrival_pmf.rvs(Lambda[i]) + stats.poisson.rvs(N[iter, i - 1] * Delta[i - 1])
-#                     y[iter, i] = stats.binom.rvs(N[iter, i], Rho[i])
-#
-#                 if verbose == "full": print y[iter,:]
-#
-#                 # likelihood from UTPPGFFA
-#                 t_start = time.clock()
-#                 # Alpha_utppgffa, logZ_utppgffa = UTPPGFFA.utppgffa(y[iter, :],
-#                 #                                                Theta,
-#                 #                                                arrival_pgf,
-#                 #                                                branch_pgf,
-#                 #                                                observ_pgf,
-#                 #                                                d=1,
-#                 #                                                normalized=True)
-#                 alpha_utppgffa, logZ_utppgffa = UTPPGFFA_cython.utppgffa_cython(y[iter, :],
-#                                                                   arrival_pgf_name,
-#                                                                   Lambda_trunc,
-#                                                                   branch_pgf_name,
-#                                                                   Delta_trunc,
-#                                                                   Rho,
-#                                                                   d=3)
-#                 # loglikelihood_utppgffa = np.log(Alpha_utppgffa[-1][0]) + np.sum(logZ_utppgffa)
-#                 loglikelihood_utppgffa = np.log(alpha_utppgffa[0]) + np.sum(logZ_utppgffa)
-#                 runtime_utppgffa[iter] = time.clock() - t_start
-#                 if verbose == "full": print "UTPPGFFA: %0.4f" % runtime_utppgffa[iter]
-#
-#                 # likelihood from PGFFA
-#                 t_start = time.clock()
-#                 a, b, f = pgffa.pgf_forward(Lambda,
-#                                                 Rho,
-#                                                 Delta,
-#                                                 y[iter, :])
-#                 runtime_pgffa[iter] = time.clock() - t_start
-#                 if verbose == "full": print "PGFFA: %0.4f" % runtime_pgffa[iter]
-#
-#                 # likelihood from truncated forward algorithm
-#                 n_max[iter] = max(y[iter, :])
-#                 t_start = time.clock()
-#                 loglikelihood_trunc = float('inf')
-#                 loglikelihood_diff  = float('inf')
-#                 while abs(loglikelihood_trunc - loglikelihood_utppgffa) >= epsilon and \
-#                       loglikelihood_diff >= CONV_LIMIT and \
-#                       n_max[iter] < N_LIMIT:
-#                 # while abs(1 - (loglikelihood_trunc / loglikelihood_utppgffa)) >= epsilon and n_max[iter] < N_LIMIT:
-#                     n_max[iter] += 1
-#                     t_loop = time.clock()
-#                     Alpha_trunc, z = truncatedfa.truncated_forward(arrival_pmf,
-#                                                                    Lambda_trunc,
-#                                                                    branch_fun,
-#                                                                    Delta_trunc,
-#                                                                    Rho,
-#                                                                    y[iter, :],
-#                                                                    n_max=n_max[iter])
-#                     loglikelihood_iter = truncatedfa.likelihood(z, log=True)
-#                     loglikelihood_diff = abs(loglikelihood_trunc - loglikelihood_iter)
-#                     loglikelihood_trunc = loglikelihood_iter
-#                     runtime_trunc_final[iter] = time.clock() - t_loop
-#                 runtime_trunc_total[iter] = time.clock() - t_start
-#
-#                 if verbose == "full": print "Trunc: %0.4f last run @%d, %0.4f total" % (runtime_trunc_final[iter], n_max[iter], runtime_trunc_total[iter])
-#
-#                 if n_max[iter] >= N_LIMIT:
-#                     print "Attempt #%d, trunc failed to converge." % attempt
-#                     attempt += 1
-#                 else:
-#                     break
-#             # except Exception as inst:
-#             #     print "Attempt #%d failed, Error: " % attempt, inst
-#             #     attempt += 1
-#     return runtime_utppgffa, runtime_pgffa, runtime_trunc_final, runtime_trunc_total, n_max, y, N
+            plt.title(method_names[i_method])
+
+            fig.savefig(os.path.join(experiment_folder, method_filenames[i_method] + RTsuffix))
+    # elif experiment == 'RT wrt Y directly':
+    #     # vary Y via a scaling parameter on all entries of Lambda
+    #     experiment_folder_prefix = 'RTvsY'
+    #     experiment_timestamp = datetime.datetime.now().strftime("%y%m%d%H%M%S%f")
+    #     experiment_folder = os.path.join(resultdir, experiment_folder_prefix + experiment_timestamp)
+    #
+    #     if (not os.path.exists(experiment_folder)):
+    #         os.makedirs(experiment_folder)
+    #
+    #     Y_scale = [1, 10, 50, 100, 150, 200, 250, 300]
+    #     n_experiments = len(Y_scale)
+    #
+    #     Lambda_eval = np.array([1., 1., 1., 1., 1.]).reshape(-1, 1)
+    #     K = len(Lambda_eval)
+    #     Delta_eval = 0.25 * np.zeros(K - 1).reshape(-1, 1)
+    #     Rho_eval = 0.5 * np.ones(5)
+    #     epsilon = 1e-5
+    #     n_reps = 20
+    #     N_init = 0
+    #     N_LIMIT = 1500
+    #     arrival = 'poisson'
+    #     branch = 'bernoulli'
+    #
+    #     # write meta file
+    #     meta_file = open(os.path.join(experiment_folder, 'meta.txt'), 'w')
+    #     meta_file.write('experiment: ' + experiment + '\n')
+    #     meta_file.write('Lambda_gen: ' + str(Lambda_base) + '\n')
+    #     meta_file.write('Delta_gen: ' + str(Lambda_scale) + '\n')
+    #     meta_file.write('Delta_eval: ' + str(Delta) + '\n')
+    #     meta_file.write('Rho: ' + str(Rho) + '\n')
+    #     meta_file.write('epsilon: ' + str(epsilon) + '\n')
+    #     meta_file.write('n_reps: ' + str(n_reps) + '\n')
+    #     meta_file.write('N_init: ' + str(N_init) + '\n')
+    #     meta_file.write('arrival: ' + arrival + '\n')
+    #     meta_file.write('branch: ' + branch + '\n')
+    #     meta_file.close()
+    #
+    #     # RMSE records
+    #     RMSE_LL_lsgdual     = np.zeros(n_experiments)
+    #     RMSE_LL_gdual     = np.zeros(n_experiments)
+    #     # RMSE_LL_trfwd_dir = np.zeros(n_experiments)
+    #     RMSE_LL_trfwd_fft = np.zeros(n_experiments)
+    #     # RMSE records
+    #     RMSE_LL_lsgdual = np.zeros(n_experiments)
+    #     RMSE_LL_gdual = np.zeros(n_experiments)
+    #     # RMSE_LL_trfwd_dir = np.zeros(n_experiments)
+    #     RMSE_LL_trfwd_fft = np.zeros(n_experiments)
+    #
+    #     # Runtime records
+    #     meanRT_lsgdual = np.zeros(n_experiments)
+    #     meanRT_gdual = np.zeros(n_experiments)
+    #     meanRT_trfwd_dir = np.zeros(n_experiments)
+    #     meanRT_trfwd_fft = np.zeros(n_experiments)
+    #
+    #     for i_experiment in range(n_experiments):
+    #         result = stability_experiment(Lambda_scale[i_experiment] * Lambda_base,
+    #                                       Delta,
+    #                                       Rho,
+    #                                       epsilon,
+    #                                       n_reps,
+    #                                       N_init,
+    #                                       N_LIMIT,
+    #                                       silent,
+    #                                       arrival,
+    #                                       branch)
+    #         pickle.dump(result, open(os.path.join(experiment_folder, 'result' + str(i_experiment) + '.pickle'), 'wb'))
+    #         LL_lsgdual, LL_gdual, LL_trunc_dir, LL_trunc_fft, y, N_max_trunc_dir, N_max_trunc_fft, RT_lsgdual, RT_gdual, RT_trunc_dir, RT_trunc_fft = result[:]
+    #
+    #         RMSE_LL_lsgdual[i_experiment] = np.sqrt(np.nanmean((LL_lsgdual - LL_trunc_dir) ** 2))
+    #         RMSE_LL_gdual[i_experiment] = np.sqrt(np.nanmean((LL_gdual - LL_trunc_dir) ** 2))
+    #         RMSE_LL_trfwd_fft[i_experiment] = np.sqrt(np.nanmean((LL_trunc_fft - LL_trunc_dir) ** 2))
+    #
+    #         meanRT_lsgdual[i_experiment] = np.mean(RT_lsgdual)
+    #         meanRT_gdual[i_experiment] = np.mean(RT_gdual)
+    #         meanRT_trfwd_dir[i_experiment] = np.mean(RT_trunc_dir)
+    #         meanRT_trfwd_fft[i_experiment] = np.mean(RT_trunc_fft)
+    #
+    #         # RMSE_LL_gdual[i_experiment]     = np.sqrt(np.nanmean((LL_gdual     - LL_lsgdual) ** 2))
+    #         # RMSE_LL_trfwd_dir[i_experiment] = np.sqrt(np.nanmean((LL_trunc_dir - LL_lsgdual) ** 2))
+    #         # RMSE_LL_trfwd_fft[i_experiment] = np.sqrt(np.nanmean((LL_trunc_fft - LL_lsgdual) ** 2))
+    #
+    #     x_axis_label = r'$\Lambda$'
+    #     RMSE_y_axis_label = r'RMSE'
+    #     RT_y_axis_label = r'RT'
+    #     method_names = ['LSGDual', 'GDual', 'Trunc w/ FFT', 'Trunc w/ Direct Conv']
+    #     method_filenames = ['lsgd', 'gdual', 'trfft', 'trdir']
+    #     RMSEsuffix = '_rmse.png'
+    #     RTsuffix = '_rt.png'
+    #
+    #     # plot RMSE results
+    #     RMSE_data = [RMSE_LL_lsgdual, RMSE_LL_gdual, RMSE_LL_trfwd_fft]
+    #     for i_method in range(3):
+    #         fig = plt.figure()
+    #         plt.plot(Lambda_scale, RMSE_data[i_method])
+    #
+    #         plt.xlabel(x_axis_label)
+    #         plt.ylabel(RMSE_y_axis_label)
+    #
+    #         plt.title(method_names[i_method])
+    #
+    #         fig.savefig(os.path.join(experiment_folder, method_filenames[i_method] + RMSEsuffix))
+    #
+    #     RT_data = [meanRT_lsgdual, meanRT_gdual, meanRT_trfwd_fft, meanRT_trfwd_dir]
+    #     for i_method in range(4):
+    #         fig = plt.figure()
+    #         plt.plot(Lambda_scale, RT_data[i_method])
+    #
+    #         plt.xlabel(x_axis_label)
+    #         plt.ylabel(RT_y_axis_label)
+    #
+    #         plt.title(method_names[i_method])
+    #
+    #         fig.savefig(os.path.join(experiment_folder, method_filenames[i_method] + RTsuffix))
 
 
 if __name__ == "__main__":
-    stability_experiment_suite('gen_vs_eval: delta')
+    stability_experiment_suite('demo')
