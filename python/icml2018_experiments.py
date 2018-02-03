@@ -273,11 +273,11 @@ def stability_experiment_suite(experiment = 'demo'):
         Delta = np.array([0.2636, 0.2636, 0.2636, 0.2636]).reshape(-1, 1)
         Rho = 0.5 * np.ones(5)
         epsilon = 1e-5
-        n_reps = 20
+        n_reps = 5
         N_init = 0
         N_LIMIT = 1500
         arrival = 'poisson'
-        branch = 'bernoulli'
+        branch = 'poisson'
 
         # write meta file
         meta_file = open(os.path.join(experiment_folder, 'meta.txt'), 'w')
@@ -310,6 +310,12 @@ def stability_experiment_suite(experiment = 'demo'):
         meanRT_trfwd_dir = np.zeros(n_experiments)
         meanRT_trfwd_fft = np.zeros(n_experiments)
 
+        # LL records
+        mean_LL_lsgdual   = np.zeros(n_experiments)
+        mean_LL_gdual     = np.zeros(n_experiments)
+        mean_LL_trfwd_dir = np.zeros(n_experiments)
+        mean_LL_trfwd_fft = np.zeros(n_experiments)
+
         for i_experiment in range(n_experiments):
             result = stability_experiment(Lambda_scale[i_experiment] * Lambda_base,
                                           Delta,
@@ -335,19 +341,28 @@ def stability_experiment_suite(experiment = 'demo'):
             meanRT_trfwd_dir[i_experiment] = np.mean(RT_trunc_dir)
             meanRT_trfwd_fft[i_experiment] = np.mean(RT_trunc_fft)
 
+            mean_LL_lsgdual[i_experiment] = np.nanmean(LL_lsgdual)
+            mean_LL_gdual[i_experiment] = np.nanmean(LL_gdual)
+            mean_LL_trfwd_dir[i_experiment] = np.nanmean(LL_trunc_dir)
+            mean_LL_trfwd_fft[i_experiment] = np.nanmean(LL_trunc_fft)
+
             # RMSE_LL_gdual[i_experiment]     = np.sqrt(np.nanmean((LL_gdual     - LL_lsgdual) ** 2))
             # RMSE_LL_trfwd_dir[i_experiment] = np.sqrt(np.nanmean((LL_trunc_dir - LL_lsgdual) ** 2))
             # RMSE_LL_trfwd_fft[i_experiment] = np.sqrt(np.nanmean((LL_trunc_fft - LL_lsgdual) ** 2))
 
-        pickle.dump([RMSE_LL_lsgdual, RMSE_LL_gdual, RMSE_LL_trfwd_fft, meanRT_lsgdual, meanRT_gdual, meanRT_trfwd_dir, meanRT_trfwd_fft], open(os.path.join(experiment_folder, 'result_means.pickle'), 'wb'))
+        pickle.dump([RMSE_LL_lsgdual, RMSE_LL_gdual, RMSE_LL_trfwd_fft, meanRT_lsgdual, meanRT_gdual, meanRT_trfwd_dir,
+                     meanRT_trfwd_fft, mean_LL_lsgdual, mean_LL_gdual, mean_LL_trfwd_dir, mean_LL_trfwd_fft],
+                    open(os.path.join(experiment_folder, 'result_means.pickle'), 'wb'))
 
         x_axis_label = r'$\Lambda$'
         RMSE_y_axis_label = r'RMSE'
         RT_y_axis_label = r'RT'
+        LL_y_axis_label  = r'LL (average)'
         method_names = ['LSGDual', 'GDual', 'Trunc w/ FFT', 'Trunc w/ Direct Conv']
         method_filenames = ['lsgd', 'gdual', 'trfft', 'trdir']
         RMSEsuffix = '_rmse.png'
         RTsuffix = '_rt.png'
+        LLsuffix = '_ll.png'
 
         # plot RMSE results
         RMSE_data = [RMSE_LL_lsgdual, RMSE_LL_gdual, RMSE_LL_trfwd_fft]
@@ -373,13 +388,51 @@ def stability_experiment_suite(experiment = 'demo'):
             plt.title(method_names[i_method])
 
             fig.savefig(os.path.join(experiment_folder, method_filenames[i_method] + RTsuffix))
+
+        LL_data = [mean_LL_lsgdual, mean_LL_gdual, mean_LL_trfwd_fft, mean_LL_trfwd_dir]
+        for i_method in range(4):
+            fig = plt.figure()
+            plt.plot(Lambda_scale, LL_data[i_method])
+
+            plt.xlabel(x_axis_label)
+            plt.ylabel(LL_y_axis_label)
+
+            plt.title(method_names[i_method])
+
+            fig.savefig(os.path.join(experiment_folder, method_filenames[i_method] + LLsuffix))
+
+        # all RTs on same axes
+        method_names = ['Trunc w/ Direct Conv', 'Trunc w/ FFT', 'GDual', 'LSGDual']
+        fig = plt.figure()
+        plt.plot(Lambda_scale, meanRT_trfwd_dir)
+        plt.plot(Lambda_scale, meanRT_trfwd_fft)
+        plt.plot(Lambda_scale, meanRT_gdual)
+        plt.plot(Lambda_scale, meanRT_lsgdual)
+        plt.xlabel(x_axis_label)
+        plt.ylabel(RT_y_axis_label)
+        plt.title(r'Runtime vs $\delta$, all methods')
+        plt.legend(method_names)
+        fig.savefig(os.path.join(experiment_folder, 'RT_all.png'))
+
+        # all LLs on same axes
+        fig = plt.figure()
+        plt.plot(Lambda_scale, mean_LL_trfwd_dir)
+        plt.plot(Lambda_scale, mean_LL_trfwd_fft)
+        plt.plot(Lambda_scale, mean_LL_gdual)
+        plt.plot(Lambda_scale, mean_LL_lsgdual)
+        plt.xlabel(x_axis_label)
+        plt.ylabel(LL_y_axis_label)
+        plt.title(r'LL vs $\delta$, all methods')
+        plt.legend(method_names)
+        fig.savefig(os.path.join(experiment_folder, 'LL_all.png'))
     elif experiment == 'gen_vs_eval: delta':
-        fix_y = False
+        fix_y = True
 
         if fix_y:
-            experiment_folder_prefix = 'genvseval_delta_fixedy'
+            # experiment_folder_prefix = 'genvseval_delta_fixedy'
+            experiment_folder_prefix = 'poiss_fixedy'
         else:
-            experiment_folder_prefix = 'genvseval_delta'
+            experiment_folder_prefix = 'poiss'
         experiment_timestamp     = datetime.datetime.now().strftime("%y%m%d%H%M%S%f")
         experiment_folder        = os.path.join(resultdir, experiment_folder_prefix + experiment_timestamp)
 
@@ -390,7 +443,8 @@ def stability_experiment_suite(experiment = 'demo'):
 
         # Lambda_scale = [10, 50, 100, 300, 500, 1000, 1500, 3000]
         Delta_true = 0.5
-        Delta_eval = np.linspace(0, 1.0, 21)
+        # Delta_eval = np.linspace(0, 1.0, 21)
+        Delta_eval = np.linspace(0.25, 5.0, 20)
         # Delta_eval = np.linspace(0, 1.0, 11)
         n_experiments = len(Delta_eval)
 
@@ -399,11 +453,11 @@ def stability_experiment_suite(experiment = 'demo'):
         Delta_gen = (Delta_true * np.ones(4)).reshape(-1, 1)
         Rho = 0.5 * np.ones(5)
         epsilon = 1e-5
-        n_reps = 20
+        n_reps = 5
         N_init = 0
         N_LIMIT = 2000
         arrival = 'poisson'
-        branch = 'bernoulli'
+        branch = 'poisson'
 
         # write meta file
         meta_file = open(os.path.join(experiment_folder, 'meta.txt'), 'w')
@@ -425,6 +479,13 @@ def stability_experiment_suite(experiment = 'demo'):
         RMSE_LL_gdual     = np.zeros(n_experiments)
         # RMSE_LL_trfwd_dir = np.zeros(n_experiments)
         RMSE_LL_trfwd_fft = np.zeros(n_experiments)
+
+        # LL records
+        mean_LL_lsgdual   = np.zeros(n_experiments)
+        mean_LL_gdual     = np.zeros(n_experiments)
+        mean_LL_trfwd_dir = np.zeros(n_experiments)
+        mean_LL_trfwd_fft = np.zeros(n_experiments)
+
 
         # Runtime records
         meanRT_lsgdual   = np.zeros(n_experiments)
@@ -487,20 +548,27 @@ def stability_experiment_suite(experiment = 'demo'):
             meanRT_trfwd_dir[i_experiment] = np.mean(RT_trunc_dir)
             meanRT_trfwd_fft[i_experiment] = np.mean(RT_trunc_fft)
 
+            mean_LL_lsgdual[i_experiment] = np.nanmean(LL_lsgdual)
+            mean_LL_gdual[i_experiment] = np.nanmean(LL_gdual)
+            mean_LL_trfwd_dir[i_experiment] = np.nanmean(LL_trunc_dir)
+            mean_LL_trfwd_fft[i_experiment] = np.nanmean(LL_trunc_fft)
+
             # RMSE_LL_gdual[i_experiment]     = np.sqrt(np.nanmean((LL_gdual     - LL_lsgdual) ** 2))
             # RMSE_LL_trfwd_dir[i_experiment] = np.sqrt(np.nanmean((LL_trunc_dir - LL_lsgdual) ** 2))
             # RMSE_LL_trfwd_fft[i_experiment] = np.sqrt(np.nanmean((LL_trunc_fft - LL_lsgdual) ** 2))
 
         pickle.dump([RMSE_LL_lsgdual, RMSE_LL_gdual, RMSE_LL_trfwd_fft, meanRT_lsgdual, meanRT_gdual, meanRT_trfwd_dir,
-                     meanRT_trfwd_fft], open(os.path.join(experiment_folder, 'result_means.pickle'), 'wb'))
+                     meanRT_trfwd_fft, mean_LL_lsgdual, mean_LL_gdual, mean_LL_trfwd_dir, mean_LL_trfwd_fft], open(os.path.join(experiment_folder, 'result_means.pickle'), 'wb'))
 
         x_axis_label     = r'$\delta$'
         RMSE_y_axis_label = r'RMSE'
         RT_y_axis_label  = r'RT'
+        LL_y_axis_label  = r'LL (average)'
         method_names     = ['LSGDual', 'GDual', 'Trunc w/ FFT', 'Trunc w/ Direct Conv']
         method_filenames = ['lsgd', 'gdual', 'trfft', 'trdir']
         RMSEsuffix       = '_rmse.png'
         RTsuffix         = '_rt.png'
+        LLsuffix         = '_ll.png'
 
         # plot RMSE results
         RMSE_data = [RMSE_LL_lsgdual, RMSE_LL_gdual, RMSE_LL_trfwd_fft]
@@ -526,6 +594,43 @@ def stability_experiment_suite(experiment = 'demo'):
             plt.title(method_names[i_method])
 
             fig.savefig(os.path.join(experiment_folder, method_filenames[i_method] + RTsuffix))
+
+        LL_data = [mean_LL_lsgdual, mean_LL_gdual, mean_LL_trfwd_fft, mean_LL_trfwd_dir]
+        for i_method in range(4):
+            fig = plt.figure()
+            plt.plot(Delta_eval, LL_data[i_method])
+
+            plt.xlabel(x_axis_label)
+            plt.ylabel(LL_y_axis_label)
+
+            plt.title(method_names[i_method])
+
+            fig.savefig(os.path.join(experiment_folder, method_filenames[i_method] + LLsuffix))
+
+        # all RTs on same axes
+        method_names = ['Trunc w/ Direct Conv', 'Trunc w/ FFT', 'GDual', 'LSGDual']
+        fig = plt.figure()
+        plt.plot(Delta_eval, meanRT_trfwd_dir)
+        plt.plot(Delta_eval, meanRT_trfwd_fft)
+        plt.plot(Delta_eval, meanRT_gdual)
+        plt.plot(Delta_eval, meanRT_lsgdual)
+        plt.xlabel(x_axis_label)
+        plt.ylabel(RT_y_axis_label)
+        plt.title(r'Runtime vs $\delta$, all methods')
+        plt.legend(method_names)
+        fig.savefig(os.path.join(experiment_folder, 'RT_all.png'))
+
+        # all LLs on same axes
+        fig = plt.figure()
+        plt.plot(Delta_eval, mean_LL_trfwd_dir)
+        plt.plot(Delta_eval, mean_LL_trfwd_fft)
+        plt.plot(Delta_eval, mean_LL_gdual)
+        plt.plot(Delta_eval, mean_LL_lsgdual)
+        plt.xlabel(x_axis_label)
+        plt.ylabel(LL_y_axis_label)
+        plt.title(r'LL vs $\delta$, all methods')
+        plt.legend(method_names)
+        fig.savefig(os.path.join(experiment_folder, 'LL_all.png'))
     elif experiment == 'poissonbranching_RT':
         fix_y = False
 
