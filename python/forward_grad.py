@@ -81,6 +81,47 @@ def bernoulli_pgf_grad(s, theta):
         return ds
         
     return y, backprop_dy_ds
+
+def geometric_pgf_grad(s, theta):
+    p = theta[0]
+
+    # Forward
+    y = p.val / (1 - ((1 - p.val) * s))
+
+    # Backward
+    def backprop_dy_ds(dy):
+        tmp = ((p.val - 1) * s + 1)**2
+        ds = dy * -((p.val - 1) * p.val) / tmp # df/ds = df/dy * dy/ds
+        if p.need_grad:
+            p.grad = dy * (1 - s) / tmp # df/dp = df/dy * dy/dp
+        return ds
+
+    return y, backprop_dy_ds
+
+def negbin_pgf_grad(s, theta):
+    r, p = theta
+
+    # Forward
+    y = ((p.val / (1 - ((1 - p.val) * s)))**r.val)
+
+    # Backward
+    def backprop_dy_ds(dy):
+        tmp = p.val / ((p.val-1)*s + 1)
+
+        # df/ds = df/dy * dy/ds
+        ds = dy * -((p.val-1) * r.val * tmp**(r.val+1)) / p.val
+
+        if p.need_grad:
+            # df/dp = df/dy * dy/dp
+            p.grad = dy * -(r.val * (s-1) * tmp**r.val) / ((p.val-1)*p.val*s + p.val)
+        
+        if r.need_grad:
+            # df/dr = df/dy * dy/dr
+            r.grad = dy * tmp**r.val * np.log(tmp)
+        
+        return ds
+
+    return y, backprop_dy_ds
             
 def forward_grad(y,
                  immigration_pgf_grad,
