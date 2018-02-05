@@ -4,6 +4,7 @@ import numpy as np
 from mle_distributions import *
 from mle import *
 
+# Data source: https://gis.cdc.gov/grasp/fluview/fluportaldashboard.html
 # One-hundredth of H1N1 cases in the US during 2009 outbreak
 # First wave
 #y = np.array([ 1, 14, 25, 18, 28, 32, 40, 43, 46, 33, 27, 28, 22, 20, 20, 15])
