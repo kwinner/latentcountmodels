@@ -77,7 +77,7 @@ var_poisson_branch = {
     'need_grad': lambda T: [[True]] * (len(T)-1),
     'sample': lambda n, gamma: stats.poisson.rvs(n * gamma),
     'hyperparam2param': lambda x, T: x.reshape((-1, 1)),
-    'backprop': lambda dtheta: flatten(dtheta),
+    'backprop': lambda dtheta, x: flatten(dtheta),
     'init': lambda y: [1.5] * (K - 1),
     'bounds': lambda y: [(0.1, None)] * (K - 1)
 }

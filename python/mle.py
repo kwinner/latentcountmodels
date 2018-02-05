@@ -57,7 +57,9 @@ def run_mle(T, arrival, branch, observ, y=None, true_params=None, n=1, n_reps=1,
         
                 # Write to out
                 #if out: writer.writerow(np.concatenate((y[0], theta_hat, ci_left, ci_right, runtime)))
-                if out: writer.writerow(np.concatenate(([g, len(T), runtime], theta_hat, y[0])))
+                if out:
+                    writer.writerow(np.concatenate(([g, len(T), runtime], theta_hat, y[0])))
+                    fout.flush()
                 
                 if g is True: n_successes1 += 1
                 if g is False: n_successes0 += 1

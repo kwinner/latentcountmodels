@@ -33,6 +33,7 @@ def run_check_grad(mode):
         true_params = {'arrival': [v, p], 'branch': delta, 'observ': rho}
     T = np.arange(K)
     y = generate_data(true_params, T, arrival, branch, observ, n_samples)
+    print(y)
     
     # Check gradients
     theta0 = unpack('init', y, arrival, branch, observ)

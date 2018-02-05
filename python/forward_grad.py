@@ -102,22 +102,22 @@ def negbin_pgf_grad(s, theta):
     r, p = theta
 
     # Forward
-    y = ((p.val / (1 - ((1 - p.val) * s)))**r.val)
+    a = 1 - s*(1 - p.val)
+    b = p.val / a
+    y = b**r.val         # y = (p / (1 - s(1-p)))**r
 
     # Backward
     def backprop_dy_ds(dy):
-        tmp = p.val / ((p.val-1)*s + 1)
 
-        # df/ds = df/dy * dy/ds
-        ds = dy * -((p.val-1) * r.val * tmp**(r.val+1)) / p.val
-
-        if p.need_grad:
-            # df/dp = df/dy * dy/dp
-            p.grad = dy * -(r.val * (s-1) * tmp**r.val) / ((p.val-1)*p.val*s + p.val)
+        db = dy * r.val * (y / b)
+        da = db / (a*a) * -p.val
+        ds = da * (p.val - 1)
         
+        if p.need_grad:
+            p.grad = db/a + da*s
+
         if r.need_grad:
-            # df/dr = df/dy * dy/dr
-            r.grad = dy * tmp**r.val * np.log(tmp)
+            r.grad = dy * y * log(b)
         
         return ds
 
