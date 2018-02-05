@@ -2,6 +2,7 @@
 #include <math.h>
 #include <assert.h>
 #include "gdual.h"
+#include <string.h>
 #include <strings.h>
 #include <stdlib.h>
 

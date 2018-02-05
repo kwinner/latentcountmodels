@@ -1,12 +1,12 @@
 all: test_gdual libgdual.so
 
 test_gdual: test_gdual.c gdual.c
-	gcc -g test_gdual.c gdual.c -o test_gdual -O3
+	gcc -g test_gdual.c gdual.c -o test_gdual -O3 -std=c99 -lm
 
 libgdual.so: gdual.o
-	gcc -shared -o libgdual.so gdual.o -O3
+	gcc -shared -o libgdual.so gdual.o -O3 -std=c99 -lm
 
 gdual.o: gdual.c
-	gcc -c -Wall -Werror -fpic gdual.c -O3
+	gcc -c -Wall -Werror -fpic gdual.c -O3 -std=c99 -lm
 clean:
 	-rm test_gdual gdual.o libgdual.so
