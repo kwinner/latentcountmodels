@@ -87,9 +87,10 @@ def run_mle(T, arrival, branch, observ, y=None, true_params=None, n=1, n_reps=1,
         return None, None, None
 
 def mle(y, T, arrival, branch, observ, log, grad=False):
-    theta0 = unpack('init', y, arrival, branch, observ)
-    bounds = unpack('bounds', y, arrival, branch, observ)
+    theta0 = unpack('init', y, arrival, branch, observ, T)
+    bounds = unpack('bounds', y, arrival, branch, observ, T)
     #print(theta0)
+    #print(bounds)
 
     # Call the optimizer
     objective_args = (y, T, arrival, branch, observ, log)
@@ -223,8 +224,8 @@ def recover_grad(T, arrival_grad, branch_grad, observ_grad,
     return out
 
 def theta_unpack(theta_array, T, arrival, branch, observ, return_hyperparams=False):
-    n_arrival_params = count_params(arrival)
-    n_observ_params = count_params(observ)
+    n_arrival_params = count_params(arrival, T)
+    n_observ_params = count_params(observ, T)
 
     arrival_params = theta_array[:n_arrival_params]
     if n_observ_params > 0:
@@ -272,13 +273,13 @@ def generate_data(theta, T, arrival, branch, observ, n_reps):
 
     return y.astype(np.int32)
 
-def count_params(dist):
-    learn_mask = dist['learn_mask']
+def count_params(dist, T):
+    learn_mask = dist['learn_mask'](T)
     if np.isscalar(learn_mask): learn_mask = [learn_mask]
     return np.sum(learn_mask)
 
-def unpack(k, y, arrival, branch, observ):
-    tmp = [d[k](y[0]) for d in [arrival, branch, observ]]
+def unpack(k, y, arrival, branch, observ, T):
+    tmp = [d[k](y, T) for d in [arrival, branch, observ]]
     tmp = [v if isinstance(v, list) else [v] for v in tmp]
     return [v for l in tmp for v in l]
 

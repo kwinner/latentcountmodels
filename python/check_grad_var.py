@@ -8,21 +8,28 @@ def grad(theta, y, T, arrival, branch, observ, log):
     return objective_grad(theta, y, T, arrival, branch, observ, log)[1]
 
 def run_check_grad(mode):
-    K = 10
-    n_samples = 2
+    K = 2
+    n_samples = 10
     
     # Parameter values
     lmbda = 5                              # arrival mean
     v = 10                                 # arrival dispersion (ignored in Poisson arrival cases)
-    delta = 0.3 if mode in [0, 3] else 1.2 # 0.3 if binomial branching, else 1.2
     rho = 0.6                              # detection probability
     
+    # Time-varying branching parameters
+    if mode in [0, 3]: # Bernoulli branching
+        delta = np.array([ 0.91925101,  0.19911554,  0.90281847,  0.40939839,  0.83666886,
+                           0.29030967,  0.81204456,  0.74217406,  0.07162307,  0.50924052])[:K-1]
+    else:              # Poisson or geometric branching
+        delta = np.array([ 0.20989965,  0.39263032,  1.13094169,  0.14849046,  0.44552288,
+                           0.87396244,  0.18968949,  2.45750465,  2.59874096,  1.70924293])[:K-1]
+
     # Distributions
     arrival_idx = 0 if mode < 3 else 1
     branch_idx = mode % 3
     
     arrival = [constant_poisson_arrival, constant_nbinom_arrival][arrival_idx]
-    branch = [constant_binom_branch, constant_poisson_branch, constant_nbinom_branch][branch_idx]
+    branch = [var_binom_branch, var_poisson_branch, var_nbinom_branch][branch_idx]
     observ = constant_binom_observ
     
     # Generate data
@@ -37,10 +44,13 @@ def run_check_grad(mode):
     
     # Check gradients
     theta0 = unpack('init', y, arrival, branch, observ, T)
+    print(theta0)
+
     if mode < 3:
-        theta = np.array([lmbda, delta, rho])
+        theta = np.concatenate(([lmbda], delta, [rho]))
     else:
-        theta = np.array([v, p, delta, rho])
+        theta = np.concatenate(([v, p], delta, [rho]))
+
     objective_args = (y, T, arrival, branch, observ, False)
     error0 = optimize.check_grad(objective, grad, theta0, *objective_args)
     error = optimize.check_grad(objective, grad, theta, *objective_args)
