@@ -64,19 +64,12 @@ if __name__ == "__main__":
     assert mode in range(6), 'Choose a model 1-6'
 
     # Experimental settings (local version - for testing purposes)
-    Ks = range(6, 11, 1)           # if len(Ks) > 11, must modify delta below!
-    n = 3                         # rounds of experiments
-    n_reps = 10                   # number of independent chains for each round
+    Ks = range(2, 11, 1)          # if len(Ks) > 11, must modify delta below!
+    n = 20                        # rounds of experiments
+    n_reps = 20                   # number of independent chains for each round
     max_attempts = 10             # max number of attempts for each round
     out_dir = '../data/mle_bprop_rt_var/' # output directory
     out_mode = 'w'                # 'a' for append, 'w' for write
-
-    # Experimental settings (final version - run on shannon)
-    #Ks = range(2, 21, 2)          # varying lengths of the chain
-    #n = 20                        # rounds of experiments
-    #n_reps = 10                   # number of independent chains for each round
-    #max_attempts = 10             # max number of attempts for each round
-    #out_dir = '../data/mle_bprop_rt/' # output directory
 
     # True arrival params
     lmbda = 5                     # mean
