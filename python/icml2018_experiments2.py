@@ -28,7 +28,7 @@ GD_RECORD_DTYPE    = np.dtype([                        ('LL', LL_DTYPE), ('RT', 
 TRFWD_RECORD_DTYPE = np.dtype([('N_max', COUNT_DTYPE), ('LL', LL_DTYPE), ('RT', RT_DTYPE)])
 
 N_REPS_DEFAULT        = 20
-THETA_ARRIVAL_DEFAULT = np.array([2.5, 11, 21, 15, 4]).reshape(-1, 1)
+THETA_ARRIVAL_DEFAULT = 5 * np.array([2.5, 11, 21, 15, 4]).reshape(-1, 1)
 THETA_BRANCH_DEFAULT  = np.array([0.5, 0.5, 0.5, 0.5]).reshape(-1, 1)
 THETA_OBSERV_DEFAULT  = 0.5 * np.ones(5)
 DIST_ARRIVAL_DEFAULT  = 'poisson'
@@ -615,7 +615,7 @@ if __name__ == "__main__":
     if os.uname()[1] == 'kwinn':
         # plot_all_results(SHANNON_RESULTS_DIR)
             vary_branching_params(n_reps=1, theta_branch_experiment=np.linspace(0., 1.0, 41), dist_branch='bernoulli')
-    elif os.uname()[1] == 'shannon.cs.umass.edu':
+    elif 'shannon' in os.uname()[1]:
         if len(sys.argv) == 1:
             vary_branching_params()
             vary_arrival_params()
