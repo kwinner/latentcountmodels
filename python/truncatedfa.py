@@ -48,6 +48,9 @@ def truncated_forward(arrival_dist, arrival_params, branching_fn,
     for k in range(1, K):
         #trans_k = trans_matrix(arrival_dist, arrival_params[k], delta[k - 1], n_max)
         trans_k = trans_matrix(arrival_dist, arrival_params[k], branching_fn, branching_params[k-1], n_max, silent, conv_method=conv_method)
+        if np.any(np.isnan(trans_k)):
+            trans_k = trans_matrix(arrival_dist, arrival_params[k], branching_fn, branching_params[k - 1], n_max,
+                                   silent, conv_method=conv_method)
         evidence_k = evidence_vector(rho[k], y[k], n_max)
         alpha[:, k] = logsumexp(alpha[:, k-1, None] + trans_k, axis=0) + evidence_k
 
@@ -78,11 +81,11 @@ def trans_matrix(arrival_dist, arrival_params_k, branching_fn,
     trans_k = signal.convolve(np.exp(branching),
                               np.exp(arrival.reshape(1, -1)),
                               method=conv_method)[:n_max,:n_max]
-    
+
     neg_probs = trans_k < 0
     if not silent and np.any(neg_probs):
         print('Warning: truncating negative transition probabilities to zero')
-        trans_k[np.where(neg_probs)] = 0
+    trans_k[np.where(neg_probs)] = 0
 
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")

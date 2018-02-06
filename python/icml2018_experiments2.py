@@ -27,7 +27,7 @@ RT_DTYPE    = np.float32
 GD_RECORD_DTYPE    = np.dtype([                        ('LL', LL_DTYPE), ('RT', RT_DTYPE)])
 TRFWD_RECORD_DTYPE = np.dtype([('N_max', COUNT_DTYPE), ('LL', LL_DTYPE), ('RT', RT_DTYPE)])
 
-N_REPS_DEFAULT        = 2
+N_REPS_DEFAULT        = 20
 THETA_ARRIVAL_DEFAULT = np.array([2.5, 11, 21, 15, 4]).reshape(-1, 1)
 THETA_BRANCH_DEFAULT  = np.array([0.5, 0.5, 0.5, 0.5]).reshape(-1, 1)
 THETA_OBSERV_DEFAULT  = 0.5 * np.ones(5)
@@ -232,7 +232,7 @@ def stability_experiment(
             # run the actual trial
             start_time = time.process_time()
             try:
-                _, logz = trfwd.truncated_forward(ARRIVAL_PMF_DICT[dist_arrival],
+                _, ll = trfwd.truncated_forward(ARRIVAL_PMF_DICT[dist_arrival],
                                                   theta_arrival_eval,
                                                   BRANCH_TRPMF_DICT[dist_branch],
                                                   theta_branch_eval,
@@ -241,7 +241,6 @@ def stability_experiment(
                                                   N_max,
                                                   silent=TRFWD_SILENT,
                                                   conv_method='direct')
-                ll = np.sum(logz)
             except:
                 ll = np.nan
                 if not SILENT:
@@ -289,7 +288,7 @@ def stability_experiment(
             # run the actual trial
             start_time = time.process_time()
             try:
-                _, logz = trfwd.truncated_forward(ARRIVAL_PMF_DICT[dist_arrival],
+                _, ll = trfwd.truncated_forward(ARRIVAL_PMF_DICT[dist_arrival],
                                                   theta_arrival_eval,
                                                   BRANCH_TRPMF_DICT[dist_branch],
                                                   theta_branch_eval,
@@ -298,7 +297,6 @@ def stability_experiment(
                                                   N_max,
                                                   silent=TRFWD_SILENT,
                                                   conv_method='fft')
-                ll = np.sum(logz)
             except:
                 ll = np.nan
                 if not SILENT:
@@ -615,7 +613,8 @@ def plot_all_results(result_collection_folder):
 
 if __name__ == "__main__":
     if os.uname()[1] == 'kwinn':
-        plot_all_results(SHANNON_RESULTS_DIR)
+        # plot_all_results(SHANNON_RESULTS_DIR)
+            vary_branching_params(n_reps=1, theta_branch_experiment=np.linspace(0., 1.0, 41), dist_branch='bernoulli')
     elif os.uname()[1] == 'shannon.cs.umass.edu':
         if len(sys.argv) == 1:
             vary_branching_params()
