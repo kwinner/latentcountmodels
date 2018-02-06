@@ -4,6 +4,7 @@ import datetime
 import pickle
 import uuid
 from glob import glob
+import sys
 
 import numpy as np
 from scipy import stats
@@ -13,10 +14,11 @@ import gdual as gd
 import forward as gdfwd
 import truncatedfa as trfwd
 
-RESULT_BASE_DIR = '/Users/kwinner/Work/Data/Results'
+RESULT_BASE_DIR = os.path.expanduser('~/Data/Results/')
 
 # just made this a global for simplicity
 SILENT = False
+TRFWD_SILENT = True
 
 COUNT_DTYPE = np.int32
 LL_DTYPE    = np.float64
@@ -25,13 +27,13 @@ GD_RECORD_DTYPE    = np.dtype([                        ('LL', LL_DTYPE), ('RT', 
 TRFWD_RECORD_DTYPE = np.dtype([('N_max', COUNT_DTYPE), ('LL', LL_DTYPE), ('RT', RT_DTYPE)])
 
 N_REPS_DEFAULT        = 2
-THETA_ARRIVAL_DEFAULT = 10 * np.array([2.5, 11, 21, 15, 4]).reshape(-1, 1)
-THETA_BRANCH_DEFAULT  = np.array([0.25, 0.25, 0.25, 0.25]).reshape(-1, 1)
+THETA_ARRIVAL_DEFAULT = np.array([2.5, 11, 21, 15, 4]).reshape(-1, 1)
+THETA_BRANCH_DEFAULT  = np.array([0.5, 0.5, 0.5, 0.5]).reshape(-1, 1)
 THETA_OBSERV_DEFAULT  = 0.5 * np.ones(5)
 DIST_ARRIVAL_DEFAULT  = 'poisson'
 DIST_BRANCH_DEFAULT   = 'bernoulli'
 N_INIT_DEFAULT        = 'y_max' # initial value of N_max. integer or {'y_max', 'Y'}
-N_LIMIT_DEFAULT       = 250 # hard cap on N_max. integer
+N_LIMIT_DEFAULT       = 10000 # hard cap on N_max. integer
 EPSILON_DEFAULT       = 1e-5
 FIXED_Y_DEFAULT       = True
 
@@ -234,7 +236,7 @@ def stability_experiment(
                                                   theta_observ_eval,
                                                   y,
                                                   N_max,
-                                                  silent=SILENT,
+                                                  silent=TRFWD_SILENT,
                                                   conv_method='direct')
                 ll = np.sum(logz)
             except:
@@ -291,7 +293,7 @@ def stability_experiment(
                                                   theta_observ_eval,
                                                   y,
                                                   N_max,
-                                                  silent=SILENT,
+                                                  silent=TRFWD_SILENT,
                                                   conv_method='fft')
                 ll = np.sum(logz)
             except:
@@ -583,5 +585,14 @@ def plot_result(
 
 
 if __name__ == "__main__":
-    vary_branching_params()
-    vary_arrival_params()
+    if len(sys.argv) == 1:
+        vary_branching_params()
+        vary_arrival_params()
+    elif int(sys.argv[1]) == 1:
+        vary_branching_params(n_reps=20, theta_branch_experiment=np.linspace(0., 1.0, 41), dist_branch='bernoulli')
+    elif int(sys.argv[1]) == 2:
+        vary_branching_params(n_reps=20, theta_branch_experiment=np.linspace(0., 15.0, 31), dist_branch='poisson')
+    elif int(sys.argv[1]) == 3:
+        vary_arrival_params(n_reps=20, theta_arrival_experiment=np.array([5, 10, 25, 50, 75, 100, 150, 200, 250]), dist_branch='bernoulli')
+    elif int(sys.argv[1]) == 4:
+        vary_arrival_params(n_reps=20, theta_arrival_experiment=np.array([5, 10, 25, 50, 75, 100, 150, 200, 250]), dist_branch='poisson')
