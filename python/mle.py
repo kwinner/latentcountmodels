@@ -58,7 +58,7 @@ def run_mle(T, arrival, branch, observ, y=None, true_params=None, n=1, n_reps=1,
                 # Write to out
                 #if out: writer.writerow(np.concatenate((y[0], theta_hat, ci_left, ci_right, runtime)))
                 if out:
-                    writer.writerow(np.concatenate(([g, len(T), runtime], theta_hat, y[0])))
+                    writer.writerow(np.concatenate(([g, len(T), runtime, res.nit, res.fun], theta_hat, y[0])))
                     fout.flush()
                 
                 if g is True: n_successes1 += 1
@@ -104,8 +104,7 @@ def mle(y, T, arrival, branch, observ, log, grad=False):
         
     start = time.process_time()
     res = optimize.minimize(obj, theta0, args=objective_args,
-                            method='L-BFGS-B', jac=jac, bounds=bounds,
-                            options={'gtol': 1e-15})
+                            method='L-BFGS-B', jac=jac, bounds=bounds)
     #options={'disp': True})#, 'eps': 1e-12, 'ftol': 1e-15, 'gtol': 1e-15})
     end = time.process_time()
     runtime = end - start
