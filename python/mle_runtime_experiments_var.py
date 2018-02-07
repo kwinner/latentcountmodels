@@ -11,7 +11,7 @@ def run_experiment(mode, lmbda, v, delta, rho, n, n_reps, max_attempts,
 
     arrival = [constant_poisson_arrival, constant_nbinom_arrival][arrival_idx]
     branch = [var_binom_branch, var_poisson_branch, var_nbinom_branch][branch_idx]
-    observ = constant_binom_observ
+    observ = fix_binom_observ
     print(arrival['pgf'], branch['pgf'])
 
     # Arrival params
@@ -64,11 +64,11 @@ if __name__ == "__main__":
     assert mode in range(6), 'Choose a model 1-6'
 
     # Experimental settings (local version - for testing purposes)
-    Ks = range(2, 11, 1)          # if len(Ks) > 11, must modify delta below!
-    n = 20                        # rounds of experiments
-    n_reps = 20                   # number of independent chains for each round
+    Ks = range(2, 6, 1)          # if len(Ks) > 11, must modify delta below!
+    n = 3                        # rounds of experiments
+    n_reps = 10                   # number of independent chains for each round
     max_attempts = 10             # max number of attempts for each round
-    out_dir = '../data/mle_bprop_rt_var/' # output directory
+    out_dir = '../data/mle_bprop_rt_var_debug/' # output directory
     out_mode = 'w'                # 'a' for append, 'w' for write
 
     # True arrival params
