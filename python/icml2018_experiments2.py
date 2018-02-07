@@ -424,6 +424,7 @@ def vary_branching_params(
         y = None
 
     for theta_branch_constant in theta_branch_experiment:
+        print('Delta = %f' % theta_branch_constant)
         theta_branch_eval = theta_branch_constant * np.ones((K - 1, 1))
 
         results_path = stability_experiment(results_folder,
@@ -501,6 +502,7 @@ def vary_arrival_params(
         y = None
 
     for theta_arrival_constant in theta_arrival_experiment:
+        print('Lambda = %f' % theta_arrival_constant)
         theta_arrival_eval = theta_arrival_constant * np.ones((K, 1))
 
         results_path = stability_experiment(results_folder,
