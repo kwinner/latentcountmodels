@@ -58,7 +58,7 @@ def run_mle(T, arrival, branch, observ, y=None, true_params=None, n=1, n_reps=1,
                 # Write to out
                 #if out: writer.writerow(np.concatenate((y[0], theta_hat, ci_left, ci_right, runtime)))
                 if out:
-                    writer.writerow(np.concatenate(([g, len(T), runtime], theta_hat, y[0])))
+                    writer.writerow(np.concatenate(([g, len(T), runtime, res.nit, res.fun], theta_hat, y[0])))
                     fout.flush()
                 
                 if g is True: n_successes1 += 1
@@ -81,19 +81,16 @@ def run_mle(T, arrival, branch, observ, y=None, true_params=None, n=1, n_reps=1,
                        ' successes out of ' + str(n) + ' trials\n')
         flog.close()
 
-    try:
-        return theta_hat, ci_left, ci_right
-    except:
-        return None, None, None
+    return theta_hat
 
-def mle(y, T, arrival, branch, observ, log, grad=False):
+def mle(y, T, arrival, branch, observ, fixed_params, log, grad=False):
     theta0 = unpack('init', y, arrival, branch, observ, T)
     bounds = unpack('bounds', y, arrival, branch, observ, T)
     #print(theta0)
     #print(bounds)
 
     # Call the optimizer
-    objective_args = (y, T, arrival, branch, observ, log)
+    objective_args = (y, T, arrival, branch, observ, fixed_params, log)
 
     if grad:
         obj = objective_grad
@@ -104,15 +101,14 @@ def mle(y, T, arrival, branch, observ, log, grad=False):
         
     start = time.process_time()
     res = optimize.minimize(obj, theta0, args=objective_args,
-                            method='L-BFGS-B', jac=jac, bounds=bounds,
-                            options={'gtol': 1e-15})
-    #options={'disp': True})#, 'eps': 1e-12, 'ftol': 1e-15, 'gtol': 1e-15})
+                            method='L-BFGS-B', jac=jac, bounds=bounds)
+    #options={'disp': 1, 'eps': 1e-12, 'ftol': 1e-15, 'gtol': 1e-15}
     end = time.process_time()
     runtime = end - start
 
     return res, runtime
     
-def objective(theta, y, T, arrival, branch, observ, log):
+def objective(theta, y, T, arrival, branch, observ, fixed_params, log):
     # Make sure all values in theta are valid
     if not np.all(np.isfinite(theta)): return float('inf')
 
@@ -207,7 +203,6 @@ def objective_grad(theta, y, T, arrival, branch, observ, log):
     #print(theta, nll, grad)
     return nll, grad
 
-
 # Flatten 2d list
 def flatten(l):
     return [i for row in l for i in row]
@@ -223,7 +218,8 @@ def recover_grad(T, arrival_grad, branch_grad, observ_grad,
 
     return out
 
-def theta_unpack(theta_array, T, arrival, branch, observ, return_hyperparams=False):
+def theta_unpack(theta_array, T, arrival, branch, observ, fixed_params,
+                 return_hyperparams=False):
     n_arrival_params = count_params(arrival, T)
     n_observ_params = count_params(observ, T)
 
@@ -285,3 +281,12 @@ def unpack(k, y, arrival, branch, observ, T):
 
 def mean2p(mu, size):
     return float(size)/(size+mu)
+
+def get_fixed_params(arrival, branch, observ, true_params, T):
+    fixed_params = {}
+    if arrival['n_params'] == 0:
+        fixed_params['arrival'] = arrival['hyperparam2param'](true_params['arrival'], T)
+    if branch['n_params'] == 0: fixed_params['branch'] = true_params['branch']
+    if observ['n_params'] == 0: fixed_params['observ'] = true_params['observ']
+
+    return fixed_params

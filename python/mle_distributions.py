@@ -47,7 +47,7 @@ nmixture_poisson_arrival = {
     'hyperparam2param': lambda x, T: np.concatenate((x, np.zeros(len(T) - 1))).reshape((-1, 1)),
     'need_grad': lambda T: [[True]] + [[False]] * (len(T)-1),
     'backprop':  lambda dtheta, x: dtheta[0],
-    'init': lambda y, T: np.mean(y[:, 0]),
+    'init': lambda y, T: np.median(y[:, 0]),
     'bounds': lambda y, T: (1e-6, None)
 }
 
@@ -127,16 +127,6 @@ var_binom_branch = {
     'bounds': lambda y, T: [(1e-6, 1 - 1e-6)] * (len(T) - 1)
 }
 
-"""
-var_nbinom_branch = {
-    'learn_mask': [True] * (K - 1),
-    'pgf': 'geometric_pgf',
-    'sample': stats.nbinom.rvs,
-    'hyperparam2param': lambda x, T: 1/(x.reshape((-1, 1)) + 1),
-    'init': lambda y: [1] * (K - 1),
-    'bounds': lambda y: [(1e-6, None)] * (K - 1)
-}
-"""
 ### Observation ###
 
 # Binomial observation with constant param across time
@@ -149,6 +139,18 @@ constant_binom_observ = {
     'backprop': lambda dtheta, x: np.sum(dtheta, keepdims=True),
     'init': lambda y, T: 0.5,
     'bounds': lambda y, T: (0.1, 1-1e-6)
+}
+
+# Fix binomial observation param, do not learn
+fix_binom_observ = {
+    'n_params': 0,
+    'pgf': None,
+    'sample': stats.binom.rvs,
+    'hyperparam2param': lambda x, T: None,
+    'need_grad': lambda T: [[False]] * len(T)
+    'backprop': None,
+    'init': lambda y: None,
+    'bounds': lambda y: (None, None)
 }
 
 """
