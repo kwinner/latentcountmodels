@@ -4,6 +4,7 @@ import datetime
 import pickle
 import uuid
 from glob import glob
+import sys
 
 import numpy as np
 from scipy import stats
@@ -13,10 +14,12 @@ import gdual as gd
 import forward as gdfwd
 import truncatedfa as trfwd
 
-RESULT_BASE_DIR = '/Users/kwinner/Work/Data/Results'
+RESULT_BASE_DIR = os.path.expanduser('~/Work/Data/Results')
+SHANNON_RESULTS_DIR = os.path.expanduser('~/shannon-results')
 
 # just made this a global for simplicity
 SILENT = False
+TRFWD_SILENT = True
 
 COUNT_DTYPE = np.int32
 LL_DTYPE    = np.float64
@@ -24,14 +27,14 @@ RT_DTYPE    = np.float32
 GD_RECORD_DTYPE    = np.dtype([                        ('LL', LL_DTYPE), ('RT', RT_DTYPE)])
 TRFWD_RECORD_DTYPE = np.dtype([('N_max', COUNT_DTYPE), ('LL', LL_DTYPE), ('RT', RT_DTYPE)])
 
-N_REPS_DEFAULT        = 2
-THETA_ARRIVAL_DEFAULT = 10 * np.array([2.5, 11, 21, 15, 4]).reshape(-1, 1)
-THETA_BRANCH_DEFAULT  = np.array([0.25, 0.25, 0.25, 0.25]).reshape(-1, 1)
+N_REPS_DEFAULT        = 20
+THETA_ARRIVAL_DEFAULT = 5 * np.array([2.5, 11, 21, 15, 4]).reshape(-1, 1)
+THETA_BRANCH_DEFAULT  = np.array([0.5, 0.5, 0.5, 0.5]).reshape(-1, 1)
 THETA_OBSERV_DEFAULT  = 0.5 * np.ones(5)
 DIST_ARRIVAL_DEFAULT  = 'poisson'
 DIST_BRANCH_DEFAULT   = 'bernoulli'
 N_INIT_DEFAULT        = 'y_max' # initial value of N_max. integer or {'y_max', 'Y'}
-N_LIMIT_DEFAULT       = 250 # hard cap on N_max. integer
+N_LIMIT_DEFAULT       = 10000 # hard cap on N_max. integer
 EPSILON_DEFAULT       = 1e-5
 FIXED_Y_DEFAULT       = True
 
@@ -40,14 +43,16 @@ THETA_ARRIVAL_EXPERIMENT_DEFAULT = np.array([5, 10, 25, 50])
 # THETA_BRANCH_EXPERIMENT_DEFAULT  = np.linspace(0., 1.0, 21)
 # THETA_ARRIVAL_EXPERIMENT_DEFAULT = np.array([5, 10, 25, 50, 75, 100, 150, 200, 250])
 
-TRFWD_RESULT_INDEX_DEFAULT = -2 # default to last entry (largest N_max attempted) for plotting trfwd results
+TRFWD_RESULT_INDEX_DEFAULT = -1 # default to last entry (largest N_max attempted) for plotting trfwd results
+TRFWD_LL_RESULT_INDEX      = -1
+TRFWD_RT_RESULT_INDEX      = -1
 
 # plotting parameters
 BRANCHING_PARAM_LABEL    = r'$\delta$'
 ARRIVAL_PARAM_LABEL      = r'$\Lambda$'
 METHOD_NAMES             = ['Trfwd', 'Trfwd w/ FFT', 'GDual', 'LSGDual']
 METHOD_FILENAME_SUFFIXES = ['trdir', 'trfft', 'gd', 'lsgd']
-Y_LABEL_DICT             = {'RT': r'mean RT (s)', 'LL': r'LL'}
+Y_LABEL_DICT             = {'RT': r'mean RT (s)', 'LL': r'LL', 'nan': 'nan frequency'}
 
 # pmfs (for trfwd)
 ARRIVAL_PMF_DICT = {
@@ -227,16 +232,15 @@ def stability_experiment(
             # run the actual trial
             start_time = time.process_time()
             try:
-                _, logz = trfwd.truncated_forward(ARRIVAL_PMF_DICT[dist_arrival],
+                _, ll = trfwd.truncated_forward(ARRIVAL_PMF_DICT[dist_arrival],
                                                   theta_arrival_eval,
                                                   BRANCH_TRPMF_DICT[dist_branch],
                                                   theta_branch_eval,
                                                   theta_observ_eval,
                                                   y,
                                                   N_max,
-                                                  silent=SILENT,
+                                                  silent=TRFWD_SILENT,
                                                   conv_method='direct')
-                ll = np.sum(logz)
             except:
                 ll = np.nan
                 if not SILENT:
@@ -259,7 +263,9 @@ def stability_experiment(
             if trfwd_dir_result[i_rep].size == 1:
                 diff = np.inf
             else:
-                diff = np.abs(trfwd_dir_result[i_rep][-1]['LL'] - trfwd_dir_result[i_rep][-2]['LL'])
+                # diff = np.abs(trfwd_dir_result[i_rep][-1]['LL'] - trfwd_dir_result[i_rep][-2]['LL'])
+                # note: diff can be negative, which is a stopping condition
+                diff = trfwd_dir_result[i_rep][-1]['LL'] - trfwd_dir_result[i_rep][-2]['LL']
             if not SILENT:
                 print(", diff = %f" % diff)
 
@@ -284,16 +290,15 @@ def stability_experiment(
             # run the actual trial
             start_time = time.process_time()
             try:
-                _, logz = trfwd.truncated_forward(ARRIVAL_PMF_DICT[dist_arrival],
+                _, ll = trfwd.truncated_forward(ARRIVAL_PMF_DICT[dist_arrival],
                                                   theta_arrival_eval,
                                                   BRANCH_TRPMF_DICT[dist_branch],
                                                   theta_branch_eval,
                                                   theta_observ_eval,
                                                   y,
                                                   N_max,
-                                                  silent=SILENT,
+                                                  silent=TRFWD_SILENT,
                                                   conv_method='fft')
-                ll = np.sum(logz)
             except:
                 ll = np.nan
                 if not SILENT:
@@ -316,7 +321,9 @@ def stability_experiment(
             if trfwd_fft_result[i_rep].size == 1:
                 diff = np.inf
             else:
-                diff = np.abs(trfwd_fft_result[i_rep][-1]['LL'] - trfwd_fft_result[i_rep][-2]['LL'])
+                # diff = np.abs(trfwd_fft_result[i_rep][-1]['LL'] - trfwd_fft_result[i_rep][-2]['LL'])
+                # note: diff can be negative, which is a stopping condition
+                diff = trfwd_fft_result[i_rep][-1]['LL'] - trfwd_fft_result[i_rep][-2]['LL']
             if not SILENT:
                 print(", diff = %f" % diff)
 
@@ -481,7 +488,7 @@ def vary_arrival_params(
     meta_file.write('arrival: ' + dist_arrival + '\n')
     meta_file.write('branch: ' + dist_branch + '\n')
     meta_file.write('fix-y: ' + str(fixed_y) + '\n')
-    meta_file.write('x_label: ' + BRANCHING_PARAM_LABEL)
+    meta_file.write('x_label: ' + ARRIVAL_PARAM_LABEL)
     meta_file.close()
 
     if fixed_y:
@@ -516,7 +523,7 @@ def vary_arrival_params(
 
 def plot_result(
         results_folder,
-        response_variable  = 'LL',                      # one of {'LL', 'RT'}
+        response_variable  = 'LL',                      # one of {'LL', 'RT', 'nan'}
         trfwd_result_index = TRFWD_RESULT_INDEX_DEFAULT # which N_max attempt to plot (typically -1 or -2)
         ):
     # read some metadata
@@ -532,7 +539,7 @@ def plot_result(
     n_results = len(results_glob)
 
     # read all the results
-    x_vals            = np.empty((n_results, n_reps))
+    x_vals            = np.empty(n_results)
     trfwd_dir_results = np.empty((n_results, n_reps))
     trfwd_fft_results = np.empty((n_results, n_reps))
     gdual_results     = np.empty((n_results, n_reps))
@@ -542,32 +549,47 @@ def plot_result(
         result = pickle.load(open(results_glob[i_result], 'rb'))
 
         x_vals[i_result]               = result['control_variable']
-        trfwd_dir_results[i_result, :] = np.array(list(map(lambda x: x[trfwd_result_index][response_variable], result['trfwd_dir_result'])))
-        trfwd_fft_results[i_result, :] = np.array(list(map(lambda x: x[trfwd_result_index][response_variable], result['trfwd_fft_result'])))
-        gdual_results[i_result, :]     = result['gdual_result'][response_variable]
-        lsgdual_results[i_result, :]   = result['lsgdual_result'][response_variable]
 
-    # average over all reps
-    trfwd_dir_mean = np.nanmean(trfwd_dir_results, axis=1)
-    trfwd_dir_var  = np.nanvar (trfwd_dir_results, axis=1)
-    trfwd_fft_mean = np.nanmean(trfwd_fft_results, axis=1)
-    trfwd_fft_var  = np.nanvar (trfwd_fft_results, axis=1)
-    gdual_mean     = np.nanmean(gdual_results,     axis=1)
-    gdual_var      = np.nanvar (gdual_results,     axis=1)
-    lsgdual_mean   = np.nanmean(lsgdual_results,   axis=1)
-    lsgdual_var    = np.nanvar (lsgdual_results,   axis=1)
+        if response_variable is not 'nan':
+            trfwd_dir_results[i_result, :] = np.array(list(map(lambda x: x[max(-len(x), trfwd_result_index)][response_variable], result['trfwd_dir_result'])))
+            trfwd_fft_results[i_result, :] = np.array(list(map(lambda x: x[max(-len(x), trfwd_result_index)][response_variable], result['trfwd_fft_result'])))
+            gdual_results[i_result, :]     = result['gdual_result'][response_variable]
+            lsgdual_results[i_result, :]   = result['lsgdual_result'][response_variable]
+        elif response_variable is 'nan':
+            trfwd_dir_results[i_result, :] = np.array(list(map(lambda x: x[max(-len(x), -1)]['LL'], result['trfwd_dir_result'])))
+            trfwd_fft_results[i_result, :] = np.array(list(map(lambda x: x[max(-len(x), -1)]['LL'], result['trfwd_fft_result'])))
+            gdual_results[i_result, :]     = result['gdual_result']['LL']
+            lsgdual_results[i_result, :]   = result['lsgdual_result']['LL']
+
+    if response_variable is not 'nan':
+        # average over all reps
+        trfwd_dir_mean = np.nanmean(trfwd_dir_results, axis=1)
+        trfwd_dir_var  = np.nanvar (trfwd_dir_results, axis=1)
+        trfwd_fft_mean = np.nanmean(trfwd_fft_results, axis=1)
+        trfwd_fft_var  = np.nanvar (trfwd_fft_results, axis=1)
+        gdual_mean     = np.nanmean(gdual_results,     axis=1)
+        gdual_var      = np.nanvar (gdual_results,     axis=1)
+        lsgdual_mean   = np.nanmean(lsgdual_results,   axis=1)
+        lsgdual_var    = np.nanvar (lsgdual_results,   axis=1)
+    elif response_variable is 'nan':
+        trfwd_dir_mean = np.sum(np.isnan(trfwd_dir_results), axis=1)
+        trfwd_fft_mean = np.sum(np.isnan(trfwd_fft_results), axis=1)
+        gdual_mean     = np.sum(np.isnan(gdual_results), axis=1)
+        lsgdual_mean   = np.sum(np.isnan(lsgdual_results), axis=1)
+
 
     # sort x_vals, then order the means, vars accordingly
     idx = np.argsort(x_vals)
     x_vals         = x_vals[idx]
     trfwd_dir_mean = trfwd_dir_mean[idx]
-    trfwd_dir_var  = trfwd_dir_var[idx]
     trfwd_fft_mean = trfwd_fft_mean[idx]
-    trfwd_fft_var  = trfwd_fft_var[idx]
     gdual_mean     = gdual_mean[idx]
-    gdual_var      = gdual_var[idx]
     lsgdual_mean   = lsgdual_mean[idx]
-    lsgdual_var    = lsgdual_var[idx]
+    if response_variable is not 'nan':
+        trfwd_dir_var  = trfwd_dir_var[idx]
+        trfwd_fft_var  = trfwd_fft_var[idx]
+        gdual_var      = gdual_var[idx]
+        lsgdual_var    = lsgdual_var[idx]
 
     fig = plt.figure()
     plt.plot(x_vals, trfwd_dir_mean)
@@ -578,10 +600,34 @@ def plot_result(
     plt.ylabel(Y_LABEL_DICT[response_variable])
     plt.title(r'All methods')
     plt.legend(METHOD_NAMES)
-    fig.savefig(os.path.join(results_folder, response_variable + "_all.png"))
+    fig.savefig(os.path.join(results_folder, response_variable + str(int(trfwd_result_index)) + "_all.png"))
+
+
+def plot_all_results(result_collection_folder):
+    experiments_list = os.listdir(result_collection_folder)
+
+    experiments_list.remove('.DS_Store')
+
+    for experiment_folder in experiments_list:
+        plot_result(os.path.join(result_collection_folder, experiment_folder), 'LL',  TRFWD_LL_RESULT_INDEX)
+        plot_result(os.path.join(result_collection_folder, experiment_folder), 'RT',  TRFWD_RT_RESULT_INDEX)
+        plot_result(os.path.join(result_collection_folder, experiment_folder), 'nan', TRFWD_RT_RESULT_INDEX)
 
 
 
 if __name__ == "__main__":
-    vary_branching_params()
-    vary_arrival_params()
+    if os.uname()[1] == 'kwinn':
+        # plot_all_results(SHANNON_RESULTS_DIR)
+            vary_branching_params(n_reps=1, theta_branch_experiment=np.linspace(0., 1.0, 41), dist_branch='bernoulli')
+    elif 'shannon' in os.uname()[1]:
+        if len(sys.argv) == 1:
+            vary_branching_params()
+            vary_arrival_params()
+        elif int(sys.argv[1]) == 1:
+            vary_branching_params(n_reps=20, theta_branch_experiment=np.linspace(0., 1.0, 41), dist_branch='bernoulli')
+        elif int(sys.argv[1]) == 2:
+            vary_branching_params(n_reps=20, theta_branch_experiment=np.linspace(0., 15.0, 31), dist_branch='poisson')
+        elif int(sys.argv[1]) == 3:
+            vary_arrival_params(n_reps=20, theta_arrival_experiment=np.array([5, 10, 25, 50, 75, 100, 150, 200, 250]), dist_branch='bernoulli')
+        elif int(sys.argv[1]) == 4:
+            vary_arrival_params(n_reps=20, theta_arrival_experiment=np.array([5, 10, 25, 50, 75, 100, 150, 200, 250]), dist_branch='poisson')
