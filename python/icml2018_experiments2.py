@@ -263,7 +263,9 @@ def stability_experiment(
             if trfwd_dir_result[i_rep].size == 1:
                 diff = np.inf
             else:
-                diff = np.abs(trfwd_dir_result[i_rep][-1]['LL'] - trfwd_dir_result[i_rep][-2]['LL'])
+                # diff = np.abs(trfwd_dir_result[i_rep][-1]['LL'] - trfwd_dir_result[i_rep][-2]['LL'])
+                # note: diff can be negative, which is a stopping condition
+                diff = trfwd_dir_result[i_rep][-1]['LL'] - trfwd_dir_result[i_rep][-2]['LL']
             if not SILENT:
                 print(", diff = %f" % diff)
 
@@ -319,7 +321,9 @@ def stability_experiment(
             if trfwd_fft_result[i_rep].size == 1:
                 diff = np.inf
             else:
-                diff = np.abs(trfwd_fft_result[i_rep][-1]['LL'] - trfwd_fft_result[i_rep][-2]['LL'])
+                # diff = np.abs(trfwd_fft_result[i_rep][-1]['LL'] - trfwd_fft_result[i_rep][-2]['LL'])
+                # note: diff can be negative, which is a stopping condition
+                diff = trfwd_fft_result[i_rep][-1]['LL'] - trfwd_fft_result[i_rep][-2]['LL']
             if not SILENT:
                 print(", diff = %f" % diff)
 
