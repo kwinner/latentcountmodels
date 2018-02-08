@@ -47,8 +47,19 @@ THETA_ARRIVAL_EXPERIMENT_DEFAULT = np.array([5, 10, 25, 50])
 # THETA_ARRIVAL_EXPERIMENT_DEFAULT = np.array([5, 10, 25, 50, 75, 100, 150, 200, 250])
 
 TRFWD_RESULT_INDEX_DEFAULT = -1 # default to last entry (largest N_max attempted) for plotting trfwd results
-TRFWD_LL_RESULT_INDEX      = -1
-TRFWD_RT_RESULT_INDEX      = -2
+# TRFWD_LL_RESULT_INDEX      = -1
+# TRFWD_RT_RESULT_INDEX      = -1
+
+RT_LOG_SCALE = True
+
+TRFWD_DIR_LINESTYLE   = '--'
+TRFWD_DIR_MARKERSTYLE = 'v' #triangle_down
+TRFWD_FFT_LINESTYLE   = '-.'
+TRFWD_FFT_MARKERSTYLE = '^' #triangle_up
+GDUAL_LINESTYLE       = ':'
+GDUAL_MARKERSTYLE     = 's' #square
+LSGDUAL_LINESTYLE     = '-'
+LSGDUAL_MARKERSTYLE   = 'o' #circle
 
 # plotting parameters
 BRANCHING_PARAM_LABEL    = r'$\delta$'
@@ -435,7 +446,7 @@ def vary_branching_params(
                                             theta_branch_eval  = theta_branch_eval,
                                             theta_observ_eval  = theta_observ_eval,
                                             theta_arrival_gen  = theta_arrival_gen,
-                                            theta_branch_gen   = theta_branch_gen,
+                                            theta_branch_gen   = None,
                                             theta_observ_gen   = theta_observ_gen,
                                             y_given            = y,
                                             fixed_y            = fixed_y,
@@ -500,6 +511,7 @@ def vary_arrival_params(
         y = sample_data(theta_arrival_gen, theta_branch_gen, theta_observ_gen, dist_arrival, dist_branch)['y']
     else:
         y = None
+        theta_arrival_gen = None
 
     for theta_arrival_constant in theta_arrival_experiment:
         print('Lambda = %f' % theta_arrival_constant)
@@ -512,7 +524,7 @@ def vary_arrival_params(
                                             theta_arrival_eval = theta_arrival_eval,
                                             theta_branch_eval  = theta_branch_eval,
                                             theta_observ_eval  = theta_observ_eval,
-                                            theta_arrival_gen  = theta_arrival_gen,
+                                            theta_arrival_gen  = None,
                                             theta_branch_gen   = theta_branch_gen,
                                             theta_observ_gen   = theta_observ_gen,
                                             y_given            = y,
@@ -528,8 +540,9 @@ def vary_arrival_params(
 
 def plot_result(
         results_folder,
-        response_variable  = 'LL',                      # one of {'LL', 'RT', 'nan'}
-        trfwd_result_index = TRFWD_RESULT_INDEX_DEFAULT # which N_max attempt to plot (typically -1 or -2)
+        response_variable  = 'LL',                       # one of {'LL', 'RT', 'nan'}
+        trfwd_result_index = TRFWD_RESULT_INDEX_DEFAULT, # which N_max attempt to plot (typically -1 or -2)
+        y_scale            = 'linear'
         ):
     # read some metadata
     meta_file = open(os.path.join(results_folder, "meta.txt"))
@@ -538,6 +551,8 @@ def plot_result(
             n_reps = int(line[len("n_reps:"):].strip())
         elif line.startswith("x_label:"):
             x_label = line[len("x_label:"):].strip()
+        elif line.startswith("branch:"):
+            branch = line[len("branch:"):].strip()
 
     # glob is basically unix find
     results_glob = glob(os.path.join(results_folder, "*.pickle"))
@@ -597,31 +612,50 @@ def plot_result(
         lsgdual_var    = lsgdual_var[idx]
 
     fig = plt.figure()
-    plt.plot(x_vals, trfwd_dir_mean)
-    plt.plot(x_vals, trfwd_fft_mean)
-    plt.plot(x_vals, gdual_mean)
-    plt.plot(x_vals, lsgdual_mean)
+    plt.plot(x_vals, trfwd_dir_mean, TRFWD_DIR_LINESTYLE + TRFWD_DIR_MARKERSTYLE, fillstyle='none')
+    plt.plot(x_vals, trfwd_fft_mean, TRFWD_FFT_LINESTYLE + TRFWD_FFT_MARKERSTYLE, fillstyle='none')
+    plt.plot(x_vals, gdual_mean,     GDUAL_LINESTYLE     + GDUAL_MARKERSTYLE,     fillstyle='none')
+    plt.plot(x_vals, lsgdual_mean,   LSGDUAL_LINESTYLE   + LSGDUAL_MARKERSTYLE,   fillstyle='none')
+
+    if y_scale == 'log':
+        plt.yscale('log')
+
     plt.xlabel(x_label)
     plt.ylabel(Y_LABEL_DICT[response_variable])
     plt.title(r'All methods')
     plt.legend(METHOD_NAMES)
-    fig.savefig(os.path.join(results_folder, response_variable + str(int(trfwd_result_index)) + "_all.png"))
+
+    plotname = ''
+    if y_scale == 'log':
+        plotname += "log"
+    plotname += response_variable
+    if x_label == '$\delta$':
+        plotname += '_vsdelta'
+    elif x_label == '$\Lambda$':
+        plotname += '_vsLambda'
+    plotname += '_' + branch
+    if response_variable == 'RT':
+        plotname += '_' + str(int(trfwd_result_index))
+
+    fig.savefig(os.path.join(results_folder, plotname))
+    plt.close(fig)
 
 
 def plot_result_vs_Y(
         results_folder,
         response_variable  = 'RT',                      # one of {'LL', 'RT', 'nan'}
-        trfwd_result_index = TRFWD_RESULT_INDEX_DEFAULT # which N_max attempt to plot (typically -1 or -2)
+        trfwd_result_index = TRFWD_RESULT_INDEX_DEFAULT, # which N_max attempt to plot (typically -1 or -2)
+        y_scale            = 'linear'
         ):
     # read some metadata
     meta_file = open(os.path.join(results_folder, "meta.txt"))
     for line in meta_file:
         if line.startswith("n_reps:"):
             n_reps = int(line[len("n_reps:"):].strip())
-        elif line.startswith("x_label:"):
-            x_label = line[len("x_label:"):].strip()
+        elif line.startswith("branch:"):
+            branch = line[len("branch:"):].strip()
         elif line.startswith("fix-y:"):
-            y_fixed = bool(line[len("fix-y:"):].strip())
+            y_fixed = (line[len("fix-y:"):].strip() == 'True')
 
     # glob is basically unix find
     results_glob = glob(os.path.join(results_folder, "*.pickle"))
@@ -683,28 +717,42 @@ def plot_result_vs_Y(
             lsgdual_var    = lsgdual_var[idx]
     else:
         # scatter vs Y, no need to sort, but flatten each matrix
-        x_vals            = Y.flatten()
-        trfwd_dir_results = trfwd_dir_results.flatten()
-        trfwd_fft_results = trfwd_fft_results.flatten()
-        gdual_results     = gdual_results.flatten()
-        lsgdual_results   = lsgdual_results.flatten()
+        x_vals            = Y.ravel()
+        trfwd_dir_results = trfwd_dir_results.ravel()
+        trfwd_fft_results = trfwd_fft_results.ravel()
+        gdual_results     = gdual_results.ravel()
+        lsgdual_results   = lsgdual_results.ravel()
 
     fig = plt.figure()
     if y_fixed:
-        plt.plot(x_vals, trfwd_dir_mean)
-        plt.plot(x_vals, trfwd_fft_mean)
-        plt.plot(x_vals, gdual_mean)
-        plt.plot(x_vals, lsgdual_mean)
+        plt.plot(x_vals, trfwd_dir_mean, TRFWD_DIR_LINESTYLE + TRFWD_DIR_MARKERSTYLE, fillstyle='none')
+        plt.plot(x_vals, trfwd_fft_mean, TRFWD_FFT_LINESTYLE + TRFWD_FFT_MARKERSTYLE, fillstyle='none')
+        plt.plot(x_vals, gdual_mean,     GDUAL_LINESTYLE     + GDUAL_MARKERSTYLE,     fillstyle='none')
+        plt.plot(x_vals, lsgdual_mean,   LSGDUAL_LINESTYLE   + LSGDUAL_MARKERSTYLE,   fillstyle='none')
     else:
-        plt.scatter(x_vals, trfwd_dir_results)
-        plt.scatter(x_vals, trfwd_fft_results)
-        plt.scatter(x_vals, gdual_results)
-        plt.scatter(x_vals, lsgdual_results)
+        plt.plot(x_vals, trfwd_dir_results, marker=TRFWD_DIR_MARKERSTYLE, linestyle='None', fillstyle='none')
+        plt.plot(x_vals, trfwd_fft_results, marker=TRFWD_FFT_MARKERSTYLE, linestyle='None', fillstyle='none')
+        plt.plot(x_vals, gdual_results,     marker=GDUAL_MARKERSTYLE,     linestyle='None', fillstyle='none')
+        plt.plot(x_vals, lsgdual_results,   marker=LSGDUAL_MARKERSTYLE,   linestyle='None', fillstyle='none')
+
+    if y_scale == 'log':
+        plt.yscale('log')
+
     plt.xlabel('Y')
     plt.ylabel(Y_LABEL_DICT[response_variable])
-    plt.title(r'All methods')
+    plt.title(response_variable + ' vs total count')
     plt.legend(METHOD_NAMES)
-    fig.savefig(os.path.join(results_folder, response_variable + str(int(trfwd_result_index)) + "_vs_Y.png"))
+
+    plotname = ''
+    if y_scale == 'log':
+        plotname += "log"
+    plotname += response_variable
+    plotname += '_vsY'
+    plotname += '_' + branch
+    if response_variable == 'RT':
+        plotname += '_' + str(int(trfwd_result_index))
+    fig.savefig(os.path.join(results_folder, plotname))
+    plt.close(fig)
 
 
 def plot_all_results(result_collection_folder):
@@ -713,10 +761,16 @@ def plot_all_results(result_collection_folder):
     experiments_list.remove('.DS_Store')
 
     for experiment_folder in experiments_list:
-        # plot_result(os.path.join(result_collection_folder, experiment_folder), 'LL',  TRFWD_LL_RESULT_INDEX)
-        # plot_result(os.path.join(result_collection_folder, experiment_folder), 'RT',  TRFWD_RT_RESULT_INDEX)
-        # plot_result(os.path.join(result_collection_folder, experiment_folder), 'nan', TRFWD_RT_RESULT_INDEX)
-        plot_result_vs_Y(os.path.join(result_collection_folder, experiment_folder), 'RT', TRFWD_RT_RESULT_INDEX)
+        # plot_result(os.path.join(result_collection_folder, experiment_folder), 'LL',  -1)
+        # plot_result(os.path.join(result_collection_folder, experiment_folder), 'RT',  -1)
+        # plot_result(os.path.join(result_collection_folder, experiment_folder), 'RT',  -2)
+        # plot_result(os.path.join(result_collection_folder, experiment_folder), 'RT',  -1, y_scale='log')
+        # plot_result(os.path.join(result_collection_folder, experiment_folder), 'RT',  -2, y_scale='log')
+        # plot_result(os.path.join(result_collection_folder, experiment_folder), 'nan')
+        plot_result_vs_Y(os.path.join(result_collection_folder, experiment_folder), 'RT',  -1)
+        plot_result_vs_Y(os.path.join(result_collection_folder, experiment_folder), 'RT',  -2)
+        plot_result_vs_Y(os.path.join(result_collection_folder, experiment_folder), 'RT',  -1, y_scale='log')
+        plot_result_vs_Y(os.path.join(result_collection_folder, experiment_folder), 'RT',  -2, y_scale='log')
 
 
 
