@@ -38,6 +38,9 @@ def run_mle(T, arrival, branch, observ, y=None, true_params=None, n=1, n_reps=1,
     else:
         flog = None
 
+    # Fixed params
+    fixed_params = get_fixed_params(arrival, branch, observ, true_params, T)
+
     if True in grads: n_successes1 = 0
     if False in grads: n_successes0 = 0
 
@@ -49,7 +52,7 @@ def run_mle(T, arrival, branch, observ, y=None, true_params=None, n=1, n_reps=1,
         for g in grads:
             for n_attempts in range(max_attempts):
                 if n_attempts > 0: print('Restarting')
-                res, runtime = mle(y, T, arrival, branch, observ, flog, grad=g)
+                res, runtime = mle(y, T, arrival, branch, observ, fixed_params, flog, grad=g)
                 if res.success: break
     
             if res.success:
@@ -81,19 +84,16 @@ def run_mle(T, arrival, branch, observ, y=None, true_params=None, n=1, n_reps=1,
                        ' successes out of ' + str(n) + ' trials\n')
         flog.close()
 
-    try:
-        return theta_hat, ci_left, ci_right
-    except:
-        return None, None, None
+    return theta_hat
 
-def mle(y, T, arrival, branch, observ, log, grad=False):
+def mle(y, T, arrival, branch, observ, fixed_params, log, grad=False):
     theta0 = unpack('init', y, arrival, branch, observ, T)
     bounds = unpack('bounds', y, arrival, branch, observ, T)
     #print(theta0)
     #print(bounds)
 
     # Call the optimizer
-    objective_args = (y, T, arrival, branch, observ, log)
+    objective_args = (y, T, arrival, branch, observ, fixed_params, log)
 
     if grad:
         obj = objective_grad
@@ -105,18 +105,18 @@ def mle(y, T, arrival, branch, observ, log, grad=False):
     start = time.process_time()
     res = optimize.minimize(obj, theta0, args=objective_args,
                             method='L-BFGS-B', jac=jac, bounds=bounds)
-    #options={'disp': True})#, 'eps': 1e-12, 'ftol': 1e-15, 'gtol': 1e-15})
+    #options={'disp': 1, 'eps': 1e-12, 'ftol': 1e-15, 'gtol': 1e-15}
     end = time.process_time()
     runtime = end - start
 
     return res, runtime
     
-def objective(theta, y, T, arrival, branch, observ, log):
+def objective(theta, y, T, arrival, branch, observ, fixed_params, log):
     # Make sure all values in theta are valid
     if not np.all(np.isfinite(theta)): return float('inf')
 
     # Turn theta from np array into dictionary
-    arrival_theta, branch_theta, observ_theta = theta_unpack(theta, T, arrival, branch, observ)
+    arrival_theta, branch_theta, observ_theta = theta_unpack(theta, T, arrival, branch, observ, fixed_params)
     #print('arrival', arrival_theta)
     #print('branch', branch_theta)
     #print('observ', observ_theta)
@@ -147,12 +147,12 @@ def objective(theta, y, T, arrival, branch, observ, log):
     #print(theta, ll)
     return -ll
 
-def objective_grad(theta, y, T, arrival, branch, observ, log):
+def objective_grad(theta, y, T, arrival, branch, observ, fixed_params, log):
     # Make sure all values in theta are valid
     if not np.all(np.isfinite(theta)): return float('inf')
 
     # Turn theta from np array into dictionary
-    tmp = theta_unpack(theta, T, arrival, branch, observ, return_hyperparams=True)
+    tmp = theta_unpack(theta, T, arrival, branch, observ, fixed_params, return_hyperparams=True)
     arrival_theta, branch_theta, observ_theta = tmp[:3]
     arrival_hyperparam, branch_hyperparam, observ_hyperparam = tmp[3:]
 
@@ -163,7 +163,7 @@ def objective_grad(theta, y, T, arrival, branch, observ, log):
     arrival_theta = Parameter.wrap(arrival_theta, need_grad=arrival_mask)
     branch_theta  = Parameter.wrap( branch_theta, need_grad=branch_mask)
     observ_theta  = Parameter.wrap( observ_theta, need_grad=observ_mask)
-        
+
     #print('arrival', arrival_theta)
     #print('branch', branch_theta)
     #print('observ', observ_theta)
@@ -206,7 +206,6 @@ def objective_grad(theta, y, T, arrival, branch, observ, log):
     #print(theta, nll, grad)
     return nll, grad
 
-
 # Flatten 2d list
 def flatten(l):
     return [i for row in l for i in row]
@@ -219,20 +218,23 @@ def recover_grad(T, arrival_grad, branch_grad, observ_grad,
     observ_hyperparam_grad  = observ['backprop'](observ_grad, observ_hyperparam)
 
     out = np.concatenate((arrival_hyperparam_grad, branch_hyperparam_grad, observ_hyperparam_grad))
-
     return out
 
-def theta_unpack(theta_array, T, arrival, branch, observ, return_hyperparams=False):
-    n_arrival_params = count_params(arrival, T)
-    n_observ_params = count_params(observ, T)
+def theta_unpack(theta_array, T, arrival, branch, observ, fixed_params,
+                 return_hyperparams=False):
+    n_arrival_params = arrival['n_params'](T)
+    n_branch_params = branch['n_params'](T)
+    n_observ_params = observ['n_params'](T)
 
-    arrival_params = theta_array[:n_arrival_params]
-    if n_observ_params > 0:
-        branch_params = theta_array[n_arrival_params:-n_observ_params]
-        observ_params = theta_array[-n_observ_params:]
-    else:
-        branch_params = theta_array[n_arrival_params:]
-        observ_params = []
+    idx = 0
+    arrival_params = theta_array[idx:idx+n_arrival_params] if n_arrival_params > 0 else fixed_params['arrival']
+    idx += n_arrival_params
+    branch_params = theta_array[idx:idx+n_branch_params] if n_branch_params > 0 else fixed_params['branch']
+    idx += n_branch_params
+    observ_params = theta_array[idx:idx+n_observ_params] if n_observ_params > 0 else fixed_params['observ']
+    idx += n_observ_params
+    
+    assert idx == len(theta_array)
 
     theta_arrival = arrival['hyperparam2param'](arrival_params, T).astype(np.float64)
     theta_branch = branch['hyperparam2param'](branch_params, T).astype(np.float64)
@@ -272,11 +274,6 @@ def generate_data(theta, T, arrival, branch, observ, n_reps):
 
     return y.astype(np.int32)
 
-def count_params(dist, T):
-    learn_mask = dist['learn_mask'](T)
-    if np.isscalar(learn_mask): learn_mask = [learn_mask]
-    return np.sum(learn_mask)
-
 def unpack(k, y, arrival, branch, observ, T):
     tmp = [d[k](y, T) for d in [arrival, branch, observ]]
     tmp = [v if isinstance(v, list) else [v] for v in tmp]
@@ -284,3 +281,11 @@ def unpack(k, y, arrival, branch, observ, T):
 
 def mean2p(mu, size):
     return float(size)/(size+mu)
+
+def get_fixed_params(arrival, branch, observ, true_params, T):
+    fixed_params = {}
+    if arrival['n_params'](T) == 0: fixed_params['arrival'] = true_params['arrival']
+    if branch['n_params'](T) == 0: fixed_params['branch'] = true_params['branch']
+    if observ['n_params'](T) == 0: fixed_params['observ'] = true_params['observ']
+
+    return fixed_params
