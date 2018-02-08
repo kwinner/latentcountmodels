@@ -12,8 +12,8 @@ Experiments:
 6. Negative binomial arrival, negative binomial branching
 "
 
-mode <- 4               # choose exepriment between 1 and 6 above
-dir <- 'mle_bprop_rt'   # files should be in ../data/dir
+mode <- 6               # choose exepriment between 1 and 6 above
+dir <- 'mle_bprop_rt_var_shannon'   # files should be in ../data/dir
 
 # A few setups
 name <- c('pois_bin', 'pois_pois', 'pois_nb', 'nb_bin', 'nb_pois', 'nb_nb')[mode]
@@ -35,14 +35,14 @@ in_dir <- paste('data', dir, name, sep = '/')
 files <- list.files(in_dir, pattern = '\\.csv$')
 df <- data.frame()
 for (file in files) {
-  df <- rbind(df, read.csv(paste(in_dir, file, sep = '/'), header = F)[, 1:3])
+  df <- rbind(df, read.csv(paste(in_dir, file, sep = '/'), header = F)[, 1:5])
 }
-names(df) <- c('grad', 'K', 'runtime')
+names(df) <- c('grad', 'K', 'runtime', 'n_iters', 'f')
 df <- df %>% mutate_at('grad', as.logical)
 
 # Scatter + mean
-ggplot(df, aes(K, runtime)) +
-  geom_point(alpha = 0.5, size = 2, aes(colour = grad)) +
+ggplot(df, aes(K, n_iters)) +
+  geom_point(alpha = 0.6, size = 3, aes(colour = grad)) +
   stat_summary(fun.y = mean, geom = 'line', size = 2, aes(colour = grad)) +
   scale_colour_discrete(name="Gradient",
                         breaks=c(TRUE, FALSE),

@@ -4,12 +4,12 @@ from scipy import optimize
 from mle import *
 from mle_distributions import *
 
-def grad(theta, y, T, arrival, branch, observ, log):
-    return objective_grad(theta, y, T, arrival, branch, observ, log)[1]
+def grad(theta, y, T, arrival, branch, observ, fixed_params, log):
+    return objective_grad(theta, y, T, arrival, branch, observ, fixed_params, log)[1]
 
 def run_check_grad(mode):
-    K = 2
-    n_samples = 10
+    K = 5
+    n_samples = 5
     
     # Parameter values
     lmbda = 5                              # arrival mean
@@ -28,9 +28,9 @@ def run_check_grad(mode):
     arrival_idx = 0 if mode < 3 else 1
     branch_idx = mode % 3
     
-    arrival = [constant_poisson_arrival, constant_nbinom_arrival][arrival_idx]
+    arrival = [fix_poisson_arrival, fix_nbinom_arrival][arrival_idx]
     branch = [var_binom_branch, var_poisson_branch, var_nbinom_branch][branch_idx]
-    observ = constant_binom_observ
+    observ = fix_binom_observ
     
     # Generate data
     p = mean2p(lmbda, v) # ignored in Poisson arrival cases
@@ -40,18 +40,14 @@ def run_check_grad(mode):
         true_params = {'arrival': [v, p], 'branch': delta, 'observ': rho}
     T = np.arange(K)
     y = generate_data(true_params, T, arrival, branch, observ, n_samples)
-    print(y)
+    #print(y)
     
     # Check gradients
+    fixed_params = get_fixed_params(arrival, branch, observ, true_params, T)
     theta0 = unpack('init', y, arrival, branch, observ, T)
-    print(theta0)
+    theta = delta
 
-    if mode < 3:
-        theta = np.concatenate(([lmbda], delta, [rho]))
-    else:
-        theta = np.concatenate(([v, p], delta, [rho]))
-
-    objective_args = (y, T, arrival, branch, observ, False)
+    objective_args = (y, T, arrival, branch, observ, fixed_params, False)
     error0 = optimize.check_grad(objective, grad, theta0, *objective_args)
     error = optimize.check_grad(objective, grad, theta, *objective_args)
     print(error0, error, error0 < 1e-4 and error < 1e-4)

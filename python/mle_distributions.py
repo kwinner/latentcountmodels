@@ -41,6 +41,18 @@ constant_nbinom_arrival = {
 }
 
 # Fix (do not learn)
+fix_poisson_arrival = {
+    'n_params': lambda T: 0,
+    'pgf': poisson_pgf,
+    'pgf_grad': poisson_pgf_grad,
+    'sample': stats.poisson.rvs,
+    'hyperparam2param': lambda x, T: np.tile(x, (len(T), 1)),
+    'need_grad': lambda T: [[False]] * len(T),
+    'backprop': lambda dtheta, x: [],
+    'init': lambda y, T: [],
+    'bounds': lambda y, T: []
+}
+
 fix_nbinom_arrival = {
     'n_params': lambda T: 0,
     'pgf': negbin_pgf,
@@ -77,7 +89,7 @@ constant_poisson_branch = {
     'hyperparam2param': lambda x, T: np.tile(x, (len(T)-1, 1)),
     'need_grad': lambda T: [[True]] * len(T),
     'backprop': lambda dtheta, x: np.sum(dtheta, axis=0),
-    'init': lambda y, T: 1,
+    'init': lambda y, T: 1.0,
     'bounds': lambda y, T: (1e-6, None)
 }
 
@@ -89,7 +101,7 @@ constant_nbinom_branch = {
     'hyperparam2param': lambda x, T: 1/(np.tile(x, (len(T)-1, 1)) + 1),
     'need_grad': lambda T: [[True]] * len(T),
     'backprop': lambda dtheta, x: np.sum(dtheta, axis=0) * -1.0 / (np.array(x)+1)**2,
-    'init': lambda y, T: 1,
+    'init': lambda y, T: 1.0,
     'bounds': lambda y, T: (1e-6, None)
 }
 
@@ -114,7 +126,7 @@ var_poisson_branch = {
     'hyperparam2param': lambda x, T: np.reshape(x, (-1, 1)),
     'need_grad': lambda T: [[True]] * len(T),
     'backprop': lambda dtheta, x: np.reshape(dtheta, -1), # df/dx = df/dtheta * dtheta/dx
-    'init': lambda y, T: [1] * (len(T) - 1),
+    'init': lambda y, T: [1.0] * (len(T) - 1),
     'bounds': lambda y, T: [(1e-6, None)] * (len(T) - 1)
 }
 
@@ -126,7 +138,7 @@ var_nbinom_branch = {
     'hyperparam2param': lambda x, T: 1/(np.reshape(x, (-1, 1)) + 1),
     'need_grad': lambda T: [[True]] * len(T),
     'backprop': lambda dtheta, x: np.reshape(dtheta, -1) * - 1.0 / (np.array(x) + 1)**2,
-    'init': lambda y, T: [1] * (len(T) - 1),
+    'init': lambda y, T: [1.0] * (len(T) - 1),
     'bounds': lambda y, T: [(1e-6, None)] * (len(T) - 1)
 }
 

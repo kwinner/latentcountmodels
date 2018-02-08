@@ -10,7 +10,7 @@ def run_experiment(mode, params, n, n_reps, max_attempts, out_dir, out_mode, Ks)
     arrival_idx = 0 if mode < 3 else 1
     branch_idx = mode % 3
 
-    arrival = [constant_poisson_arrival, fix_nbinom_arrival][arrival_idx]
+    arrival = [fix_poisson_arrival, fix_nbinom_arrival][arrival_idx]
     branch = [constant_binom_branch, constant_poisson_branch, constant_nbinom_branch][branch_idx]
     observ = fix_binom_observ
     print(arrival['pgf'], branch['pgf'])
@@ -64,11 +64,11 @@ if __name__ == "__main__":
     assert mode in range(6), 'Choose a model 1-6'
 
     # Experimental settings (local version - for testing purposes)
-    Ks = range(2, 11, 1)          # varying lengths of the chain
-    n = 3                        # rounds of experiments
-    n_reps = 10                   # number of independent chains for each round
+    Ks = range(2, 21, 1)          # varying lengths of the chain
+    n = 20                        # rounds of experiments
+    n_reps = 20                   # number of independent chains for each round
     max_attempts = 10             # max number of attempts for each round
-    out_dir = '../data/fix_observ_test/' # output directory
+    out_dir = '../data/mle_bprop_rt1/' # output directory
     out_mode = 'w'                # 'a' for append, 'w' for write
 
     # True arrival params
