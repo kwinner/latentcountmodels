@@ -9,10 +9,6 @@ def ls(shape = 0):
     """instantiate an empty log-sign array with given shape"""
     return np.empty(shape, dtype=DTYPE)
 
-def zeros(shape=0):
-    ZERO = real2ls(0.0)
-    return np.tile(ZERO, shape).astype(DTYPE)
-
 def ones(shape=0):
     ONE = real2ls(1.0)
     return np.tile(ONE, shape).astype(DTYPE)
@@ -26,6 +22,12 @@ def real2ls(x):
         z['sgn'] = np.sign(x)
 
     return z
+
+
+ZERO = real2ls(0.0)
+
+def zeros(shape=0):
+    return np.tile(ZERO, shape).astype(DTYPE)
 
 
 def ls2real(x):

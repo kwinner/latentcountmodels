@@ -57,7 +57,9 @@ def run_mle(T, arrival, branch, observ, y=None, true_params=None, n=1, n_reps=1,
     
             if res.success:
                 theta_hat = res.x
-        
+
+                #print(res)
+                
                 # Write to out
                 #if out: writer.writerow(np.concatenate((y[0], theta_hat, ci_left, ci_right, runtime)))
                 if out:
@@ -86,7 +88,8 @@ def run_mle(T, arrival, branch, observ, y=None, true_params=None, n=1, n_reps=1,
 
     return theta_hat
 
-def mle(y, T, arrival, branch, observ, fixed_params, log, grad=False):
+def mle(y, T, arrival, branch, observ, fixed_params, log,
+        grad=False, trace=False, disp=0):
     theta0 = unpack('init', y, arrival, branch, observ, T)
     bounds = unpack('bounds', y, arrival, branch, observ, T)
     #print(theta0)
@@ -102,14 +105,33 @@ def mle(y, T, arrival, branch, observ, fixed_params, log, grad=False):
         obj = objective
         jac = False
         
+
+
+    theta_trace = []
+    obj_trace = []
+    time_trace = []
+    if not trace:
+        callback=None
+    else:
+        def callback(theta):
+            z = objective(theta, *objective_args)
+            theta_trace.append(theta)
+            obj_trace.append(z)
+            time_trace.append(time.process_time() - start)
+    
+
     start = time.process_time()
     res = optimize.minimize(obj, theta0, args=objective_args,
-                            method='L-BFGS-B', jac=jac, bounds=bounds)
-    #options={'disp': 1, 'eps': 1e-12, 'ftol': 1e-15, 'gtol': 1e-15}
+                            method='L-BFGS-B', jac=jac, bounds=bounds,
+                            options={'disp': disp}, callback=callback)
+    #options={'disp': True})#, 'eps': 1e-12, 'ftol': 1e-15, 'gtol': 1e-15})
     end = time.process_time()
     runtime = end - start
 
-    return res, runtime
+    if trace:
+        return res, runtime, obj_trace, time_trace
+    else:
+        return res, runtime
     
 def objective(theta, y, T, arrival, branch, observ, fixed_params, log):
     # Make sure all values in theta are valid

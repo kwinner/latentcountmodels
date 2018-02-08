@@ -70,68 +70,69 @@ bounds         (existing) accepts y, and returns array of bounds for hyperparame
 
 # TODO: eliminate references to K within this dictionary
 
-var_poisson_branch = {
-    'learn_mask': [True] * (K - 1),   # TODO: 'num_hyperparams': lambda K: K-1,  (return number of parameters)
-    'pmf': poisson_branching,
-    'pgf': poisson_pgf,
-    'pgf_grad': poisson_pgf_grad,  # new: version of branching that supports backprop
-    'need_grad': lambda T: [[True]] * (len(T)-1),
-    'sample': lambda n, gamma: stats.poisson.rvs(n * gamma),
-    'hyperparam2param': lambda x, T: x.reshape((-1, 1)),
-    'backprop': lambda dtheta, x: flatten(dtheta),
-    'init': lambda y: [1.5] * (K - 1),
-    'bounds': lambda y: [(0.1, None)] * (K - 1)
-}
-
-var_nbinom_branch = {
-    'learn_mask': [True] * (K - 1),
-    'pmf': nbinom_branching,
-    'pgf': 'geometric',
-    'sample': stats.nbinom.rvs,
-    'hyperparam2param': lambda x, T: 1/(x.reshape((-1, 1)) + 1),
-    'init': lambda y: [1] * (K - 1),
-    'bounds': lambda y: [(1e-6, None)] * (K - 1)
-}
-
-grr_nbinom_branch = {
-    'learn_mask': [True] * (K + 1),
-    'pmf': nbinom_branching,
-    'pgf': 'geometric',
-    'sample': stats.nbinom.rvs,
-    'hyperparam2param': lambda x, T: 1/(x[2:].reshape((-1, 1)) + 1),
-    'init': lambda y: [1/np.var(y)] + [0.1] + [1] * (K - 1),
-    'bounds': lambda y: [(None, None)] + [(1e-6, None)] * K # [sigma, R_0, R_t's]
-}
-
-lmbda = 30
-fixed_poisson_arrival = {
-    'learn_mask': False,
-    'pmf': stats.poisson.pmf,
-    'pgf': poisson_pgf,
-    'sample': stats.poisson.rvs,
-    'hyperparam2param': lambda x, T: np.concatenate(([lmbda], np.zeros(len(T) - 1))).reshape((-1, 1)),
-    'init': lambda y: [],
-    'bounds': lambda y: []
-}
+# var_poisson_branch = {
+#     'learn_mask': [True] * (K - 1),   # TODO: 'num_hyperparams': lambda K: K-1,  (return number of parameters)
+#     'pmf': poisson_branching,
+#     'pgf': poisson_pgf,
+#     'pgf_grad': poisson_pgf_grad,  # new: version of branching that supports backprop
+#     'need_grad': lambda T: [[True]] * (len(T)-1),
+#     'sample': lambda n, gamma: stats.poisson.rvs(n * gamma),
+#     'hyperparam2param': lambda x, T: x.reshape((-1, 1)),
+#     'backprop': lambda dtheta, x: flatten(dtheta),
+#     'init': lambda y: [1.5] * (K - 1),
+#     'bounds': lambda y: [(0.1, None)] * (K - 1)
+# }
+#
+# var_nbinom_branch = {
+#     'learn_mask': [True] * (K - 1),
+#     'pmf': nbinom_branching,
+#     'pgf': 'geometric',
+#     'sample': stats.nbinom.rvs,
+#     'hyperparam2param': lambda x, T: 1/(x.reshape((-1, 1)) + 1),
+#     'init': lambda y: [1] * (K - 1),
+#     'bounds': lambda y: [(1e-6, None)] * (K - 1)
+# }
+#
+# grr_nbinom_branch = {
+#     'learn_mask': [True] * (K + 1),
+#     'pmf': nbinom_branching,
+#     'pgf': 'geometric',
+#     'sample': stats.nbinom.rvs,
+#     'hyperparam2param': lambda x, T: 1/(x[2:].reshape((-1, 1)) + 1),
+#     'init': lambda y: [1/np.var(y)] + [0.1] + [1] * (K - 1),
+#     'bounds': lambda y: [(None, None)] + [(1e-6, None)] * K # [sigma, R_0, R_t's]
+# }
+#
+# lmbda = 30
+# fixed_poisson_arrival = {
+#     'learn_mask': False,
+#     'pmf': stats.poisson.pmf,
+#     'pgf': poisson_pgf,
+#     'sample': stats.poisson.rvs,
+#     'hyperparam2param': lambda x, T: np.concatenate(([lmbda], np.zeros(len(T) - 1))).reshape((-1, 1)),
+#     'init': lambda y: [],
+#     'bounds': lambda y: []
+# }
 
 # Distributions
-arrival = nmixture_poisson_arrival
+# arrival = nmixture_poisson_arrival
+arrival = constant_poisson_arrival
 #arrival = fixed_poisson_arrival
 
 #branch = grr_nbinom_branch
 #branch = var_nbinom_branch
-branch = var_poisson_branch
+# branch = var_poisson_branch
 #branch = constant_nbinom_branch
-#branch = constant_poisson_branch
+branch = constant_binom_branch
 
 observ = constant_binom_observ
 #observ = full_binom_observ
 
 T = np.arange(K) # vector of observation times
 
-theta_hat, ci_left, ci_right = run_mle(T, arrival, branch, observ,
-                                       y=y.astype(np.int32), grad=False)
-print(theta_hat, ci_left, ci_right)
+theta_hat = run_mle(T, arrival, branch, observ,
+                    y=y.astype(np.int32), grad=True)
+print(theta_hat)
 """
 # Clean output format
 r_hat = theta_hat[3:-1]

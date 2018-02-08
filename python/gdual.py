@@ -115,9 +115,15 @@ class GDualBase:
         # Initialize to zeros, and then populate. This is a clean way to handle truncation
         # and it ensures the coefficients are copied and we are not retaining a view into
         # an existing array
-        self.coefs = self.zero_coefs(q+1)
+
+        #self.coefs = self.zero_coefs(q+1)
+        #p = min(q+1, len(coefs))
+        #self.coefs[:p] = coefs[:p]
+
+        self.coefs = self.empty_coefs(q+1)
         p = min(q+1, len(coefs))
         self.coefs[:p] = coefs[:p]
+        self.coefs[p:] = self.ZERO_COEF
 
     def set_order(self, q):
         self.set_coefs(self.coefs, q)
@@ -245,6 +251,12 @@ class GDualBase:
 
 class LSGDual(GDualBase):
 
+    ZERO_COEF = ls.ZERO
+    
+    @classmethod
+    def empty_coefs(cls, k):
+        return np.empty(k, dtype=ls.DTYPE)
+
     @classmethod
     def zero_coefs(cls, k):
         return ls.zeros(k)
@@ -310,7 +322,12 @@ class LSGDual(GDualBase):
 class GDual(GDualBase):
 
     DTYPE=np.double
+    ZERO_COEF = 0.0
     
+    @classmethod
+    def empty_coefs(cls, k):
+        return np.empty(k, dtype=cls.DTYPE)
+
     @classmethod
     def zero_coefs(cls, k):
         return np.zeros(k, dtype=cls.DTYPE)
