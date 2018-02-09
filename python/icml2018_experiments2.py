@@ -52,6 +52,9 @@ TRFWD_RESULT_INDEX_DEFAULT = -1 # default to last entry (largest N_max attempted
 
 RT_LOG_SCALE = True
 
+FIG_SIZE = (6.4, 4.8)
+ADD_TITLE = False
+
 TRFWD_DIR_LINESTYLE   = '--'
 TRFWD_DIR_MARKERSTYLE = 'v' #triangle_down
 TRFWD_FFT_LINESTYLE   = '-.'
@@ -61,12 +64,21 @@ GDUAL_MARKERSTYLE     = 's' #square
 LSGDUAL_LINESTYLE     = '-'
 LSGDUAL_MARKERSTYLE   = 'o' #circle
 
+LINE_WIDTH            = 4.5  # default 1.5
+MARKER_SIZE           = 15 # default 6
+LEGEND_FONTSIZE       = 16
+XAXES_FONTSIZE        = 14
+YAXES_FONTSIZE        = {'LL': 12, 'RT': 14, 'nan': 14}
+TITLE_FONTSIZE        = 30
+XLABEL_FONTSIZE       = 20
+YLABEL_FONTSIZES      = {'LL': 20, 'RT': 20, 'nan': 20}
+
 # plotting parameters
 BRANCHING_PARAM_LABEL    = r'$\delta$'
 ARRIVAL_PARAM_LABEL      = r'$\Lambda$'
 METHOD_NAMES             = ['Trfwd', 'Trfwd w/ FFT', 'GDual', 'LSGDual']
 METHOD_FILENAME_SUFFIXES = ['trdir', 'trfft', 'gd', 'lsgd']
-Y_LABEL_DICT             = {'RT': r'mean RT (s)', 'LL': r'LL', 'nan': 'nan frequency'}
+Y_LABEL_DICT             = {'RT': r'Running Time (s)', 'LL': r'LL', 'nan': 'nan frequency'}
 
 # pmfs (for trfwd)
 ARRIVAL_PMF_DICT = {
@@ -565,10 +577,20 @@ def plot_result(
     gdual_results     = np.empty((n_results, n_reps))
     lsgdual_results   = np.empty((n_results, n_reps))
 
+    trfwd_dir_nans = np.empty((n_results, n_reps), dtype=bool)
+    trfwd_fft_nans = np.empty((n_results, n_reps), dtype=bool)
+    gdual_nans     = np.empty((n_results, n_reps), dtype=bool)
+    lsgdual_nans   = np.empty((n_results, n_reps), dtype=bool)
+
     for i_result in range(n_results):
         result = pickle.load(open(results_glob[i_result], 'rb'))
 
         x_vals[i_result]               = result['control_variable']
+
+        trfwd_dir_nans[i_result, :] = np.isnan(np.array(list(map(lambda x: x[max(-len(x), -1)]['LL'], result['trfwd_dir_result']))))
+        trfwd_fft_nans[i_result, :] = np.isnan(np.array(list(map(lambda x: x[max(-len(x), -1)]['LL'], result['trfwd_fft_result']))))
+        gdual_nans[i_result, :]     = np.isnan(result['gdual_result']['LL'])
+        lsgdual_nans[i_result, :]   = np.isnan(result['lsgdual_result']['LL'])
 
         if response_variable is not 'nan':
             trfwd_dir_results[i_result, :] = np.array(list(map(lambda x: x[max(-len(x), trfwd_result_index)][response_variable], result['trfwd_dir_result'])))
@@ -580,6 +602,17 @@ def plot_result(
             trfwd_fft_results[i_result, :] = np.array(list(map(lambda x: x[max(-len(x), -1)]['LL'], result['trfwd_fft_result'])))
             gdual_results[i_result, :]     = result['gdual_result']['LL']
             lsgdual_results[i_result, :]   = result['lsgdual_result']['LL']
+
+    trfwd_dir_results[np.where(trfwd_dir_nans)] = None
+    trfwd_fft_results[np.where(trfwd_fft_nans)] = None
+    gdual_results    [np.where(gdual_nans)]     = None
+    lsgdual_results  [np.where(lsgdual_nans)]   = None
+
+    # count of non-nan values
+    trfwd_dir_nvalid = np.sum(~trfwd_dir_nans, axis=1)
+    trfwd_fft_nvalid = np.sum(~trfwd_fft_nans, axis=1)
+    gdual_nvalid     = np.sum(~gdual_nans,     axis=1)
+    lsgdual_nvalid   = np.sum(~lsgdual_nans,   axis=1)
 
     if response_variable is not 'nan':
         # average over all reps
@@ -605,25 +638,78 @@ def plot_result(
     trfwd_fft_mean = trfwd_fft_mean[idx]
     gdual_mean     = gdual_mean[idx]
     lsgdual_mean   = lsgdual_mean[idx]
+    trfwd_dir_nvalid = trfwd_dir_nvalid[idx]
+    trfwd_fft_nvalid = trfwd_fft_nvalid[idx]
+    gdual_nvalid     = gdual_nvalid[idx]
+    lsgdual_nvalid   = lsgdual_nvalid[idx]
     if response_variable is not 'nan':
         trfwd_dir_var  = trfwd_dir_var[idx]
         trfwd_fft_var  = trfwd_fft_var[idx]
         gdual_var      = gdual_var[idx]
         lsgdual_var    = lsgdual_var[idx]
 
-    fig = plt.figure()
-    plt.plot(x_vals, trfwd_dir_mean, TRFWD_DIR_LINESTYLE + TRFWD_DIR_MARKERSTYLE, fillstyle='none')
-    plt.plot(x_vals, trfwd_fft_mean, TRFWD_FFT_LINESTYLE + TRFWD_FFT_MARKERSTYLE, fillstyle='none')
-    plt.plot(x_vals, gdual_mean,     GDUAL_LINESTYLE     + GDUAL_MARKERSTYLE,     fillstyle='none')
-    plt.plot(x_vals, lsgdual_mean,   LSGDUAL_LINESTYLE   + LSGDUAL_MARKERSTYLE,   fillstyle='none')
+        trfwd_dir_error = 1.96 * np.sqrt(trfwd_dir_var)
+        trfwd_fft_error = 1.96 * np.sqrt(trfwd_fft_var)
+        gdual_error     = 1.96 * np.sqrt(gdual_var)
+        lsgdual_error   = 1.96 * np.sqrt(lsgdual_var)
+
+    fig = plt.figure(figsize=FIG_SIZE)
+    # if response_variable == 'RT':
+    #     plt.errorbar(x_vals[np.where(trfwd_dir_nvalid > 0)],
+    #                  trfwd_dir_mean[np.where(trfwd_dir_nvalid > 0)],
+    #                  yerr=trfwd_dir_error[np.where(trfwd_dir_nvalid > 0)],
+    #                  fmt=TRFWD_DIR_LINESTYLE + TRFWD_DIR_MARKERSTYLE, fillstyle='none', linewidth=LINE_WIDTH, markersize=MARKER_SIZE)
+    #     plt.errorbar(x_vals[np.where(trfwd_fft_nvalid > 0)],
+    #                  trfwd_fft_mean[np.where(trfwd_fft_nvalid > 0)],
+    #                  yerr=trfwd_fft_error[np.where(trfwd_fft_nvalid > 0)],
+    #                  fmt=TRFWD_FFT_LINESTYLE + TRFWD_FFT_MARKERSTYLE, fillstyle='none', linewidth=LINE_WIDTH, markersize=MARKER_SIZE)
+    #     plt.errorbar(x_vals[np.where(gdual_nvalid > 0)],
+    #                  gdual_mean[np.where(gdual_nvalid > 0)],
+    #                  yerr=gdual_error[np.where(gdual_nvalid > 0)],
+    #                  fmt=GDUAL_LINESTYLE     + GDUAL_MARKERSTYLE,     fillstyle='none', linewidth=LINE_WIDTH, markersize=MARKER_SIZE)
+    #     plt.errorbar(x_vals[np.where(lsgdual_nvalid > 0)],
+    #                  lsgdual_mean[np.where(lsgdual_nvalid > 0)],
+    #                  yerr=lsgdual_error[np.where(lsgdual_nvalid > 0)],
+    #                  fmt=LSGDUAL_LINESTYLE   + LSGDUAL_MARKERSTYLE,   fillstyle='none', linewidth=LINE_WIDTH, markersize=MARKER_SIZE)
+    # else:
+    plt.plot(x_vals[np.where(trfwd_dir_nvalid > 0)],
+             trfwd_dir_mean[np.where(trfwd_dir_nvalid > 0)],
+             TRFWD_DIR_LINESTYLE + TRFWD_DIR_MARKERSTYLE, fillstyle='none', linewidth=LINE_WIDTH, markersize=MARKER_SIZE)
+    plt.plot(x_vals[np.where(trfwd_fft_nvalid > 0)],
+             trfwd_fft_mean[np.where(trfwd_fft_nvalid > 0)],
+             TRFWD_FFT_LINESTYLE + TRFWD_FFT_MARKERSTYLE, fillstyle='none', linewidth=LINE_WIDTH, markersize=MARKER_SIZE)
+    plt.plot(x_vals[np.where(gdual_nvalid > 0)],
+             gdual_mean[np.where(gdual_nvalid > 0)],
+             GDUAL_LINESTYLE     + GDUAL_MARKERSTYLE,     fillstyle='none', linewidth=LINE_WIDTH, markersize=MARKER_SIZE)
+    plt.plot(x_vals[np.where(lsgdual_nvalid > 0)],
+             lsgdual_mean[np.where(lsgdual_nvalid > 0)],
+             LSGDUAL_LINESTYLE   + LSGDUAL_MARKERSTYLE,   fillstyle='none', linewidth=LINE_WIDTH, markersize=MARKER_SIZE)
 
     if y_scale == 'log':
         plt.yscale('log')
 
-    plt.xlabel(x_label)
-    plt.ylabel(Y_LABEL_DICT[response_variable])
-    plt.title(r'All methods')
-    plt.legend(METHOD_NAMES)
+    plt.xlabel(x_label, fontsize=XLABEL_FONTSIZE)
+    plt.ylabel(Y_LABEL_DICT[response_variable], fontsize=YLABEL_FONTSIZES[response_variable])
+    if branch == 'poisson':
+        title = r'Poisson offspring'
+    elif branch == 'bernoulli':
+        title = r'Bernoulli offspring'
+    else:
+        title = r'All methods'
+
+    if ADD_TITLE:
+        plt.title(title, fontsize=TITLE_FONTSIZE)
+    # override legend locations for some cases
+    if response_variable == 'RT' and y_scale == 'log':
+        legend_location = 'lower right'
+    else:
+        legend_location = 'best'
+    plt.legend(METHOD_NAMES, loc=legend_location, fontsize=LEGEND_FONTSIZE)
+
+    plt.tick_params(axis='x', labelsize=XAXES_FONTSIZE)
+    plt.tick_params(axis='y', labelsize=YAXES_FONTSIZE[response_variable])
+
+    plt.tight_layout()
 
     plotname = ''
     if y_scale == 'log':
@@ -636,6 +722,7 @@ def plot_result(
     plotname += '_' + branch
     if response_variable == 'RT':
         plotname += '_' + str(int(trfwd_result_index))
+    plotname += '.pdf'
 
     fig.savefig(os.path.join(results_folder, plotname))
     plt.close(fig)
@@ -668,10 +755,20 @@ def plot_result_vs_Y(
     gdual_results     = np.empty((n_results, n_reps))
     lsgdual_results   = np.empty((n_results, n_reps))
 
+    trfwd_dir_nans = np.empty((n_results, n_reps), dtype=bool)
+    trfwd_fft_nans = np.empty((n_results, n_reps), dtype=bool)
+    gdual_nans     = np.empty((n_results, n_reps), dtype=bool)
+    lsgdual_nans   = np.empty((n_results, n_reps), dtype=bool)
+
     for i_result in range(n_results):
         result = pickle.load(open(results_glob[i_result], 'rb'))
 
         Y[i_result, :]               = np.sum(result['y_record'], axis=1)
+
+        trfwd_dir_nans[i_result, :] = np.isnan(np.array(list(map(lambda x: x[max(-len(x), -1)]['LL'], result['trfwd_dir_result']))))
+        trfwd_fft_nans[i_result, :] = np.isnan(np.array(list(map(lambda x: x[max(-len(x), -1)]['LL'], result['trfwd_fft_result']))))
+        gdual_nans[i_result, :]     = np.isnan(result['gdual_result']['LL'])
+        lsgdual_nans[i_result, :]   = np.isnan(result['lsgdual_result']['LL'])
 
         if response_variable is not 'nan':
             trfwd_dir_results[i_result, :] = np.array(list(map(lambda x: x[max(-len(x), trfwd_result_index)][response_variable], result['trfwd_dir_result'])))
@@ -683,6 +780,17 @@ def plot_result_vs_Y(
             trfwd_fft_results[i_result, :] = np.array(list(map(lambda x: x[max(-len(x), -1)]['LL'], result['trfwd_fft_result'])))
             gdual_results[i_result, :]     = result['gdual_result']['LL']
             lsgdual_results[i_result, :]   = result['lsgdual_result']['LL']
+
+    trfwd_dir_results[np.where(trfwd_dir_nans)] = None
+    trfwd_fft_results[np.where(trfwd_fft_nans)] = None
+    gdual_results    [np.where(gdual_nans)]     = None
+    lsgdual_results  [np.where(lsgdual_nans)]   = None
+
+    # count of non-nan values
+    trfwd_dir_nvalid = np.sum(~trfwd_dir_nans, axis=1)
+    trfwd_fft_nvalid = np.sum(~trfwd_fft_nans, axis=1)
+    gdual_nvalid     = np.sum(~gdual_nans,     axis=1)
+    lsgdual_nvalid   = np.sum(~lsgdual_nans,   axis=1)
 
     if y_fixed:
         # treat Y as a control variable, and prep for a line plot later
@@ -715,6 +823,10 @@ def plot_result_vs_Y(
             trfwd_fft_var  = trfwd_fft_var[idx]
             gdual_var      = gdual_var[idx]
             lsgdual_var    = lsgdual_var[idx]
+        trfwd_dir_nvalid = trfwd_dir_nvalid[idx]
+        trfwd_fft_nvalid = trfwd_fft_nvalid[idx]
+        gdual_nvalid     = gdual_nvalid[idx]
+        lsgdual_nvalid   = lsgdual_nvalid[idx]
     else:
         # scatter vs Y, no need to sort, but flatten each matrix
         x_vals            = Y.ravel()
@@ -723,12 +835,20 @@ def plot_result_vs_Y(
         gdual_results     = gdual_results.ravel()
         lsgdual_results   = lsgdual_results.ravel()
 
-    fig = plt.figure()
+    fig = plt.figure(figsize=FIG_SIZE)
     if y_fixed:
-        plt.plot(x_vals, trfwd_dir_mean, TRFWD_DIR_LINESTYLE + TRFWD_DIR_MARKERSTYLE, fillstyle='none')
-        plt.plot(x_vals, trfwd_fft_mean, TRFWD_FFT_LINESTYLE + TRFWD_FFT_MARKERSTYLE, fillstyle='none')
-        plt.plot(x_vals, gdual_mean,     GDUAL_LINESTYLE     + GDUAL_MARKERSTYLE,     fillstyle='none')
-        plt.plot(x_vals, lsgdual_mean,   LSGDUAL_LINESTYLE   + LSGDUAL_MARKERSTYLE,   fillstyle='none')
+        plt.plot(x_vals[np.where(trfwd_dir_nvalid > 0)],
+                 trfwd_dir_mean[np.where(trfwd_dir_nvalid > 0)],
+                 TRFWD_DIR_LINESTYLE + TRFWD_DIR_MARKERSTYLE, fillstyle='none')
+        plt.plot(x_vals[np.where(trfwd_fft_nvalid > 0)],
+                 trfwd_fft_mean[np.where(trfwd_fft_nvalid > 0)],
+                 TRFWD_FFT_LINESTYLE + TRFWD_FFT_MARKERSTYLE, fillstyle='none')
+        plt.plot(x_vals[np.where(gdual_nvalid > 0)],
+                 gdual_mean[np.where(gdual_nvalid > 0)],
+                 GDUAL_LINESTYLE     + GDUAL_MARKERSTYLE,     fillstyle='none')
+        plt.plot(x_vals[np.where(lsgdual_nvalid > 0)],
+                 lsgdual_mean[np.where(lsgdual_nvalid > 0)],
+                 LSGDUAL_LINESTYLE   + LSGDUAL_MARKERSTYLE,   fillstyle='none')
     else:
         plt.plot(x_vals, trfwd_dir_results, marker=TRFWD_DIR_MARKERSTYLE, linestyle='None', fillstyle='none')
         plt.plot(x_vals, trfwd_fft_results, marker=TRFWD_FFT_MARKERSTYLE, linestyle='None', fillstyle='none')
@@ -740,7 +860,8 @@ def plot_result_vs_Y(
 
     plt.xlabel('Y')
     plt.ylabel(Y_LABEL_DICT[response_variable])
-    plt.title(response_variable + ' vs total count')
+    if ADD_TITLE:
+        plt.title(response_variable + ' vs total count')
     plt.legend(METHOD_NAMES)
 
     plotname = ''
@@ -751,6 +872,8 @@ def plot_result_vs_Y(
     plotname += '_' + branch
     if response_variable == 'RT':
         plotname += '_' + str(int(trfwd_result_index))
+    plotname += '.pdf'
+
     fig.savefig(os.path.join(results_folder, plotname))
     plt.close(fig)
 
@@ -761,12 +884,12 @@ def plot_all_results(result_collection_folder):
     experiments_list.remove('.DS_Store')
 
     for experiment_folder in experiments_list:
-        # plot_result(os.path.join(result_collection_folder, experiment_folder), 'LL',  -1)
-        # plot_result(os.path.join(result_collection_folder, experiment_folder), 'RT',  -1)
-        # plot_result(os.path.join(result_collection_folder, experiment_folder), 'RT',  -2)
-        # plot_result(os.path.join(result_collection_folder, experiment_folder), 'RT',  -1, y_scale='log')
-        # plot_result(os.path.join(result_collection_folder, experiment_folder), 'RT',  -2, y_scale='log')
-        # plot_result(os.path.join(result_collection_folder, experiment_folder), 'nan')
+        plot_result(os.path.join(result_collection_folder, experiment_folder), 'LL',  -1)
+        plot_result(os.path.join(result_collection_folder, experiment_folder), 'RT',  -1)
+        plot_result(os.path.join(result_collection_folder, experiment_folder), 'RT',  -2)
+        plot_result(os.path.join(result_collection_folder, experiment_folder), 'RT',  -1, y_scale='log')
+        plot_result(os.path.join(result_collection_folder, experiment_folder), 'RT',  -2, y_scale='log')
+        plot_result(os.path.join(result_collection_folder, experiment_folder), 'nan')
         plot_result_vs_Y(os.path.join(result_collection_folder, experiment_folder), 'RT',  -1)
         plot_result_vs_Y(os.path.join(result_collection_folder, experiment_folder), 'RT',  -2)
         plot_result_vs_Y(os.path.join(result_collection_folder, experiment_folder), 'RT',  -1, y_scale='log')

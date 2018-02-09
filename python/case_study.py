@@ -9,13 +9,24 @@ from mle import *
 # First wave
 #y = np.array([ 1, 14, 25, 18, 28, 32, 40, 43, 46, 33, 27, 28, 22, 20, 20, 15])
 # First half of the first wave
-y = np.array([[ 1, 14, 25, 18, 28, 32, 40, 43, 46]])
+# y = np.array([[ 1, 14, 25, 18, 28, 32, 40, 43, 46]])
 
 # All H1N1 cases in the US, first half of the first wave
 #y = np.array([14, 1354, 2484, 1741, 2796, 3144, 3967, 4203, 4587])
 
 # All H1N1 cases in New England, first half of the first wave
-#y = np.array([[1, 82, 104, 111, 391, 499]])
+# y = np.array([[1, 82, 104, 111, 391, 499, 655]])
+
+# All flu cases in NE, 2014-2015 season, first half
+y = np.array([[3,4,4,5,11,31,49,106,185,320,346,466,691,831]])
+
+# All H3 cases in NE, 2014-2015 season, first half
+y = np.array([[2,9,22,32,63,112,181,186,251,346,377]])
+
+# All H1N1 cases in NE, 2013-2014 season, first half
+y = np.array([[1,3,4,8,23,21,56,138,132,207,244]])
+# y2009h1n1 = np.array([[1,82,104,111,391,499,665,360,192,167,142,126,69,29,30,17,39,17,8,6]])
+# y = y2009h1n1
 
 K = len(y[0])
 print(K)
@@ -116,22 +127,26 @@ bounds         (existing) accepts y, and returns array of bounds for hyperparame
 
 # Distributions
 # arrival = nmixture_poisson_arrival
-arrival = constant_poisson_arrival
-#arrival = fixed_poisson_arrival
+# arrival = constant_poisson_arrival
+arrival = fix_poisson_arrival
 
 #branch = grr_nbinom_branch
 #branch = var_nbinom_branch
 # branch = var_poisson_branch
 #branch = constant_nbinom_branch
-branch = constant_binom_branch
+# branch = constant_binom_branch
+branch = constant_poisson_branch
 
 observ = constant_binom_observ
 #observ = full_binom_observ
 
 T = np.arange(K) # vector of observation times
 
-theta_hat = run_mle(T, arrival, branch, observ,
-                    y=y.astype(np.int32), grad=True)
+# theta_hat = run_mle(T, arrival, branch, observ,
+#                     y=y.astype(np.int32), grad=True)
+theta_hat = mle(y, T, arrival, branch, observ,
+                fixed_params={'arrival': 50, 'branch': None, 'observ': None},
+                log=None, grad=True)
 print(theta_hat)
 """
 # Clean output format
