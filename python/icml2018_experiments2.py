@@ -55,16 +55,19 @@ RT_LOG_SCALE = True
 FIG_SIZE = (6.4, 4.8)
 ADD_TITLE = False
 
-TRFWD_DIR_LINESTYLE   = '--'
+# TRFWD_DIR_LINESTYLE   = '--'
+TRFWD_DIR_LINESTYLE   = '-'
 TRFWD_DIR_MARKERSTYLE = 'v' #triangle_down
-TRFWD_FFT_LINESTYLE   = '-.'
+# TRFWD_FFT_LINESTYLE   = '-.'
+TRFWD_FFT_LINESTYLE   = '-'
 TRFWD_FFT_MARKERSTYLE = '^' #triangle_up
-GDUAL_LINESTYLE       = ':'
+# GDUAL_LINESTYLE       = ':'
+GDUAL_LINESTYLE       = '-'
 GDUAL_MARKERSTYLE     = 's' #square
 LSGDUAL_LINESTYLE     = '-'
 LSGDUAL_MARKERSTYLE   = 'o' #circle
 
-LINE_WIDTH            = 4.5  # default 1.5
+LINE_WIDTH            = 4  # default 1.5
 MARKER_SIZE           = 15 # default 6
 LEGEND_FONTSIZE       = 16
 XAXES_FONTSIZE        = 14
@@ -76,7 +79,7 @@ YLABEL_FONTSIZES      = {'LL': 20, 'RT': 20, 'nan': 20}
 # plotting parameters
 BRANCHING_PARAM_LABEL    = r'$\delta$'
 ARRIVAL_PARAM_LABEL      = r'$\Lambda$'
-METHOD_NAMES             = ['Trfwd', 'Trfwd w/ FFT', 'GDual', 'LSGDual']
+METHOD_NAMES             = ['Trunc', 'Trunc-FFT', 'AD', 'AD-LNS']
 METHOD_FILENAME_SUFFIXES = ['trdir', 'trfft', 'gd', 'lsgd']
 Y_LABEL_DICT             = {'RT': r'Running Time (s)', 'LL': r'LL', 'nan': 'nan frequency'}
 
@@ -672,18 +675,26 @@ def plot_result(
     #                  yerr=lsgdual_error[np.where(lsgdual_nvalid > 0)],
     #                  fmt=LSGDUAL_LINESTYLE   + LSGDUAL_MARKERSTYLE,   fillstyle='none', linewidth=LINE_WIDTH, markersize=MARKER_SIZE)
     # else:
+    if response_variable == 'LL' and branch == 'bernoulli':
+        markevery = 2
+    else:
+        markevery = 1
+
     plt.plot(x_vals[np.where(trfwd_dir_nvalid > 0)],
              trfwd_dir_mean[np.where(trfwd_dir_nvalid > 0)],
-             TRFWD_DIR_LINESTYLE + TRFWD_DIR_MARKERSTYLE, fillstyle='none', linewidth=LINE_WIDTH, markersize=MARKER_SIZE)
+             TRFWD_DIR_LINESTYLE + TRFWD_DIR_MARKERSTYLE, fillstyle='none', linewidth=LINE_WIDTH, markersize=MARKER_SIZE, markevery=markevery)
     plt.plot(x_vals[np.where(trfwd_fft_nvalid > 0)],
              trfwd_fft_mean[np.where(trfwd_fft_nvalid > 0)],
-             TRFWD_FFT_LINESTYLE + TRFWD_FFT_MARKERSTYLE, fillstyle='none', linewidth=LINE_WIDTH, markersize=MARKER_SIZE)
+             TRFWD_FFT_LINESTYLE + TRFWD_FFT_MARKERSTYLE, fillstyle='none', linewidth=LINE_WIDTH, markersize=MARKER_SIZE, markevery=markevery)
     plt.plot(x_vals[np.where(gdual_nvalid > 0)],
              gdual_mean[np.where(gdual_nvalid > 0)],
-             GDUAL_LINESTYLE     + GDUAL_MARKERSTYLE,     fillstyle='none', linewidth=LINE_WIDTH, markersize=MARKER_SIZE)
+             GDUAL_LINESTYLE     + GDUAL_MARKERSTYLE,     fillstyle='none', linewidth=LINE_WIDTH, markersize=MARKER_SIZE, markevery=markevery)
     plt.plot(x_vals[np.where(lsgdual_nvalid > 0)],
              lsgdual_mean[np.where(lsgdual_nvalid > 0)],
-             LSGDUAL_LINESTYLE   + LSGDUAL_MARKERSTYLE,   fillstyle='none', linewidth=LINE_WIDTH, markersize=MARKER_SIZE)
+             LSGDUAL_LINESTYLE   + LSGDUAL_MARKERSTYLE,   fillstyle='none', linewidth=LINE_WIDTH, markersize=MARKER_SIZE, markevery=markevery)
+
+    if response_variable == 'LL' and branch == 'bernoulli':
+        plt.ylim(ymax=0)
 
     if y_scale == 'log':
         plt.yscale('log')

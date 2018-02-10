@@ -9,7 +9,9 @@ from mle_kevin import *
 import matplotlib.pyplot as plt
 
 if os.uname()[1] == 'kwinn':
-    RESULTS_DIR = os.path.expanduser('~/Work/Data/Results/')
+    # RESULTS_DIR = os.path.expanduser('~/Work/Data/Results/')
+    RESULTS_DIR = os.path.expanduser('~/shannon-results/case_study2/')
+    # RESULTS_DIR = os.path.expanduser('~/shannon-results/case_study_Beta50/')
 else:
     RESULTS_DIR = os.path.expanduser('~/Results/')
 
@@ -261,10 +263,14 @@ def plot_result(year):
 
 if __name__ == "__main__":
     if os.uname()[1] == 'kwinn':
-        case_study('2009')
+        # case_study('2009')
         # plot_result(None)
         # plot_result('2009')
         # plot_result('2013')
+        plot_result('2009.50pct')
+        plot_result('2013.50pct')
+        # plot_result('2009.firsthalf')
+        # plot_result('2013.firsthalf')
     elif 'shannon' in os.uname()[1]:
         if len(sys.argv) == 1:
             year = None

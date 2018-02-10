@@ -30,3 +30,6 @@ code/*.so
 .Rproj.user
 
 **/build
+c/test_gdual.dSYM/Contents/Resources/DWARF/test_gdual
+python/foo.txt
+*.pickle
