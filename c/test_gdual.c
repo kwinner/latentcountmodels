@@ -33,7 +33,7 @@ int main() {
     printf("\n");
     
     printf("**** MUL ****\n");
-    gdual_mul(v, u, u, n);
+    gdual_mul_same(v, u, u, n);
     gdual_print(v, n);
     gdual_print_as_double(v, n);
     printf("\n");

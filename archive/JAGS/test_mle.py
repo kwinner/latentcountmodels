@@ -58,11 +58,11 @@ def run_mle(y, T, model, fa, true_params):
     t_start = time.clock()
     params, fmin, info = model.mle(y, T, fa=fa)
     t_end = time.clock()
-    print 'learned params =', params
-    print 'true params =', true_params
-    print 'fmin =', fmin
-    print 'info =', info
-    print 'time =', t_end - t_start
+    print('learned params =', params)
+    print('true params =', true_params)
+    print('fmin =', fmin)
+    print('info =', info)
+    print('time =', t_end - t_start)
 
 def main(mode):
     fa = pgffa if mode in {1, 2} else truncatedfa

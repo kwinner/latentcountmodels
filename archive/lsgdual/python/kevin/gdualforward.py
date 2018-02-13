@@ -1,9 +1,9 @@
 import numpy as np
 from scipy.special import gammaln
-from scipy.misc import factorial
+from scipy.special import factorial
 
-import gdual
-import generatingfunctions
+import gdual_impl as gd
+from generatingfunctions import *
 
 def gdualforward(y,
                  arrival_pgf_gdual,
@@ -31,7 +31,7 @@ def gdualforward(y,
         u = s.copy()
         u *= (1 - theta_observ[k])
 
-        u_du = gdual.gdual_new(u, q_k + y[k])
+        u_du = gd.new(u, q_k + y[k])
 
         assert np.all(np.isfinite(u_du))
 
@@ -39,15 +39,15 @@ def gdualforward(y,
 
         assert np.all(np.isfinite(F))
 
-        s_prev = gdual.gdual_new(F[0], 1)
+        s_prev = gd.new(F[0], 1)
 
         # recurse
         beta = lift_A(s_prev,
                       k - 1,
                       q_k + y[k])
-        logZ[k], beta = gdual.gdual_normalize(beta)
+        logZ[k], beta = gd.normalize(beta)
 
-        beta = gdual.gdual_compose(beta,
+        beta = gd.compose(beta,
                                    F)
 
         assert np.all(np.isfinite(beta))
@@ -56,50 +56,50 @@ def gdualforward(y,
 
         assert np.all(np.isfinite(G))
 
-        G = gdual.gdual_adjust_Z(G, 0, logZ[k])
+        G = gd.adjust_Z(G, 0, logZ[k])
 
-        beta = gdual.gdual_mul(beta, G)
+        beta = gd.mul(beta, G)
 
-        logZ[k], beta = gdual.gdual_renormalize(beta, logZ[k])
+        logZ[k], beta = gd.renormalize(beta, logZ[k])
 
         assert np.all(np.isfinite(beta))
 
         # observe
-        s_ds = gdual.gdual_new(s, q_k)
-        # alpha = gdual.gdual_deriv(beta, y[k])
-        logZ_alpha, alpha = gdual.gdual_deriv_safe(beta, y[k])
+        s_ds = gd.new(s, q_k)
+        # alpha = gd.deriv(beta, y[k])
+        logZ_alpha, alpha = gd.deriv_safe(beta, y[k])
         logZ[k] += logZ_alpha
 
-        # logZ[k], alpha = gdual.gdual_renormalize(alpha, logZ[k])
+        # logZ[k], alpha = gd.renormalize(alpha, logZ[k])
 
         assert np.all(np.isfinite(alpha))
 
-        alpha = gdual.gdual_compose_affine(alpha, (s_ds * (1 - theta_observ[k])))
+        alpha = gd.compose_affine(alpha, (s_ds * (1 - theta_observ[k])))
 
         # normalize the current alpha message
-        logZ[k], alpha = gdual.gdual_renormalize(alpha, logZ[k])
+        logZ[k], alpha = gd.renormalize(alpha, logZ[k])
 
         assert np.all(np.isfinite(alpha))
 
         # build the UTP for (s * rho)^{y_k}
-        scalar = gdual.gdual_pow(s_ds * theta_observ[k], y[k])
+        scalar = gd.pow(s_ds * theta_observ[k], y[k])
         # normalize that UTP
-        logZ_scalar, scalar = gdual.gdual_normalize(scalar)
+        logZ_scalar, scalar = gd.normalize(scalar)
 
         assert np.all(np.isfinite(scalar))
 
         # if logZ_scalar > logZ[k]:
         #     # normalize both UTPs to logZ_scalar
-        #     alpha = gdual.gdual_adjust_Z(alpha, logZ[k], logZ_scalar)
+        #     alpha = gd.adjust_Z(alpha, logZ[k], logZ_scalar)
         #     logZ[k] = logZ_scalar
         #     print "renorm"
         # elif logZ_scalar < logZ[k]:
-        #     scalar = gdual.gdual_adjust_Z(scalar, logZ_scalar, logZ[k])
+        #     scalar = gd.adjust_Z(scalar, logZ_scalar, logZ[k])
         #     print "renorm"
 
-        alpha = gdual.gdual_mul(alpha, scalar)
+        alpha = gd.mul(alpha, scalar)
         logZ[k] = logZ[k] + logZ_scalar
-        logZ[k], alpha = gdual.gdual_renormalize(alpha, logZ[k])
+        logZ[k], alpha = gd.renormalize(alpha, logZ[k])
         # logZ[k] = logZ[k] + logZ_scalar
 
         assert np.all(np.isfinite(alpha))
@@ -112,7 +112,7 @@ def gdualforward(y,
         Alpha[k] = alpha
         return alpha
 
-    lift_A(gdual.gdual_new(1., 1), K - 1, d)
+    lift_A(gd.new(1., 1), K - 1, d)
 
     return Alpha, logZ
 
@@ -143,7 +143,7 @@ def gdualforward_original(y,
         u = s.copy()
         u *= (1 - theta_observ[k])
 
-        u_du = gdual.gdual_new(u, q_k + y[k])
+        u_du = gd.new(u, q_k + y[k])
 
         assert np.all(np.isfinite(u_du))
 
@@ -151,10 +151,10 @@ def gdualforward_original(y,
 
         assert np.all(np.isfinite(F))
 
-        s_prev = gdual.gdual_new(F[0], 1)
+        s_prev = gd.new(F[0], 1)
 
         # recurse
-        beta = gdual.gdual_compose(lift_A(s_prev,
+        beta = gd.compose(lift_A(s_prev,
                                           k - 1,
                                           q_k + y[k]),
                                    F)
@@ -165,17 +165,17 @@ def gdualforward_original(y,
 
         assert np.all(np.isfinite(G))
 
-        beta = gdual.gdual_mul(beta, G)
+        beta = gd.mul(beta, G)
 
         assert np.all(np.isfinite(beta))
 
         # observe
-        s_ds = gdual.gdual_new(s, q_k)
-        alpha = gdual.gdual_deriv(beta, y[k])
+        s_ds = gd.new(s, q_k)
+        alpha = gd.deriv(beta, y[k])
 
         assert np.all(np.isfinite(alpha))
 
-        alpha = gdual.gdual_compose_affine(alpha, (s_ds * (1 - theta_observ[k])))
+        alpha = gd.compose_affine(alpha, (s_ds * (1 - theta_observ[k])))
 
         assert np.all(np.isfinite(alpha))
 
@@ -187,7 +187,7 @@ def gdualforward_original(y,
 
         assert np.all(np.isfinite(alpha))
 
-        alpha = gdual.gdual_mul(alpha, gdual.gdual_pow(s_ds * theta_observ[k], y[k]))
+        alpha = gd.mul(alpha, gd.pow(s_ds * theta_observ[k], y[k]))
 
         assert np.all(np.isfinite(alpha))
 
@@ -208,7 +208,7 @@ def gdualforward_original(y,
         Alpha[k] = alpha
         return alpha
 
-    lift_A(gdual.gdual_new(1., 1), K - 1, d)
+    lift_A(gd.new(1., 1), K - 1, d)
 
     return Alpha, logZ
 
@@ -238,43 +238,43 @@ def gdualforward_unnormalized(y,
         u = s.copy()
         u *= (1 - theta_observ[k])
 
-        u_du = gdual.gdual_new(u, q_k + y[k])
-
+        u_du = gd.new(u, q_k + y[k])
+        
         assert np.all(np.isfinite(u_du))
 
         F = branch_pgf_gdual(u_du, theta_branch[k - 1, :])
 
         assert np.all(np.isfinite(F))
 
-        s_prev = gdual.gdual_new(F[0], 1)
+        s_prev = gd.new(F[0], 1)
 
         # recurse
-        beta = gdual.gdual_compose(lift_A(s_prev,
+        beta = gd.compose(lift_A(s_prev,
                                           k - 1,
                                           q_k + y[k]),
                                    F)
-
+        
         assert np.all(np.isfinite(beta))
 
         G = arrival_pgf_gdual(u_du, theta_arrival[k, :])
 
         assert np.all(np.isfinite(G))
 
-        beta = gdual.gdual_mul(beta, G)
+        beta = gd.mul(beta, G)
 
         assert np.all(np.isfinite(beta))
 
         # observe
-        s_ds = gdual.gdual_new(s, q_k)
-        alpha = gdual.gdual_deriv(beta, y[k])
+        s_ds = gd.new(s, q_k)
+        alpha = gd.deriv(beta, y[k])
 
         assert np.all(np.isfinite(alpha))
 
-        alpha = gdual.gdual_compose_affine(alpha, (s_ds * (1 - theta_observ[k])))
+        alpha = gd.compose_affine(alpha, (s_ds * (1 - theta_observ[k])))
 
         assert np.all(np.isfinite(alpha))
 
-        alpha = gdual.gdual_mul(alpha, gdual.gdual_pow(s_ds * theta_observ[k], y[k]))
+        alpha = gd.mul(alpha, gd.pow(s_ds * theta_observ[k], y[k]))
 
         assert np.all(np.isfinite(alpha))
 
@@ -286,7 +286,7 @@ def gdualforward_unnormalized(y,
         Alpha[k] = alpha
         return alpha
 
-    lift_A(gdual.gdual_new(1., 1), K - 1, d)
+    lift_A(gd.new(1., 1), K - 1, d)
 
     return Alpha
 
@@ -316,7 +316,7 @@ def gdualforward_unnormalized(y,
 #         u = s.copy()
 #         u *= (1 - theta_observ[k])
 #
-#         u_du = gdual.gdual_new(u, q_k + y[k])
+#         u_du = gd.new(u, q_k + y[k])
 #
 #         assert np.all(np.isfinite(u_du))
 #
@@ -324,15 +324,15 @@ def gdualforward_unnormalized(y,
 #
 #         assert np.all(np.isfinite(F))
 #
-#         s_prev = gdual.gdual_new(F[0], 1)
+#         s_prev = gd.new(F[0], 1)
 #
 #         # recurse
 #         beta = lift_A(s_prev,
 #                       k - 1,
 #                       q_k + y[k])
-#         logZ[k], beta = gdual.gdual_normalize(beta)
+#         logZ[k], beta = gd.normalize(beta)
 #
-#         beta = gdual.gdual_compose(beta,
+#         beta = gd.compose(beta,
 #                                    F)
 #
 #         assert np.all(np.isfinite(beta))
@@ -341,43 +341,43 @@ def gdualforward_unnormalized(y,
 #
 #         assert np.all(np.isfinite(G))
 #
-#         G = gdual.gdual_adjust_Z(G, 0, logZ[k])
+#         G = gd.adjust_Z(G, 0, logZ[k])
 #
-#         beta = gdual.gdual_mul(beta, G)
+#         beta = gd.mul(beta, G)
 #
-#         logZ[k], beta = gdual.gdual_renormalize(beta, logZ[k])
+#         logZ[k], beta = gd.renormalize(beta, logZ[k])
 #
 #         assert np.all(np.isfinite(beta))
 #
 #         # observe
-#         s_ds = gdual.gdual_new(s, q_k)
-#         # alpha = gdual.gdual_deriv(beta, y[k])
-#         logZ_alpha, alpha = gdual.gdual_deriv_safe(beta, y[k])
+#         s_ds = gd.new(s, q_k)
+#         # alpha = gd.deriv(beta, y[k])
+#         logZ_alpha, alpha = gd.deriv_safe(beta, y[k])
 #         logZ[k] += logZ_alpha
 #
-#         # logZ[k], alpha = gdual.gdual_renormalize(alpha, logZ[k])
+#         # logZ[k], alpha = gd.renormalize(alpha, logZ[k])
 #
 #         assert np.all(np.isfinite(alpha))
 #
-#         alpha = gdual.gdual_compose_affine(alpha, (s_ds * (1 - theta_observ[k])))
+#         alpha = gd.compose_affine(alpha, (s_ds * (1 - theta_observ[k])))
 #
-#         logZ[k], alpha = gdual.gdual_renormalize(alpha, logZ[k])
+#         logZ[k], alpha = gd.renormalize(alpha, logZ[k])
 #
 #         assert np.all(np.isfinite(alpha))
 #
-#         scalar = gdual.gdual_pow(s_ds * theta_observ[k], y[k])
-#         logZ_scalar, scalar = gdual.gdual_normalize(scalar)
+#         scalar = gd.pow(s_ds * theta_observ[k], y[k])
+#         logZ_scalar, scalar = gd.normalize(scalar)
 #
 #         if logZ_scalar > logZ[k]:
 #             # normalize both UTPs to logZ_scalar
-#             alpha = gdual.gdual_adjust_Z(alpha, logZ[k], logZ_scalar)
+#             alpha = gd.adjust_Z(alpha, logZ[k], logZ_scalar)
 #             logZ[k] = logZ_scalar
 #         elif logZ_scalar < logZ[k]:
-#             scalar = gdual.gdual_adjust_Z(scalar, logZ_scalar, logZ[k])
+#             scalar = gd.adjust_Z(scalar, logZ_scalar, logZ[k])
 #
-#         alpha = gdual.gdual_mul(alpha, scalar)
+#         alpha = gd.mul(alpha, scalar)
 #         # logZ[k] += logZ_scalar
-#         logZ[k], alpha = gdual.gdual_renormalize(alpha, logZ[k])
+#         logZ[k], alpha = gd.renormalize(alpha, logZ[k])
 #
 #         assert np.all(np.isfinite(alpha))
 #
@@ -389,6 +389,26 @@ def gdualforward_unnormalized(y,
 #         Alpha[k] = alpha
 #         return alpha
 #
-#     lift_A(gdual.gdual_new(1., 1), K - 1, d)
+#     lift_A(gd.new(1., 1), K - 1, d)
 #
 #     return Alpha, logZ
+
+if __name__ == "__main__":
+    
+    y     = np.array([2, 5, 3])
+    lmbda = np.array([  10. ,  0.  , 0.  ]).reshape(-1, 1)
+    delta = np.array([ 1.0 ,  1.0 , 1.0 ]).reshape(-1, 1)
+    rho   = np.array([ 0.25,  0.25, 0.25]).reshape(-1, 1)
+
+    Alpha = gdualforward_unnormalized(y,
+                               poisson_gdual,
+                               lmbda,
+                               bernoulli_gdual,
+                               delta,
+                               rho,
+                               d = 1)
+
+    lik = Alpha[-1][0]
+#    lik = np.exp(np.log(Alpha[-1][0]) + np.sum(logZ))
+
+    print lik

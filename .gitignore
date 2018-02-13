@@ -17,6 +17,7 @@ code/build/
 # Ignore all object and shared object files
 **.o
 **.so
+python/cygdual.c
 
 # Ignore this executable
 c/test_gdual
@@ -29,3 +30,7 @@ code/*.so
 .Rproj.user
 
 **/build
+c/test_gdual.dSYM/Contents/Resources/DWARF/test_gdual
+python/foo.txt
+*.pickle
+c/test_gdual.dSYM/Contents/Resources/DWARF/test_gdual

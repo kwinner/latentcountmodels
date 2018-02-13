@@ -2,14 +2,16 @@ import numpy as np
 from scipy.special import logsumexp
 
 
-LS_DTYPE = np.dtype([('mag', np.float64), ('sgn', np.int32)], align=True)
+DTYPE = np.dtype([('mag', np.float64), ('sgn', np.int32)], align=True)
 
-#TODO: add underscore versions of methods w/o assertions for internal use?
-
+#TODO: add underscore versions of methods w/o assertions for internal use
 def ls(shape = 0):
     """instantiate an empty log-sign array with given shape"""
-    return np.empty(shape, dtype = LS_DTYPE)
+    return np.empty(shape, dtype=DTYPE)
 
+def ones(shape=0):
+    ONE = real2ls(1.0)
+    return np.tile(ONE, shape).astype(DTYPE)
 
 def real2ls(x):
     """convert a number in linear space to log-sign space"""
@@ -20,6 +22,12 @@ def real2ls(x):
         z['sgn'] = np.sign(x)
 
     return z
+
+
+ZERO = real2ls(0.0)
+
+def zeros(shape=0):
+    return np.tile(ZERO, shape).astype(DTYPE)
 
 
 def ls2real(x):
@@ -45,10 +53,27 @@ def add(x, y):
     elif y['sgn'] == 0:
         return x
 
-    return logsumexp(x['mag'] + y['mag'],
-                     b = x['sgn'] * y['sgn'],
-                     return_sign = True)
+    mag, sign = logsumexp([x['mag'], y['mag']],
+                          b = [x['sgn'], y['sgn']],
+                          return_sign = True)
 
+    z = ls(mag.shape)
+    z['mag'] = mag
+    z['sgn'] = sign
+
+    return z
+    
+def dot(x, y):
+    if x.ndim == 1 and y.ndim == 1:
+        return sum(mul(x, y))
+    elif x.ndim == 1 and y.ndim == 2 and x.shape[0] == y.shape[0]:
+        return np.array([sum(mul(x,c)) for c in y.T])
+    elif x.ndim == 2 and y.ndim == 1 and x.shape[1] == y.shape[0]:
+        return np.array([sum(mul(r,y)) for r in x])
+    elif x.ndim == 2 and y.ndim == 2 and x.shape[1] == y.shape[0]:
+        return np.array([[sum(mul(r,c)) for c in y.T] for r in x])
+    else:
+        raise(ValueError('Incompatible shapes'))
 
 def sum(x, axis=None):
     """sum all values in the vector of numbers in ls-space along some axis"""

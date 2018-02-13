@@ -1,8 +1,8 @@
 import numpy as np
-import ngdual as ngd
 import gdual as gd
 import logsign as ls
 import copy
+import cygdual
 
 from util import *
 
@@ -33,7 +33,7 @@ def _lsgdual_zeros(q):
     """instantiate an lsgdual 'object' with all entries equiv to zero"""
     assert q > 0
 
-    F = np.zeros(q, dtype=ls.LS_DTYPE)
+    F = np.zeros(q, dtype=ls.DTYPE)
     F['mag'] = -np.inf
 
     return F
@@ -111,16 +111,6 @@ def lsgd2gd(F):
     return H
 
 
-def lsgd2ngd(F):
-    """convert an lsgdual to an ngdual"""
-    assert(islsgdual(F))
-
-    logZ = np.max(F['mag'])
-    utp  = F['sgn'] * np.exp(F['mag'] - logZ)
-
-    return (logZ, utp)
-
-
 def gd2lsgd(F):
     """convert an (unnormalized) gdual to an lsgdual"""
     assert(isinstance(F, np.ndarray))
@@ -131,20 +121,6 @@ def gd2lsgd(F):
     with np.errstate(divide='ignore'):
         H['mag'] = np.log(np.abs(F))
         H['sgn'] = np.sign(F)
-
-    return H
-
-
-def ngd2lsgd(F):
-    """convert an ngdual to an lsgdual"""
-    assert(isinstance(F, tuple))
-
-    q = len(F[1])
-    H = _lsgdual_empty(q)
-
-    with np.errstate(divide='ignore'):
-        H['mag'] = F[0] + np.log(np.abs(F[1]))
-        H['sgn'] = np.sign(F[1])
 
     return H
 
@@ -198,27 +174,6 @@ def mul_scalar(F, c):
 
     return H
 
-def mul_fast(F, G):
-    """compute <f * g, dx>_q from <f, dx>_q and <g, dx>_q
-       lsgduals are first converted to ngduals, then multiplied using ngdual_mul
-       ngduals are relatively stable, and can still use the FFT to do convolution"""
-    assert islsgdual(F)
-    assert islsgdual(G)
-    assert F.shape == G.shape
-
-    q = len(F)
-    H = _lsgdual_empty(q)
-
-    F_ngd = lsgd2ngd(F)
-    G_ngd = lsgd2ngd(G)
-
-    H_ngd = ngd.ngdual_mul(F_ngd, G_ngd)
-
-    H     = ngd2lsgd(H_ngd)
-
-    return H
-
-
 def mul(F, G):
     """compute <f * g, dx>_q from <f, dx>_q and <g, dx>_q
        convolution of lsgduals is performed "in ls-space" using logsumexp
@@ -259,6 +214,12 @@ def deriv(F, k):
 
     return H
 
+def get_derivatives(F):
+    q = len(F)
+    H = copy.deepcopy(F)
+    log_factorial = gammaln(1 + np.arange(q))
+    H['mag'] += log_factorial
+    return H
 
 def exp(F):
     """compute <exp(f), dx>_q"""
@@ -308,50 +269,131 @@ def log(F):
             # mul by -1
             H_inner['sgn'] *= -1
 
-            H[i] = ls.div(ls.add(F_tilde[i], H_inner), \
-                          F[0])
+            H[i] = ls.div(ls.add(F_tilde[i], H_inner), F[0])
     # actually computed H_tilde (H_tilde[i] = H[i] * i). correct for that here
     H = ls.div(H, ls_ind)
 
     return H
 
-def pow(F, k):
-    """compute <f^k, dx>_q"""
-    return
+def pow(F, y):
+    """Compute F^y"""
+
+    q = len(F)
+    
+    # Determine index k of first nonzero
+    zero = (F['mag'] == -np.inf) | (F['sgn'] == 0)
+    k = np.flatnonzero( ~zero )[0]
+    
+    # Compute (F/x^k)^y
+    out = cygdual.pow( F[k:], y )
+
+    # Multiply by x^{k*y}
+    out = np.append(ls.zeros(k*y), out)
+
+    # Truncate
+    out = out[:q]
+    
+    return out
 
 def inv(F):
     """compute <1/f, dx>_q"""
     return
 
-def compose(G, F):
-    """compose two lsgduals as G(F)"""
-    assert islsgdual(F) and islsgdual(G)
-    assert F.shape == G.shape
 
-    q = len(F)
-    H = lsgdual_cdx(0, q)
-
-    # cache first terms of G, F and then clear first terms of F, G
+def compose_brent_kung(G, F):
+    q = G.shape[0]
+    
+    # cache first terms of F, G and then clear
+    # cache first terms of G, F and then clear same
     G_0 = copy.deepcopy(G[0])
     F_0 = copy.deepcopy(F[0])
-    G[0] = ls.real2ls(0)
-    F[0] = ls.real2ls(0)
+    G[0] = ls.real2ls(0.0)
+    F[0] = ls.real2ls(0.0)
 
-    H[0] = G[q - 1]
-    for i in range(q - 2, -1, -1):
-        H = mul(H, F)
-        H[0] = ls.add(H[0], G[i])
+    k         = int(np.ceil(np.sqrt(q)))
+    n_chunks  = int(np.ceil(q / k))
 
-    # restore cached value for G as first value of H
-    H[0] = G_0
+    B = ls.zeros((n_chunks, k)) # holds chunks of G of len k
+    A = ls.zeros((k, q))        # holds powers of F
+
+    # Fill rows of B with chunks of G
+    n_full_chunks, rem = int(q / k), q % k
+    for i in range(n_full_chunks):
+        B[i,:] = G[i*k:(i+1)*k]
+    # There may be a final partial row
+    if rem > 0:
+        start = (n_chunks-1)*k
+        B[-1,:rem] = G[start:(start+rem)]
+
+    # Fill rows of A with powers of F
+    A[0,0] = ls.real2ls(1.0)
+    for i in np.arange(1,k):
+        A[i,:] = cygdual.mul(A[i-1], F)
+
+    # Multiplication: the ith row of C now contains
+    # the coefficients of G_i(F(t)) where G_i is the
+    # ith segment of G divided by t^ki
+    C = ls.dot(B, A)
+    
+    # Now we need to compute \sum_i G_i(F(t))(F(t))^ki
+    # This can be viewed as block "composition", where
+    # the rows of C are the "coefficients" of a polynomial
+    # to be evaluated at (F(t)^k). We will use Horner's
+    # method to do this block composition
+
+    H = C[-1,:];        # last "coefficient"
+    val = cygdual.mul(A[-1,:], F) # F^k
+    
+    for i in range(n_chunks-2, -1, -1):
+        tmp = cygdual.mul(H, val)
+        H = cygdual.add(tmp, C[i,:])
+
+    # restore cached values
+    H[0] = copy.deepcopy(G_0)
     G[0] = G_0
     F[0] = F_0
 
     return H
 
+def compose(G, F):
+    assert G.shape == F.shape
+
+    """compose two gduals as G(F)"""
+    q = len(F)
+    H = lsgdual_cdx(0, q)
+
+    # cache first terms of G, F and then clear same
+    G_0 = copy.deepcopy(G[0])
+    F_0 = copy.deepcopy(F[0])
+    G[0] = ls.real2ls(0.0)
+    F[0] = ls.real2ls(0.0)
+
+    H[0] = G[q - 1]
+    for i in range(q - 2, -1, -1):
+        H = cygdual.mul(H, F, truncation_order=q)
+        H[0] = ls.add(H[0], G[i])
+
+    # restore cached values and copy G[0] to output
+    H[0] = copy.deepcopy(G_0)
+    G[0] = G_0
+    F[0] = F_0
+
+    return H
+
+
 def compose_affine(G, F):
-    """comopse two lsgduals as G(F) where len(F) <= 2"""
-    return
+    """compose two gduals as G(F)"""
+    if F.shape[0] <= 1:
+        # composition with a constant F
+        return copy.deepcopy(G)
+
+    q = G.shape[0]
+
+    # no need for Horner's method, utp composition uses only the 2nd and higher
+    # coefficients, of which F has only 1 nonzero in this case
+    H = ls.mul(G, ls.pow(F[1], np.arange(0, q)))
+
+    return H
 
 #optional methods (in ngdual, don't know yet if we need/want them)
 #add_logscalar (add a scalar as log(C))

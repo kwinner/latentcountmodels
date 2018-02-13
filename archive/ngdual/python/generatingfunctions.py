@@ -1,5 +1,5 @@
 import numpy as np
-import gdual
+import gdual_impl as gd
 import ngdual
 from copy import deepcopy
 
@@ -12,7 +12,7 @@ def poisson_gdual(s, theta):
     lmbda = theta[0]
     out = s.copy()
     out[0] = out[0] - 1
-    return gdual.gdual_exp(lmbda * out)
+    return gd.exp(lmbda * out)
 
 
 def poisson_ngdual(s, theta):
@@ -52,7 +52,7 @@ def binomial_gdual(s, theta):
 
     out *= p
     out[0] += (1 - p)
-    return gdual.gdual_pow(out, n)
+    return gd.pow(out, n)
 
 
 def binomial_ngdual(s, theta):
@@ -75,9 +75,9 @@ def negbin_gdual(s, theta):
 
     out *= (p - 1)
     out[0] += 1
-    out = gdual.gdual_reciprocal(out)
+    out = gd.inv(out)
     out = p * out
-    out = gdual.gdual_pow(out, r)
+    out = gd.pow(out, r)
 
     return out
 
@@ -110,7 +110,7 @@ def logarithmic_gdual(s, theta):
 
     out *= -p
     out[0] += 1
-    out = gdual.gdual_log(out)
+    out = gd.log(out)
     return (out / np.log(1 - p))
 
 
@@ -134,7 +134,7 @@ def geometric_gdual(s, theta):
 
     out *= (p - 1)
     out[0] += 1
-    return (p * gdual.gdual_reciprocal(out))
+    return (p * gd.inv(out))
 
 
 def geometric_ngdual(s, theta):
@@ -157,8 +157,8 @@ def geometric2_gdual(s, theta):
 
     out *= (p - 1)
     out[0] += 1
-    out = gdual.gdual_reciprocal(out)
-    return gdual.gdual_mul(p * s, out)
+    out = gd.inv(out)
+    return gd.mul(p * s, out)
 
 
 def geometric2_ngdual(s, theta):

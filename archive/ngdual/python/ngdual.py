@@ -1,7 +1,7 @@
 import numpy as np
 import scipy.signal
 import util
-import gdual
+# import gdual
 
 
 # construct a new ngdual tuple for e^logZ * <x/Z, dx>_q
@@ -484,3 +484,12 @@ def ngdual_reciprocal(F):
     out_utp  /= out_Z
 
     return out_logZ, out_utp
+
+
+if __name__ == "__main__":
+    F = ngdual_new_x_dx(6,4)
+    G = ngdual_new_x_dx(4,4)
+
+    H = ngdual_compose_affine(F, G)
+
+    print(np.exp(H[0]) * H[1])

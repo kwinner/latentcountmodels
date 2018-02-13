@@ -7,47 +7,6 @@ import lsgeneratingfunctions as lsgf
 from scipy.special import gammaln
 
 
-def compose(G, F):
-    assert G.shape == F.shape
-
-    """compose two gduals as G(F)"""
-    q = len(F)
-    H = lsgd.lsgdual_cdx(0, q)
-
-    # cache first terms of G, F and then clear same
-    G_0 = copy.deepcopy(G[0])
-    F_0 = copy.deepcopy(F[0])
-    G[0] = ls.real2ls(0)
-    F[0] = ls.real2ls(0)
-
-    H[0] = G[q - 1]
-    for i in range(q - 2, -1, -1):
-        H = cygd.mul(H, F)
-        H[0] = ls.add(H[0], G[i])
-
-    # restore cached values and copy G[0] to output
-    H[0] = copy.deepcopy(G_0)
-    G[0] = G_0
-    F[0] = F_0
-
-    return H
-
-
-def compose_affine(G, F):
-    """compose two gduals as G(F)"""
-    if F.shape[0] <= 1:
-        # composition with a constant F
-        return copy.deepcopy(G)
-
-    q = G.shape[0]
-
-    # no need for Horner's method, utp composition uses only the 2nd and higher
-    # coefficients, of which F has only 1 nonzero in this case
-    H = ls.mul(G, ls.pow(F[1], np.arange(0, q)))
-
-    return H
-
-
 def lsgdualforward(y,
                    arrival_pgf_lsgdual,
                    theta_arrival,
@@ -146,6 +105,7 @@ if __name__ == "__main__":
                    lsgf.poisson,
                    theta_arrival,
                    lsgf.bernoulli,
+<<<<<<< HEAD:python/lsgdualforward.py
                    theta_branch,
                    theta_observ,
                    d = 1)
@@ -166,3 +126,8 @@ if __name__ == "__main__":
     #     print(lsgd.lsgd2gd(Alpha[i]))
     #     print('gd:')
     #     print(np.exp(logZ[i]) * Alpha2[i])
+=======
+                   np.array([0.1, 0.1, 0.1]).reshape(-1,1),
+                   np.array([0.8, 0.8, 0.8]),
+                   d = 1)
+>>>>>>> operator-overloading:archive/lsgdual/python/kevin/lsgdualforward.py

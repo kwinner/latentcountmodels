@@ -1,180 +1,491 @@
 import numpy as np
-import util as util
+import logsign as ls
+import cygdual
+import lsgdual_impl as lsgdual
+import gdual_impl as gdual
 
-# todo function descriptions
-# todo assert shape match
-def gdual_new(x, q):
-    # todo this is really a special case of new gdual for new RVs
-    out = np.zeros(q, dtype=np.double)
+def exp(x):
+    return x.exp()
 
-    out[0] = x
-    if q > 1:
-        out[1] = 1
+def log(x):
+    return x.log()
 
-    return out
-
-
-def gdual_compose(G, F):
-    out = np.zeros_like(G)
-    q = out.shape[0]
-
-    # cache first terms of F, G and then clear
-    G_0_cache = G[0]
-    F_0_cache = F[0]
-
-    G[0] = 0
-    F[0] = 0
-
-    # Horner's method truncated to q
-    out[0] = G[q - 1]
-    for i in range(q - 2, -1, -1):
-        out = np.convolve(out, F)[:q]
-        out[0] += G[i]
-
-    # restore cached values
-    out[0] = G_0_cache
-    G[0]   = G_0_cache
-    F[0]   = F_0_cache
-
-    return out
+def inv(x):
+    return x.inv()
 
 
-def gdual_compose_affine(G, F):
-    if F.shape[0] <= 1:
-        # handling composition with a constant F
-        return G.copy()
-    else:
-        q = G.shape[0]
+class GDualBase:
+    """Abstract base class for GDual objects    
+    """
+    
+    @classmethod
+    def zero_coefs(cls, k):
+        raise NotImplementedError("Please Implement this method")
 
-        # no need for Horner's method, utp composition uses only the 2nd and higher
-        # coefficients, of which F has only 1 nonzero in this case
-        return G * np.power(F[1], np.arange(0, q))
+    @classmethod
+    def wrap_coefs(cls, coefs):
+        raise NotImplementedError("Please Implement this method")
+
+    @classmethod
+    def unwrap_coefs(cls, coefs):
+        raise NotImplementedError("Please Implement this method")
+
+    @classmethod
+    def compose_many(cls, y, x):
+        return [yi.compose(x) for yi in y]
+    
+    _div  = None
+    _rdiv = None
+    _mul  = None
+    _add  = None
+    _sub  = None
+    _rsub = None
+    _pow  = None
+    _neg  = None
+    _exp  = None
+    _log  = None
+    _inv  = None
+    _deriv = None
+    _get_derivatives = None
+    _compose = None
+    _compose_affine = None
+
+    
+    def __init__(self, val=None, q=None, as_log=False, coefs=None, wrap=False):
+        """Create a new GDual object
+        
+        Examples:
+
+        x = GDual(3.14, q=10)                         # Create new GDual 3.14 + 1*eps
+
+        x = GDual(np.log(3.14), q=10, as_log=True)    # Same, but value provided in log space
+
+        y = GDual(x, 10)                              # Creates GDual u + 1*eps where u is the 
+                                                      # scalar components of GDual x. Derivatives
+                                                      # of x are ignored
+
+        z = GDual(coefs = coefs, q=10)                # Create a GDual with specified coefficients,
+                                                      # (in data type native to underyling implementation)
+                                                  
+        
+        z = GDual(coefs = [1, 2, 3],                  # Same as above, but coefficients are supplied
+                  q=10, wrap=True)                    # as array of real numbers
+                                                      
+        
+        """
+        
+        if coefs is not None:
+            # If coefs are provided, advance to end
+            pass
+        
+        elif np.isscalar(val):
+            # If scalar is provided, set to val + 1*eps, and ensure wrapping into
+            # native data type
+            if as_log:
+                coefs = [val, 0.0]
+            else:
+                coefs = [val, 1.0]
+            wrap = True
+
+        elif isinstance(val, self.__class__):
+            # If another dual number is provided, set coefficients
+            # in native data type and disable wrapping
+            coefs = [
+                val.coefs[0],
+                self.wrap_coefs([1.0])
+            ]
+            wrap = False
+            
+        else:
+            raise ValueError('Must supply either coefficients or value of compatible type')
+
+        if wrap:
+            coefs = self.wrap_coefs(coefs, as_log)
+            
+        self.set_coefs(coefs, q)
+            
+
+    def set_coefs(self, coefs, q=None):
+
+        # If q is not provided, set equal to order, which is
+        # one less than the number of coefficients
+        if q is None:
+            q = len(coefs)-1
+
+        # Initialize to zeros, and then populate. This is a clean way to handle truncation
+        # and it ensures the coefficients are copied and we are not retaining a view into
+        # an existing array
+
+        #self.coefs = self.zero_coefs(q+1)
+        #p = min(q+1, len(coefs))
+        #self.coefs[:p] = coefs[:p]
+
+        self.coefs = self.empty_coefs(q+1)
+        p = min(q+1, len(coefs))
+        self.coefs[:p] = coefs[:p]
+        self.coefs[p:] = self.ZERO_COEF
+
+    def set_order(self, q):
+        self.set_coefs(self.coefs, q)
+
+    def order(self):
+        return len(self.coefs) - 1
+
+    def get(self, k, as_log=False):
+        return self.unwrap_coefs(self.coefs, as_log)[k]
+    
+    @classmethod
+    def const(cls, c, q=0, as_log=False):
+        """construct a new gdual object for <c, dx>_q"""
+        assert np.isreal(c) and (not hasattr(c, "__len__") or len(c) == 1)
+        assert q >= 0
+        return cls(q=q, coefs=cls.wrap_coefs([c], as_log=as_log))
+
+    def __repr__(self):
+        return self.unwrap_coefs(self.coefs).__repr__()
+
+    def __str__(self):
+        return self.unwrap_coefs(self.coefs).__str__()
+
+    def as_real(self):
+        return self.unwrap_coefs(self.coefs)
+
+    def binary_op(self, other, f, require_same_size=True):
+
+        # Promote other to class instance if needed
+        if isinstance(other, self.__class__):
+            pass
+        elif np.isscalar(other):
+            other = self.const(other, 0)
+        elif isinstance(other, np.ndarray) and other.size == 1:
+            other = self.const(np.asscalar(other), 0)
+        else:
+            raise ValueError('Incompatible other type')
+
+        # Extend to same truncation order if required
+        if require_same_size:
+            p = self.order()
+            q = other.order()
+            if p < q:
+                self.set_order(q)
+            elif q < p:
+                other.set_order(p)
+
+        # Execute the operation
+        return self.__class__(
+            coefs=f(self.coefs, other.coefs)
+        )
+
+    def __add__(self, other):
+        return self.binary_op(other, self._add)
+
+    def __radd__(self, other):
+        return self.binary_op(other, self._add)
+    
+    def __mul__(self, other):
+        return self.binary_op(other, self._mul)
+
+    def __rmul__(self, other):
+        return self.binary_op(other, self._mul)
+
+    def __sub__(self, other):
+        return self.binary_op(other, self._sub)
+
+    def __rsub__(self, other):
+        return self.binary_op(other, self._rsub)
+
+    def __truediv__(self, other):
+        return self.binary_op(other, self._div)
+
+    def __rtruediv__(self, other):
+        return self.binary_op(other, self._rdiv)
+
+    def compose(self, other):
+        return self.binary_op(other, self._compose)
+
+    def compose_affine(self, other):
+        return self.binary_op(other, self._compose_affine)
+    
+    
+    # Python 2.7
+    __div__  = __truediv__
+    __rdiv__ = __rtruediv__
+    
+    def __pow__(self, other):
+        return self.__class__(
+            coefs = self._pow(self.coefs, other),
+        )
+
+    def __neg__(self):
+        return self.__class__(
+            coefs = self._neg(self.coefs)
+        )
+
+    def exp(self):
+        return self.__class__(
+            coefs = self._exp(self.coefs)
+        )
+        
+    def log(self):
+        return self.__class__(
+            coefs = self._log(self.coefs)
+        )
+
+    def inv(self):
+        return self.__class__(
+            coefs = self._inv(self.coefs)
+        )
+
+    def deriv(self, k):
+        return self.__class__(
+            coefs = self._deriv(self.coefs, k)
+        )
+
+    def get_derivatives(self):
+        return self.__class__(
+            coefs = self._get_derivatives(self.coefs)
+        )
+
+    def trunc_neg_coefs(self):
+        self.coefs = self._trunc_neg_coefs(self.coefs)
+
+class LSGDual(GDualBase):
+
+    ZERO_COEF = ls.ZERO
+    
+    @classmethod
+    def empty_coefs(cls, k):
+        return np.empty(k, dtype=ls.DTYPE)
+
+    @classmethod
+    def zero_coefs(cls, k):
+        return ls.zeros(k)
+
+    @classmethod
+    def wrap_coefs(cls, coefs, as_log=False):
+        if not as_log:
+            return ls.real2ls(coefs)
+        else:
+            out = ls.ls(shape=len(coefs))
+            out['mag'] = coefs
+            out['sgn'] = 1
+            return out            
+
+    @classmethod
+    def unwrap_coefs(cls, coefs, as_log=False):
+        if as_log:
+            assert(all(coefs['sgn'] >= 0))
+            return coefs['mag']
+        else:
+            return ls.ls2real(coefs)
+
+    @classmethod
+    def _trunc_neg_coefs(cls, coefs):
+        out = coefs.copy()
+        neg = np.where(out['sgn'] < 0)
+        out[neg] = ls.zeros(len(neg))
+        return out
+
+    _div  = staticmethod( cygdual.div )
+    _rdiv = staticmethod( cygdual.rdiv )
+    _mul  = staticmethod( cygdual.mul )
+    _add  = staticmethod( cygdual.add )
+    _sub  = staticmethod( cygdual.sub )
+    _rsub = staticmethod( cygdual.rsub )
+    _pow  = staticmethod( cygdual.pow )
+    _neg  = staticmethod( cygdual.neg )
+    _exp  = staticmethod( cygdual.exp )
+    _log  = staticmethod( cygdual.log )
+    _inv  = staticmethod( cygdual.inv )
+    _deriv = staticmethod( lsgdual.deriv )
+    _get_derivatives = staticmethod( lsgdual.get_derivatives )
+    #_compose = staticmethod( lsgdual.compose )
+    #_compose = staticmethod( lsgdual.compose_brent_kung )
+    _compose = staticmethod( cygdual.compose )
+    _compose_affine = staticmethod( lsgdual.compose_affine )
+
+    if True:
+        
+        @classmethod
+        def compose_many(cls, y, x):
+            y_coefs = np.stack( [yi.coefs for yi in y] )
+            res = cygdual.compose_many(y_coefs, x.coefs)
+            res = [cls(coefs = r) for r in res]
+            return res
+    
+    def __mul__(self, other):
+        return self.binary_op(other, self._mul, require_same_size=False)
+
+    def __rmul__(self, other):
+        return self.binary_op(other, self._mul, require_same_size=False)
+
+class GDual(GDualBase):
+
+    DTYPE=np.double
+    ZERO_COEF = 0.0
+    
+    @classmethod
+    def empty_coefs(cls, k):
+        return np.empty(k, dtype=cls.DTYPE)
+
+    @classmethod
+    def zero_coefs(cls, k):
+        return np.zeros(k, dtype=cls.DTYPE)
+
+    @classmethod
+    def wrap_coefs(cls, coefs, as_log=False):
+        if not as_log:
+            return np.array(coefs, dtype=cls.DTYPE)
+        else:
+            return np.array(np.exp(coefs), dtype=cls.DTYPE)
+
+    @classmethod
+    def unwrap_coefs(cls, coefs, as_log=False):
+        if as_log:
+            return np.log(coefs)
+        else:
+            return coefs
+
+    @classmethod
+    def _trunc_neg_coefs(cls, coefs):
+        out = coefs.copy()
+        out[out < 0] = 0.0
+        return out
+    
+    _div  = staticmethod( gdual.div )
+    _rdiv = staticmethod( lambda x,y: gdual.div(y, x) )
+    _mul  = staticmethod( gdual.mul )
+    _add  = staticmethod( lambda x,y: x + y )
+    _sub  = staticmethod( lambda x,y: x - y )
+    _rsub = staticmethod( lambda x,y: y - x )
+    _pow  = staticmethod( gdual.pow )
+    _neg  = staticmethod( lambda x: -x )
+    _exp  = staticmethod( gdual.exp )
+    _log  = staticmethod( gdual.log )
+    _inv  = staticmethod( gdual.inv )
+    _deriv = staticmethod( gdual.deriv )
+    _get_derivatives = None  # TODO
+    _compose = staticmethod( gdual.compose_brent_kung )
+    _compose_affine = staticmethod( gdual.compose_affine )
+
+def diff(f, x, k, GDualType=LSGDual):
+    """Compute kth derivative of f evaluated at x
+
+    f : function
+    x : input
+    k : number of times to differentiate
+    """
+    if np.isscalar(x):   
+        y = f( GDualType(x, k) )
+        z = y.deriv(k)
+        return z
+    
+    elif isinstance(x, GDualBase):
+        GDualType = x.__class__
+        q = x.order()
+        return f( GDualType(x, q + k)).deriv(k).compose(x)
+
+def diff_grad(f, x, params, k, GDualType=LSGDual):
+    """Compute kth derivative of f evaluated at x
+
+    f : function
+    x : input
+    k : number of times to differentiate
+    """
+
+    if np.isscalar(x):
+
+        # Forward pass: call fprop on base function, then deriv(k)
+        y, backprop_dy_dx = f( GDualType(x, k) )
+
+        # Backward pass: call bacprop on base function, then deriv(k)
+        # on backprop outputs, which include parameter gradients as well as dx
+        def backprop_dy_deriv_dx(dy):
+            
+            # Since dy is a GDual in the outer scope, we can't seed backprop
+            # using dy. Instead, we seed it with 1.0, perform the deriv(k).compose(x)
+            # so the gradients are GDuals in the outer scope, and only then
+            # multiply by dy.
+            dy_dx = backprop_dy_dx(1.0)  # side effect: sets p.grad for p in params
+
+            for p in params:
+                if p.need_grad and p.grad is not None:
+                    p.grad = dy * p.grad.deriv(k)
+
+            dx = dy * dy_dx.deriv(k)
+            
+            return dx
+
+        return y.deriv(k), backprop_dy_deriv_dx
+    
+    elif isinstance(x, GDualBase):
+
+        # Forward pass: call fprop on base function, and then deriv(k).compose(x)
+        GDualType = x.__class__
+        q = x.order()
+        y, backprop_dy_dx = f( GDualType(x, q + k) )
+
+        # Do backprop seeded with 1.0 during *forward* pass, then later multiply
+        # by dy once it is availble
+        
+        dy_dx = backprop_dy_dx(1.0) # side effect: sets p.grad for p in params
+
+        # Filter to params that need gradient
+        params = [p for p in params if p.need_grad]
+        
+        # Build list of things to compose and compose with x in one batch
+        compose_list = [y.deriv(k)] + [dy_dx.deriv(k)] + [p.grad.deriv(k) for p in params];
+        (y_deriv, dy_dx_deriv, *params_deriv) = x.compose_many(compose_list, x)
+        
+        # Backward pass: call backprop on base function, then deriv(k).compose(x)
+        # on backprop outputs, which include params and dx
+        def backprop_dy_deriv_dx(dy):
+
+            for p, p_deriv in zip(params, params_deriv):
+                p.grad = dy * p_deriv
+
+            dx = dy * dy_dx_deriv
+            return dx
+
+        return y_deriv, backprop_dy_deriv_dx
+
+if __name__ == "__main__":
 
 
-def gdual_deriv(F, k):
-    q = F.shape[0]
-
-    fact = util.fallingfactorial(k, np.arange(q))
-    out = F * fact
-
-    out = out[k:]
-
-    return out
-
-
-def gdual_deriv_safe(F, k):
-    q = F.shape[0]
-
-    factln = util.logfallingfactorial(k, np.arange(q))
-
-    # truncate both vectors
-    factln = factln[k:]
-    out = F[k:]
-
-    if np.any(out == 0):
-        None
-
-    # cache negative signs before dividing by factorial
-    outsigns = np.sign(out)
-    out = np.log(np.abs(out))
-
-    # normalize out * factln before performing the division
-    out = out + factln
-    logZ = np.max(out)
-
-    if ~np.isfinite(logZ):
-        None
-
-    out -= logZ
-
-    # return out to linear space, restore signs
-    return logZ, outsigns * np.exp(out)
-
-
-def gdual_mul(F, G):
-    q = max(F.shape[0], G.shape[0])
-
-    return np.convolve(F, G)[:q]
-
-
-def gdual_mul2(F, G):
-    H = np.zeros_like(F)
-    for k in range(0, F.shape[0]):
-        for i in range(0, k+1):
-            H[k] += F[i] * G[k-i]
-
-    return H
-
-
-def gdual_exp(F):
-    out = np.empty_like(F)
-    q   = out.shape[0]
-    Ftilde = F[1:].copy()
-
-    out[0] = np.exp(F[0])
-    Ftilde *= np.arange(1, q)
-    for i in range(1, q):
-        out[i] = np.sum(out[:i][::-1]*Ftilde[:i], axis=0) / i
-
-    return out
-
-
-def gdual_log(F):
-    out = np.empty_like(F)
-    q   = out.shape[0]
-
-    out[0] = np.log(F[0])
-
-    for i in range(1, q):
-        out[i] = (F[i]*i - np.sum(F[1:i][::-1]*out[1:i], axis=0))
-        out[i] /= F[0]
-    for i in range(1, q):
-        out[i] /= i
-
-    return out
-
-
-#TODO: broken if F[0] < 0, need to handle
-def gdual_pow(F, k):
-    return gdual_exp(k * gdual_log(F))
-
-
-def gdual_reciprocal(F):
-    out = np.zeros_like(F)
-    q   = out.shape[0]
-
-    out[0] = 1. / F[0]
-    for i in range(1, q):
-        out[i] = 1. / F[0] * (-np.sum(out[:i] * F[i:0:-1], axis=0))
-
-    return out
-
-
-def gdual_mean(F):
-    return F[1]
-
-
-def gdual_var(F):
-    return (2 * F[2]) - np.power(F[1], 2) + F[1]
-
-
-def gdual_normalize(F):
-    Z = np.max(F)
-    F /= Z
-    logZ = np.log(Z)
-    return logZ, F
-
-
-def gdual_renormalize(F, old_logZ):
-    Z = np.max(F)
-    F /= Z
-    logZ = old_logZ + np.log(Z)
-    return logZ, F
-
-
-def gdual_adjust_Z(F, old_logZ, new_logZ):
-    if ~np.isfinite(new_logZ):
-        None
-    adjustment = np.exp(old_logZ - new_logZ)
-    F *= adjustment
-    return F
+    for C in [GDual, LSGDual]:
+        
+        coefs = np.array([0.5, -1, 100, 0.8])
+        x = C(q=30, coefs=coefs, wrap=True)
+        
+        print(x)
+        print(exp(x))
+        
+        print(x*2)
+        print(2*x)
+        
+        print((x/2.0)*2.0)
+        print(0.5*x)
+        
+        print(exp(log(x)))
+        print(log(exp(x)))
+        
+        y = C.const(10, 100)
+        print("y: ", y)
+        
+        z = C.const(1.0, 10)
+        print("z: ",  z)
+        
+        w = C(2.4, 5)
+        print("w: ",  w)
+        
+        u = x + y
+        print("u: ", u)
+        
+        v = x * y
+        print("v: ", v)
+        
+        a = C.exp(v)
+        print("a: ", a)
+        
+        b = C.log(a)
+        print("b: ", b)
