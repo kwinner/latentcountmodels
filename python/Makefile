@@ -1,5 +1,8 @@
 EXT=$(shell python3-config --extension-suffix)
-CFLAGS=-std=c99 -lm
+
+ifeq ($(shell uname -n),”shannon.cs.umass.edu”)
+CFLAGS = -std=c99 -lm
+endif 
 
 default: opt
 

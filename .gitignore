@@ -33,3 +33,4 @@ code/*.so
 c/test_gdual.dSYM/Contents/Resources/DWARF/test_gdual
 python/foo.txt
 *.pickle
+c/test_gdual.dSYM/Contents/Resources/DWARF/test_gdual
