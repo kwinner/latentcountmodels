@@ -22,6 +22,7 @@ ls ls_inv( ls x );
 ls ls_div( ls x, ls y );
 ls ls_log( ls x );
 ls ls_exp( ls x );
+ls ls_pow( ls x, double r );
 
 // gduals
 void gdual_print( ls* a, size_t n );

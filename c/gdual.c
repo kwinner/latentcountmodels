@@ -224,6 +224,13 @@ void gdual_add( ls* v, ls* u, ls* w, size_t n) {
     }
 }
 
+// Compute v = u - w (same sizes)
+void gdual_sub( ls* v, ls* u, ls* w, size_t n) {
+    for (size_t k = 0; k < n; k++) {
+        v[k] = ls_subtract(u[k], w[k]);
+    }
+}
+
 // Compute v = u + w (different sizes)
 void gdual_add_different( ls* v, size_t n, ls* u, size_t u_len, ls* w, size_t w_len) {
     
