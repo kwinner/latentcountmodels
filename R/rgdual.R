@@ -390,12 +390,10 @@ forward <- function(y,
 ##################################################################
 
 pgf.poisson    <- function(s, theta) {
-  1 + 1
   return(exp(theta$lambda * (s - 1)))
 }
 
 pgf.bernoulli   <- function(s, theta) {
-  1 + 1
   return((1 - theta$p) + (theta$p * s))
 }
 
