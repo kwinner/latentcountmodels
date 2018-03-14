@@ -84,10 +84,15 @@ def forward(y,
 
 if __name__ == "__main__":
 
-    y     = 100*np.array([2, 5, 3])
-    lmbda = np.array([ 10 ,  0.  , 0.  ]).reshape(-1,1)
-    delta = np.array([ 1.0 ,  1.0 , 1.0 ]).reshape(-1,1)
+    y     = np.array([2, 5, 3])
+    lmbda = np.array([ 20 ,  10.  , 5.  ]).reshape(-1,1)
+    delta = np.array([ 0.3 ,  0.6 ]).reshape(-1,1)
     rho   = np.array([ 0.25,  0.25, 0.25])
+
+    # y = np.array([2])
+    # lmbda = np.array([5.]).reshape(-1, 1)
+    # delta = np.array([0.3]).reshape(-1, 1)
+    # rho = np.array([0.25])
 
     logZ, alpha, marginals = forward(y,
                                      poisson_pgf,
@@ -99,3 +104,4 @@ if __name__ == "__main__":
                                      d = 0)
     
     print(logZ)
+    print(alpha)

@@ -53,6 +53,7 @@ is.ls <- function(x, strict=FALSE) {
 # convert a number (or vector of) in standard linear system to a LS object
 as.ls <- function(x) { UseMethod("as.ls", x) }
 as.ls.ls <- function(x) { return(x) }
+as.ls.data.frame <- function(x) { return(as.ls.numeric(as.numeric(x))) }
 
 as.ls.numeric <- function(x) {
   # convert a linear system scalar/vector to logsign system
@@ -60,6 +61,17 @@ as.ls.numeric <- function(x) {
   
   obj <- data.frame(mag  = log(abs(x)),
                     sign = as.integer(sign(x)))
+  class(obj) <- c('ls', 'data.frame')
+  return(obj)
+}
+
+as.ls.magsign <- function(mag, sign=1L) {
+  # convert a magnitude and sign to a proper ls object
+  mag  <- as.vector(mag) # enforce dimensionality (this converts matrices/arrays to vectors)
+  sign <- as.vector(sign)
+  
+  obj <- data.frame(mag  = as.double(mag),
+                    sign = as.integer(sign))
   class(obj) <- c('ls', 'data.frame')
   return(obj)
 }
@@ -100,24 +112,28 @@ print.ls <- function (x, ..., digits = NULL, quote = FALSE, right = TRUE)
 }
 
 '+.ls' <- function(a, b) {
+  if(is.lsgd(a) || is.lsgd(b)) { return(add.lsgd(a,b)) }
   if(!is.ls(a)) { a <- as.ls(a) }
   if(!is.ls(b)) { b <- as.ls(b) }
   return(.Call("ls_add_R", a, b, PACKAGE=LIB_GDUAL))
 }
 
 '-.ls' <- function(a, b) {
+  if(is.lsgd(a) || is.lsgd(b)) { return(sub.lsgd(a,b)) }
   if(!is.ls(a)) { a <- as.ls(a) }
   if(!is.ls(b)) { b <- as.ls(b) }
   return(.Call("ls_sub_R", a, b, PACKAGE=LIB_GDUAL))
 }
 
 '*.ls' <- function(a, b) {
+  if(is.lsgd(a) || is.lsgd(b)) { return(mul.lsgd(a,b)) }
   if(!is.ls(a)) { a <- as.ls(a) }
   if(!is.ls(b)) { b <- as.ls(b) }
   return(.Call("ls_mul_R", a, b, PACKAGE=LIB_GDUAL))
 }
 
 '/.ls' <- function(a, b) {
+  if(is.lsgd(a) || is.lsgd(b)) { return(div.lsgd(a,b)) }
   if(!is.ls(a)) { a <- as.ls(a) }
   if(!is.ls(b)) { b <- as.ls(b) }
   return(.Call("ls_div_R", a, b, PACKAGE=LIB_GDUAL))
@@ -225,7 +241,10 @@ print.lsgd <- function (x, ..., digits = NULL, quote = FALSE, right = TRUE)
   invisible(x)
 }
 
-'+.lsgd' <- function(a, b) {
+# NOTE: binary operators for LSGDs are not overloaded
+#       instead dispatch in '+.ls' dispatches to these if either
+#       argument is an lsgd
+add.lsgd <- function(a, b) {
   if(!is.lsgd(a)) { a <- lsgd.cdx(a, nrow(b)) }
   if(!is.lsgd(b)) { b <- lsgd.cdx(b, nrow(a)) }
 
@@ -234,7 +253,7 @@ print.lsgd <- function (x, ..., digits = NULL, quote = FALSE, right = TRUE)
   return(.Call("lsgd_add_R", a, b, PACKAGE=LIB_GDUAL))
 }
 
-'-.lsgd' <- function(a, b) {
+sub.lsgd <- function(a, b) {
   if(!is.lsgd(a)) { a <- lsgd.cdx(a, nrow(b)) }
   if(!is.lsgd(b)) { b <- lsgd.cdx(b, nrow(a)) }
 
@@ -243,7 +262,7 @@ print.lsgd <- function (x, ..., digits = NULL, quote = FALSE, right = TRUE)
   return(.Call("lsgd_sub_R", a, b, PACKAGE=LIB_GDUAL))
 }
 
-'*.lsgd' <- function(a, b) {
+mul.lsgd <- function(a, b) {
   if(!is.lsgd(a)) { a <- lsgd.cdx(a, nrow(b)) }
   if(!is.lsgd(b)) { b <- lsgd.cdx(b, nrow(a)) }
 
@@ -252,7 +271,7 @@ print.lsgd <- function (x, ..., digits = NULL, quote = FALSE, right = TRUE)
   return(.Call("lsgd_mul_R", a, b, PACKAGE=LIB_GDUAL))
 }
 
-'/.lsgd' <- function(a, b) {
+div.lsgd <- function(a, b) {
   if(!is.lsgd(a)) { a <- lsgd.cdx(a, nrow(b)) }
   if(!is.lsgd(b)) { b <- lsgd.cdx(b, nrow(a)) }
 
@@ -306,14 +325,16 @@ deriv.lsgd <- function(a, k) {
 }
 
 diff.lsgd <- function(f, x, k) {
-  if(is.lsgd(x)) {
+  if(k == 0) {
+    return(f(x))
+  } else if(is.lsgd(x)) {
     q <- nrow(x)
-    return(compose.lsgd(deriv.lsgd(f(lsgd.xdx(x, q + k)), 
-                                   k), 
+    return(compose.lsgd(deriv(f(lsgd.xdx(x, q + k)), 
+                              k), 
                         x))
   } else {
-    return(deriv.lsgd(f(lsgd.xdx(x, k)), 
-                      k))
+    return(deriv(f(lsgd.xdx(x, 1 + k)), 
+                 k))
   }
 }
 
@@ -327,20 +348,41 @@ forward <- function(y,
                     branch.pgf,
                     theta.branch,
                     theta.observ,
-                    d = 1) {
+                    d = 0) {
   K <- length(y)
   
   Alpha <- vector(mode="list", length=K)
   
-  liftGamma <- function(u, k) {
-    if(k <= 1) {
-      if(is.lsgd(u))
-        q <- nrow(u)
-      else
-        q <- 1
-      return(lsgd.1dx(q) * arrival.pgf(u, theta.arrival[[k]]))
-    }
+  Gamma <- function(u, k) {
+    branch.pgf(u, theta.branch[k-1,,drop=F])
+    return(A(branch.pgf(u, theta.branch[k-1,,drop=F]), 
+                 k - 1) *
+           arrival.pgf(u, theta.arrival[k,,drop=F]))
   }
+  
+  A <- function(s, k) {
+    if(k < 1)
+      return(1.0)
+    
+    if(is.lsgd(s))
+      q <- nrow(s)
+    else
+      q <- 1
+    
+    Gamma_k <- function(u_k) { Gamma(u_k, k) }
+    
+    const <- (s ^ y[k]) * lsgd.cdx(as.ls.magsign(mag=(y[k] * log(theta.observ[k,]) - lgamma(y[k] + 1)),
+                                                 sign=1L),
+                                   q)
+    alpha <- const * diff.lsgd(Gamma_k, s * (1 - theta.observ[k,]), y[k])
+    Alpha[[k]] <<- alpha
+    
+    return(alpha)
+  }
+  
+  diff.lsgd(function(s) A(s, K), 1.0, d)
+  
+  return(Alpha)
 }
 
 ##################################################################
@@ -348,17 +390,17 @@ forward <- function(y,
 ##################################################################
 
 pgf.poisson    <- function(s, theta) {
+  1 + 1
   return(exp(theta$lambda * (s - 1)))
 }
 
 pgf.bernoulli   <- function(s, theta) {
+  1 + 1
   return((1 - theta$p) + (theta$p * s))
 }
 
 pgf.binomial    <- function(s, theta) {
-  n      <- theta[1]
-  p      <- theta[2]
-  return(((1 - p) + (p * s)) ^ n)
+  return(((1 - theta$p) + (theta$p * s)) ^ theta$n)
 }
 
 pgf.negbin      <- function(s, theta) {
@@ -407,3 +449,16 @@ invisible(.Call("_ls_add_R", t3, t1, t2, PACKAGE=LIB_GDUAL))
 
 lsgd1 <- lsgd.xdx(5, 4)
 invisible(lsgd2 <- .Call("lsgd_log_R", lsgd1))
+
+y      <- c(2, 5, 3)
+lambda <- data.frame(lambda=c(20, 10, 5))
+delta  <- data.frame(p=c(0.3, 0.6))
+rho    <- data.frame(p=c(0.25, 0.25, 0.25))
+# y      <- c(2)
+# lambda <- data.frame(lambda=c(5))
+# delta  <- data.frame(p=c(0.3))
+# rho    <- data.frame(p=c(0.25))
+
+A <- forward(y, pgf.poisson, lambda, pgf.bernoulli, delta, rho)
+
+print(A)

@@ -471,17 +471,17 @@ SEXP _lsgd_add_R(SEXP res, SEXP x, SEXP y) {
 // <x+y,dz>_q
 SEXP lsgd_add_R(SEXP x, SEXP y) {
   size_t n = r_ls_length(x);
-  INITIALIZE_R_LS(n)
+  INITIALIZE_R_LSGD(n)
     
   _lsgd_binary_op(&gdual_add, res, x, y);
   
-  RELEASE_R_LS(n)
+  RELEASE_R_LSGD(n)
   return res;
 }
 
 // <x-y,dz>_q, result stored in first parameter
 SEXP _lsgd_sub_R(SEXP res, SEXP x, SEXP y) {
-  _lsgd_binary_op(&gdual_add, res, x, y);
+  _lsgd_binary_op(&gdual_sub, res, x, y);
   
   return res;
 }
@@ -489,11 +489,11 @@ SEXP _lsgd_sub_R(SEXP res, SEXP x, SEXP y) {
 // <x-y,dz>_q
 SEXP lsgd_sub_R(SEXP x, SEXP y) {
   size_t n = r_ls_length(x);
-  INITIALIZE_R_LS(n)
+  INITIALIZE_R_LSGD(n)
     
-  _lsgd_binary_op(&gdual_add, res, x, y);
+  _lsgd_binary_op(&gdual_sub, res, x, y);
   
-  RELEASE_R_LS(n)
+  RELEASE_R_LSGD(n)
   return res;
 }
 
@@ -507,11 +507,11 @@ SEXP _lsgd_mul_R(SEXP res, SEXP x, SEXP y) {
 // <x*y,dz>_q
 SEXP lsgd_mul_R(SEXP x, SEXP y) {
   size_t n = r_ls_length(x);
-  INITIALIZE_R_LS(n)
+  INITIALIZE_R_LSGD(n)
     
   _lsgd_binary_op(&gdual_mul_same, res, x, y);
   
-  RELEASE_R_LS(n)
+  RELEASE_R_LSGD(n)
   return res;
 }
 
@@ -525,11 +525,11 @@ SEXP _lsgd_div_R(SEXP res, SEXP x, SEXP y) {
 // <x/y,dz>_q
 SEXP lsgd_div_R(SEXP x, SEXP y) {
   size_t n = r_ls_length(x);
-  INITIALIZE_R_LS(n)
+  INITIALIZE_R_LSGD(n)
     
   _lsgd_binary_op(&gdual_div, res, x, y);
   
-  RELEASE_R_LS(n)
+  RELEASE_R_LSGD(n)
   return res;
 }
 
@@ -543,11 +543,11 @@ SEXP _lsgd_compose_R(SEXP res, SEXP x, SEXP y) {
 // <x(y),dz>_q
 SEXP lsgd_compose_R(SEXP x, SEXP y) {
   size_t n = r_ls_length(x);
-  INITIALIZE_R_LS(n)
+  INITIALIZE_R_LSGD(n)
     
   _lsgd_binary_op(&gdual_compose_same, res, x, y);
   
-  RELEASE_R_LS(n)
+  RELEASE_R_LSGD(n)
   return res;
 }
 
@@ -561,11 +561,11 @@ SEXP _lsgd_compose_affine_R(SEXP res, SEXP x, SEXP y) {
 // <x(y),dz>_q, for affine y
 SEXP lsgd_compose_affine_R(SEXP x, SEXP y) {
   size_t n = r_ls_length(x);
-  INITIALIZE_R_LS(n)
+  INITIALIZE_R_LSGD(n)
     
   _lsgd_binary_op(&gdual_compose_affine, res, x, y);
   
-  RELEASE_R_LS(n)
+  RELEASE_R_LSGD(n)
   return res;
 }
 
@@ -594,10 +594,10 @@ SEXP _lsgd_pow_R(SEXP res, SEXP x, SEXP r) {
 // <x^r,dz>_q
 SEXP lsgd_pow_R(SEXP x, SEXP r) {
   size_t n = r_ls_length(x);
-  INITIALIZE_R_LS(n)
+  INITIALIZE_R_LSGD(n)
     
   _lsgd_scalar_op(&gdual_pow, res, x, r);
   
-  RELEASE_R_LS(n)
+  RELEASE_R_LSGD(n)
   return res;
 }
