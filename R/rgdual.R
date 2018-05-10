@@ -385,6 +385,10 @@ forward <- function(y,
   return(Alpha)
 }
 
+forward.ll <- function(Alpha) {
+  return(Alpha[[length(Alpha)]]$mag)
+}
+
 ##################################################################
 #                              PGFS                              #
 ##################################################################
@@ -417,6 +421,11 @@ pgf.geometric2  <- function(s, theta) {
   return((theta$p * s) / (1 - ((1 - theta$p) * s)))
 }
 
+# a special pgf for a Uniform(0,0) dist'n (for readability)
+pgf.zero <- function(s, theta) {
+  return(1)
+}
+
 ##################################################################
 #                        UTILITY METHODS                         #
 ##################################################################
@@ -431,32 +440,35 @@ lfallingfactorial <- function(k, i) {
   return(lpoch(i - k + 1, k))
 }
 
-t1 <- as.ls(c(1,2,3,4))
-t2 <- as.ls(c(5,6,7,8))
-t3 <- ls.zeros(4)
-
-# t1 <- as.ls(1)
-# t2 <- as.ls(8)
-# t3 <- ls.zeros(1)
-# t4 <- ls.zeros(1)
-# t5 <- ls.zeros(1)
-
-invisible(.Call("_ls_add_R", t3, t1, t2, PACKAGE=LIB_GDUAL))
-# invisible(.Call("_ls_neg_R", t4, t3, PACKAGE=LIB_GDUAL))
-# invisible(.Call("_ls_pow_R", t5, t4, 2, PACKAGE=LIB_GDUAL))
-
-lsgd1 <- lsgd.xdx(5, 4)
-invisible(lsgd2 <- .Call("lsgd_log_R", lsgd1))
-
-y      <- c(2, 5, 3)
-lambda <- data.frame(lambda=c(20, 10, 5))
-delta  <- data.frame(p=c(0.3, 0.6))
-rho    <- data.frame(p=c(0.25, 0.25, 0.25))
-# y      <- c(2)
-# lambda <- data.frame(lambda=c(5))
-# delta  <- data.frame(p=c(0.3))
-# rho    <- data.frame(p=c(0.25))
-
-A <- forward(y, pgf.poisson, lambda, pgf.bernoulli, delta, rho)
-
-print(A)
+# t1 <- as.ls(c(1,2,3,4))
+# t2 <- as.ls(c(5,6,7,8))
+# t3 <- ls.zeros(4)
+# 
+# # t1 <- as.ls(1)
+# # t2 <- as.ls(8)
+# # t3 <- ls.zeros(1)
+# # t4 <- ls.zeros(1)
+# # t5 <- ls.zeros(1)
+# 
+# invisible(.Call("_ls_add_R", t3, t1, t2, PACKAGE=LIB_GDUAL))
+# # invisible(.Call("_ls_neg_R", t4, t3, PACKAGE=LIB_GDUAL))
+# # invisible(.Call("_ls_pow_R", t5, t4, 2, PACKAGE=LIB_GDUAL))
+# 
+# lsgd1 <- lsgd.xdx(5, 4)
+# invisible(lsgd2 <- .Call("lsgd_log_R", lsgd1))
+# 
+# y      <- 10*c(2, 5, 3)
+# lambda <- 10*data.frame(lambda=c(20, 10, 5))
+# delta  <- data.frame(p=c(0.3, 0.6))
+# rho    <- data.frame(p=c(0.25, 0.25, 0.25))
+# # y      <- c(2)
+# # lambda <- data.frame(lambda=c(5))
+# # delta  <- data.frame(p=c(0.3))
+# # rho    <- data.frame(p=c(0.25))
+# 
+# start_time <- Sys.time()
+# A <- forward(y, pgf.poisson, lambda, pgf.bernoulli, delta, rho)
+# run_time <- Sys.time() - start_time
+# 
+# print(A)
+# print(run_time)

@@ -83,9 +83,10 @@ def forward(y,
     return logZ, alpha, marginals
 
 if __name__ == "__main__":
+    import time
 
-    y     = np.array([2, 5, 3])
-    lmbda = np.array([ 20 ,  10.  , 5.  ]).reshape(-1,1)
+    y     = 1000*np.array([2, 5, 3])
+    lmbda = 1000*np.array([ 20 ,  10.  , 5.  ]).reshape(-1,1)
     delta = np.array([ 0.3 ,  0.6 ]).reshape(-1,1)
     rho   = np.array([ 0.25,  0.25, 0.25])
 
@@ -94,6 +95,7 @@ if __name__ == "__main__":
     # delta = np.array([0.3]).reshape(-1, 1)
     # rho = np.array([0.25])
 
+    start = time.process_time()
     logZ, alpha, marginals = forward(y,
                                      poisson_pgf,
                                      lmbda,
@@ -102,6 +104,8 @@ if __name__ == "__main__":
                                      rho,
                                      GDualType=gd.LSGDual,
                                      d = 0)
+    rt = time.process_time() - start
     
     print(logZ)
     print(alpha)
+    print(rt)

@@ -1,24 +1,26 @@
 library(unmarked)
+source('pcountOpen_rgdual.R')
 
-test_vals <- seq(5, 95, 10)
-# test_vals <- seq(0.05, 0.95, 0.1)
+# test_vals <- seq(5, 95, 10)
+# test_vals <- seq(0.05, 0.95, 0.5)
+test_vals <- 0.5
 n.experiments <- length(test_vals)
-n.reps <- 10
+n.reps <- 1
 
 runtime_unmarked <- matrix(NA, n.experiments, n.reps)
-runtime_ngdualf  <- matrix(NA, n.experiments, n.reps)
+runtime_rgdfwd   <- matrix(NA, n.experiments, n.reps)
 Y_record <- matrix(NA, n.experiments, n.reps)
 K_record <- matrix(NA, n.experiments, n.reps)
 
 for(i.experiment in 1:n.experiments) {
   for(i.rep in 1:n.reps) {
-    M <- 1
+    M <- 2
     T <- 5
-    lambda <- 50
+    lambda <- 100
     #lambda <- test_vals[i.experiment]
     gamma <- 1.5
     delta <- 0.8
-    #omega <- test_vals[i.experiment]
+    omega <- test_vals[i.experiment]
     p <- 0.7
     y <- N <- matrix(NA, M, T)
     S <- G <- matrix(NA, M, T-1)
@@ -32,8 +34,13 @@ for(i.experiment in 1:n.experiments) {
     Y = sum(y)
     Y_record[i.experiment, i.rep] <- Y
     
+    dynamics    = "trend"
+    immigration = TRUE
+    
     # set K
     ratio <- 0.38563049853372433
+    # ratio <- 0.2
+    # ratio <- 1
     K <- ceiling((ratio * Y + 10) / omega)
     K_record[i.experiment, i.rep] <- K
     
@@ -41,26 +48,39 @@ for(i.experiment in 1:n.experiments) {
     umf <- unmarkedFramePCO(y = y, numPrimary=T)
     #summary(umf)
     
-    # prepare ngdualf
-    
-    # time model fit
+    # # time model fit
     time.start <- proc.time()[3]
-    
+
     # Fit model and backtransform
-    (m1 <- pcountOpen(~1, ~1, ~1, ~1, umf, K=K, immigration = TRUE)) # Typically, K should be higher
-    
+    (m1 <- pcountOpen(~1, ~1, ~1, ~1, umf, K=K, immigration = immigration, dynamics = dynamics)) # Typically, K should be higher
+
     (lam <- coef(backTransform(m1, "lambda"))) # or
-    lam <- exp(coef(m1, type="lambda"))
-    gam <- exp(coef(m1, type="gamma"))
-    om <- plogis(coef(m1, type="omega"))
-    p <- plogis(coef(m1, type="det"))
-    
+    if(!is.null(coef(m1, type="lambda")))
+      lam <- exp(coef(m1, type="lambda"))
+    if(!is.null(coef(m1, type="gamma")))
+      gam <- exp(coef(m1, type="gamma"))
+    if(!is.null(coef(m1, type="omega")))
+      om <- plogis(coef(m1, type="omega"))
+    if(!is.null(coef(m1, type="det")))
+      p <- plogis(coef(m1, type="det"))
+
     runtime_unmarked[i.experiment, i.rep] <- proc.time()[3] - time.start
     
     time.start <- proc.time()[3]
     
+    # Fit model and backtransform
+    (m1 <- pcountOpen_rgdual(~1, ~1, ~1, ~1, umf, K=K, immigration = immigration, dynamics = dynamics)) # Typically, K should be higher
     
+    (lam <- coef(backTransform(m1, "lambda"))) # or
+    if(!is.null(coef(m1, type="lambda")))
+      lam <- exp(coef(m1, type="lambda"))
+    if(!is.null(coef(m1, type="gamma")))
+      gam <- exp(coef(m1, type="gamma"))
+    if(!is.null(coef(m1, type="omega")))
+      om <- plogis(coef(m1, type="omega"))
+    if(!is.null(coef(m1, type="det")))
+      p <- plogis(coef(m1, type="det"))
     
-    runtime_ngdualf[i.experiment, i.rep] <- proc.time()[3] - time.start
+    runtime_rgdfwd[i.experiment, i.rep] <- proc.time()[3] - time.start
   }
 }
