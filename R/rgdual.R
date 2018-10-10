@@ -353,11 +353,21 @@ forward <- function(y,
   
   Alpha <- vector(mode="list", length=K)
   
+  # wrap the arrival/branch pgfs, which may each be a list of pgfs
+  # note: if arrival.pgf/branch.pgf are lists, they need to be length K or K - 1 accordingly
+  if (is.list(arrival.pgf))
+    arrival.pgf.select <- function(u, k) { arrival.pgf[k](u, theta.arrival[k,,drop=F]) }
+  else
+    arrival.pgf.select <- function(u, k) { arrival.pgf(u, theta.arrival[k,,drop=F]) }
+  if (is.list(branch.pgf))
+    branch.pgf.select <- function(u, k) { branch.pgf[k](u, theta.branch[k,,drop=F]) }
+  else
+    branch.pgf.select <- function(u, k) { branch.pgf(u, theta.branch[k,,drop=F]) }
+  
   Gamma <- function(u, k) {
-    branch.pgf(u, theta.branch[k-1,,drop=F])
-    return(A(branch.pgf(u, theta.branch[k-1,,drop=F]), 
-                 k - 1) *
-           arrival.pgf(u, theta.arrival[k,,drop=F]))
+    # branch.pgf(u, theta.branch[k-1,,drop=F])
+    return(A(branch.pgf.select(u, k-1), k-1) *
+           arrival.pgf.select(u, k))
   }
   
   A <- function(s, k) {
@@ -422,8 +432,14 @@ pgf.geometric2  <- function(s, theta) {
 }
 
 # a special pgf for a Uniform(0,0) dist'n (for readability)
+# note: both of these pgfs are also special cases of the bernoulli pgf
 pgf.zero <- function(s, theta) {
   return(1)
+}
+
+# a special pgf for a Uniform(1,1) dist'n (for readability)
+pgf.one <- function(s, theta) {
+  return(s)
 }
 
 ##################################################################

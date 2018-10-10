@@ -124,6 +124,7 @@ def nbinom_branching(n_max, p_k):
     n_k = np.arange(n_max).reshape((-1, 1))
     return stats.nbinom.logpmf(np.arange(n_max), n_k, p_k)
 
+
 if __name__ == "__main__":
     # Poisson arrival, binomial branching
 

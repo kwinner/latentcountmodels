@@ -397,6 +397,20 @@ generate_data <- function(params = params.default()) {
   return(data)
 }
 
+# function for formating a number of seconds as HMS
+s2hms <- function(s) {
+  h <- floor(s / 3600)
+  m <- floor((s - 3600*h) / 60)
+  s <- floor(s - 3600*h - 60*m)
+  
+  if (h > 0)
+    sprintf('%dh%02dm%02ds', h, m, s)
+  else if (m > 0)
+    sprintf('%dm%02ds', m, s)
+  else
+    sprintf('%ds', s)
+}
+
 # function to parse a simple numeric matrix to a simple string form
 mat2str <- function(x) {
   if (nrow(x) == 1)
