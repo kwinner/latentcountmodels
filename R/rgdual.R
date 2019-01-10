@@ -473,18 +473,19 @@ lfallingfactorial <- function(k, i) {
 # lsgd1 <- lsgd.xdx(5, 4)
 # invisible(lsgd2 <- .Call("lsgd_log_R", lsgd1))
 # 
-# y      <- 10*c(2, 5, 3)
-# lambda <- 10*data.frame(lambda=c(20, 10, 5))
-# delta  <- data.frame(p=c(0.3, 0.6))
-# rho    <- data.frame(p=c(0.25, 0.25, 0.25))
+y      <- 10*c(2, 5)
+lambda <- 5000*data.frame(lambda=c(20, 10))
+delta  <- data.frame(lambda=c(0.3))
+rho    <- data.frame(p=c(0.25, 0.25))
 # # y      <- c(2)
 # # lambda <- data.frame(lambda=c(5))
 # # delta  <- data.frame(p=c(0.3))
 # # rho    <- data.frame(p=c(0.25))
 # 
-# start_time <- Sys.time()
-# A <- forward(y, pgf.poisson, lambda, pgf.bernoulli, delta, rho)
-# run_time <- Sys.time() - start_time
+start_time <- Sys.time()
+A <- forward(y, pgf.poisson, lambda, pgf.poisson, delta, rho)
+run_time <- Sys.time() - start_time
 # 
 # print(A)
+print(forward.ll(A))
 # print(run_time)

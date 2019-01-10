@@ -13,6 +13,9 @@ def log(x):
 def inv(x):
     return x.inv()
 
+def gammaln(x):
+    return x.gammaln()
+
 
 class GDualBase:
     """Abstract base class for GDual objects    
@@ -44,6 +47,7 @@ class GDualBase:
     _neg  = None
     _exp  = None
     _log  = None
+    _gammaln = None
     _inv  = None
     _deriv = None
     _get_derivatives = None

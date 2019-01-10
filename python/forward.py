@@ -6,7 +6,7 @@ from scipy.special import gammaln
 
 def poisson_pgf(s, theta):
     lmbda = theta[0]
-    return exp(lmbda * (s - 1))
+    return np.exp(lmbda * (s - 1))
 
 def bernoulli_pgf(s, theta):
     p = theta[0]
@@ -85,10 +85,10 @@ def forward(y,
 if __name__ == "__main__":
     import time
 
-    y     = 1000*np.array([2, 5, 3])
-    lmbda = 1000*np.array([ 20 ,  10.  , 5.  ]).reshape(-1,1)
-    delta = np.array([ 0.3 ,  0.6 ]).reshape(-1,1)
-    rho   = np.array([ 0.25,  0.25, 0.25])
+    y     = 10*np.array([2, 5])
+    lmbda = 5000*np.array([ 20 ,  10.]).reshape(-1,1)
+    delta = np.array([ 0.3]).reshape(-1,1)
+    rho   = np.array([ 0.25,  0.25])
 
     # y = np.array([2])
     # lmbda = np.array([5.]).reshape(-1, 1)
@@ -99,7 +99,7 @@ if __name__ == "__main__":
     logZ, alpha, marginals = forward(y,
                                      poisson_pgf,
                                      lmbda,
-                                     bernoulli_pgf,
+                                     poisson_pgf,
                                      delta,
                                      rho,
                                      GDualType=gd.LSGDual,
