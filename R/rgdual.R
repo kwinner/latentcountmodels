@@ -432,7 +432,6 @@ pgf.geometric2  <- function(s, theta) {
 }
 
 # a special pgf for a Uniform(0,0) dist'n (for readability)
-# note: both of these pgfs are also special cases of the bernoulli pgf
 pgf.zero <- function(s, theta) {
   return(1)
 }
@@ -473,19 +472,22 @@ lfallingfactorial <- function(k, i) {
 # lsgd1 <- lsgd.xdx(5, 4)
 # invisible(lsgd2 <- .Call("lsgd_log_R", lsgd1))
 # 
-y      <- 10*c(2, 5)
-lambda <- 5000*data.frame(lambda=c(20, 10))
-delta  <- data.frame(lambda=c(0.3))
-rho    <- data.frame(p=c(0.25, 0.25))
-# # y      <- c(2)
-# # lambda <- data.frame(lambda=c(5))
-# # delta  <- data.frame(p=c(0.3))
-# # rho    <- data.frame(p=c(0.25))
-# 
-start_time <- Sys.time()
-A <- forward(y, pgf.poisson, lambda, pgf.poisson, delta, rho)
-run_time <- Sys.time() - start_time
-# 
-# print(A)
-print(forward.ll(A))
-# print(run_time)
+# y      <- 300*c(1,2,3,1,3)
+# lambda <- 300*data.frame(lambda = c(2.5, 6, 6, 6, 6))
+# delta  <- data.frame(lambda = c(0.5, 0.5, 0.5, 0.5))
+# rho    <- data.frame(p      = c(0.2, 0.2, 0.2, 0.2, 0.2))
+# # # # y      <- c(2)
+# # # # lambda <- data.frame(lambda=c(5))
+# # # # delta  <- data.frame(p=c(0.3))
+# # # # rho    <- data.frame(p=c(0.25))
+# # # 
+# rt <- 0
+# for (i in 1:10) {
+#   rt <- rt + system.time({A <- forward(y, pgf.poisson, lambda, pgf.poisson, delta, rho)})['elapsed']
+# }
+# print(forward.ll(A))
+# print(rt)
+# # 
+# # print(A)
+# print(forward.ll(A))
+# # print(run_time)

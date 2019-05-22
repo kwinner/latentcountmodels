@@ -2,6 +2,15 @@ source("rgdual.R")
 
 library(unmarked)
 
+# todo list before release:
+# unsupported models = {ricker, gompertz, notrend}
+#   ricker/gompertz probably aren't, notrend unsure
+# unsupported mixtures = {NB, ZIP}, probably just adding a PGF selection
+# add info to the return data structure indicating which likelihood function was selected
+# support for repeated counts
+# implement the PGFFA symbolic algorithm for Poisson HMM
+# implement gdual (the non-ls version) in case it's faster?
+
 pcountOpen_rgdual <- function(lambdaformula, gammaformula, omegaformula, pformula,
                               data, 
                               mixture     = 'P', 
@@ -16,6 +25,8 @@ pcountOpen_rgdual <- function(lambdaformula, gammaformula, omegaformula, pformul
                               eval.at     = NULL,
                               nll.fun     = 'rgd',
                               ...) {
+  NOISYPARAMS = TRUE
+  
   mixture  <- match.arg(mixture,  c('P', 'NB', 'ZIP'))
   dynamics <- match.arg(dynamics, c('constant', 'autoreg', 'notrend', 'trend', 'ricker', 'gompertz'))
   fix      <- match.arg(fix,      c('none', 'gamma', 'omega'))
@@ -34,6 +45,12 @@ pcountOpen_rgdual <- function(lambdaformula, gammaformula, omegaformula, pformul
                    omegaformula=omegaformula, pformula=pformula, iotaformula=iotaformula)
   formula  <- as.formula(paste(unlist(formlist), collapse=" "))
   D <- getDesign(data, formula)
+  
+  #
+  # if(NOISYPARAMS) {
+  #   D$Xlam.offset, D$Xgam.offset, D$Xom.offset, D$Xp.offset, D$Xiota.offset
+  #   
+  # }
   
   #compute dimensionality
   M <- nrow(D$y)       #M = number of sites
@@ -203,11 +220,11 @@ pcountOpen_rgdual <- function(lambdaformula, gammaformula, omegaformula, pformul
       if(dynamics %in% c("constant", "notrend")) {
         arrival.pgf <- pgf.poisson
         # initial arrivals are parameterized by lambda, then immigration is parameterized by gamma
-        theta.arrival <- data.frame(lambda = c(lambda, array(gamma, T)))
+        theta.arrival <- data.frame(lambda = c(lambda[1], array(gamma, T - 1)))
       } else if(immigration) {
         arrival.pgf   <- pgf.poisson
         # initial arrivals are parameterized by lambda, then immigration is parameterized by iota
-        theta.arrival <- data.frame(lambda = c(lambda, array(iota, T)))
+        theta.arrival <- data.frame(lambda = c(lambda[1], array(iota, T - 1)))
       } else {
         # if no immigration, use the PGF for a uniform dist'n w/ all mass on 0
         arrival.pgf   <- pgf.zero

@@ -382,6 +382,8 @@ def diff(f, x, k, GDualType=LSGDual):
     if np.isscalar(x):   
         y = f( GDualType(x, k) )
         z = y.deriv(k)
+
+        #note: if x is scalar and len(k) is 1, then we should return a scalar as well but this will always return a dual
         return z
     
     elif isinstance(x, GDualBase):

@@ -162,14 +162,14 @@ SEXP ls_exp_R(SEXP x) {
   return res;
 }
 
-// take the log all entries of a vector of LNS numbers, result stored in first parameter
+// take the log of all entries of a vector of LNS numbers, result stored in first parameter
 SEXP _ls_log_R(SEXP res, SEXP x) {
   _ls_elementwise_unary_op(&ls_log, res, x);
   
   return res;
 }
 
-// take the log all entries of a vector of LNS numbers
+// take the log of all entries of a vector of LNS numbers
 SEXP ls_log_R(SEXP x) {
   size_t n = r_ls_length(x);
   INITIALIZE_R_LS(n)

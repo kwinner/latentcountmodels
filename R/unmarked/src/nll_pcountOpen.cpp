@@ -192,20 +192,20 @@ SEXP nll_pcountOpen( SEXP y_, SEXP Xlam_, SEXP Xgam_, SEXP Xom_, SEXP Xp_, SEXP 
   } else if(go_dims == "rowvec") {
     for(int t=0; t<(T-1); t++) {
       if(ytna(first1,t)==1) { // FIXME: this is not generic!
-	continue;
+	      continue;
       }
       if(dynamics=="constant" || dynamics=="notrend") {
-	tp1(g3_t.slice(t), nrI, nrI1, N, I, I1, Ib, Ip, gam(first1,t), om(first1,t));
+	      tp1(g3_t.slice(t), nrI, nrI1, N, I, I1, Ib, Ip, gam(first1,t), om(first1,t));
       }
       else if(dynamics=="autoreg") {
-	tp2(g3_t.slice(t), lk, gam(first1,t), om(first1,t), iota(first1,t));
-    }
+	      tp2(g3_t.slice(t), lk, gam(first1,t), om(first1,t), iota(first1,t));
+      }
       else if(dynamics=="trend")
-	tp3(g3_t.slice(t), lk, gam(first1,t), iota(first1,t));
+	      tp3(g3_t.slice(t), lk, gam(first1,t), iota(first1,t));
       else if(dynamics=="ricker")
-	tp4(g3_t.slice(t), lk, gam(first1,t), om(first1,t), iota(first1,t));
+	      tp4(g3_t.slice(t), lk, gam(first1,t), om(first1,t), iota(first1,t));
       else if(dynamics=="gompertz")
-	tp5(g3_t.slice(t), lk, gam(first1,t), om(first1,t), iota(first1,t));
+	      tp5(g3_t.slice(t), lk, gam(first1,t), om(first1,t), iota(first1,t));
     }
   }
   // loop over sites
@@ -216,49 +216,49 @@ SEXP nll_pcountOpen( SEXP y_, SEXP Xlam_, SEXP Xgam_, SEXP Xom_, SEXP Xp_, SEXP 
     if(last_i > first_i) {
       // loop over time periods in reverse order, up to second occasion
       for(int t=last_i; t>first_i; t--) {
-	if(ytna(i,t)==1) {
-	  continue; //
-	}
-	g1_t.zeros();
-	// loop over possible value of N at time t
-	for(int k=0; k<lk; k++) {
-	  for(int j=0; j<J; j++) {
-	    if(yna(i,j,t)==0) {
-	      g1_t(k) += Rf_dbinom(y(i,j,t), k, p(i,j,t), true);
-	    }
-	  }
-	  g1_t(k) = exp(g1_t(k));
-	  g1_t_star(k) = g1_t(k) * g_star(k);
-	}
-	// computes transition probs for g3
-	if(go_dims == "matrix") {
-	  g3.zeros();
-	  if(dynamics=="constant" || dynamics=="notrend") {
-	    //	    tp1(g3, lk, gam(i,t-1), om(i,t-1));
-	    tp1(g3, nrI, nrI1, N, I, I1, Ib, Ip, gam(i,t-1), om(i,t-1));
-	  }
-	  else if(dynamics=="autoreg") {
-	    tp2(g3, lk, gam(i,t-1), om(i,t-1), iota(i,t-1));
-	  }
-	  else if(dynamics=="trend")
-	    tp3(g3, lk, gam(i,t-1), iota(i,t-1));
-	  else if(dynamics=="ricker")
-	    tp4(g3, lk, gam(i,t-1), om(i,t-1), iota(i,t-1));
-	  else if(dynamics=="gompertz")
-	    tp5(g3, lk, gam(i,t-1), om(i,t-1), iota(i,t-1));
-	} else if(go_dims == "rowvec") {
-	  g3 = g3_t.slice(t-1);
-	}
-	int delta_it = delta(i,t);
-	// matrix multiply transition probs over time gaps
-	if(delta_it>1) {
-	  g3_d = g3;
-	  for(int d=1; d<delta_it; d++) {
-	    g3_d = g3_d * g3;
-	    }
-	  g_star = g3_d * g1_t_star;
-	} else
-	  g_star = g3 * g1_t_star;
+	      if(ytna(i,t)==1) {
+	        continue; //
+	      }
+	      g1_t.zeros();
+      	// loop over possible value of N at time t
+      	for(int k=0; k<lk; k++) {
+      	  for(int j=0; j<J; j++) {
+      	    if(yna(i,j,t)==0) {
+      	      g1_t(k) += Rf_dbinom(y(i,j,t), k, p(i,j,t), true);
+      	    }
+      	  }
+      	  g1_t(k) = exp(g1_t(k));
+      	  g1_t_star(k) = g1_t(k) * g_star(k);
+      	}
+      	// computes transition probs for g3
+      	if(go_dims == "matrix") {
+      	  g3.zeros();
+      	  if(dynamics=="constant" || dynamics=="notrend") {
+      	    //	    tp1(g3, lk, gam(i,t-1), om(i,t-1));
+      	    tp1(g3, nrI, nrI1, N, I, I1, Ib, Ip, gam(i,t-1), om(i,t-1));
+      	  }
+      	  else if(dynamics=="autoreg") {
+      	    tp2(g3, lk, gam(i,t-1), om(i,t-1), iota(i,t-1));
+      	  }
+      	  else if(dynamics=="trend")
+      	    tp3(g3, lk, gam(i,t-1), iota(i,t-1));
+      	  else if(dynamics=="ricker")
+      	    tp4(g3, lk, gam(i,t-1), om(i,t-1), iota(i,t-1));
+      	  else if(dynamics=="gompertz")
+      	    tp5(g3, lk, gam(i,t-1), om(i,t-1), iota(i,t-1));
+      	} else if(go_dims == "rowvec") {
+      	  g3 = g3_t.slice(t-1);
+      	}
+      	int delta_it = delta(i,t);
+      	// matrix multiply transition probs over time gaps
+      	if(delta_it>1) {
+      	  g3_d = g3;
+      	  for(int d=1; d<delta_it; d++) {
+      	    g3_d = g3_d * g3;
+      	  }
+      	  g_star = g3_d * g1_t_star;
+      	} else
+      	  g_star = g3 * g1_t_star;
       }
     }
     ll_i=0.0;
@@ -266,26 +266,26 @@ SEXP nll_pcountOpen( SEXP y_, SEXP Xlam_, SEXP Xgam_, SEXP Xom_, SEXP Xp_, SEXP 
     g1.zeros();
     for(int k=0; k<lk; k++) { // loop over possible values of N
       for(int j=0; j<J; j++) {
-	if(yna(i,j,first_i)==0) {
-	  g1(k) += Rf_dbinom(y(i,j,first_i), k, p(i,j,first_i), true);
-	}
+      	if(yna(i,j,first_i)==0) {
+      	  g1(k) += Rf_dbinom(y(i,j,first_i), k, p(i,j,first_i), true);
+      	}
       }
       g1(k) = exp(g1(k));
       if(delta_i0>1)
-	g1_star(k) = g1(k) * g_star(k);
+	      g1_star(k) = g1(k) * g_star(k);
       if(mixture=="P")
-	g2(k) = Rf_dpois(k, lam(i), false);
+	      g2(k) = Rf_dpois(k, lam(i), false);
       else if(mixture=="NB")
         g2(k) = dnbinom_mu(k, alpha, lam(i), false);
       else if(mixture=="ZIP")
-	g2(k) = dzip(k, lam(i), psi);
+	      g2(k) = dzip(k, lam(i), psi);
       if(delta_i0==1)
-	ll_i += g1(k) * g2(k) * g_star(k);
+	      ll_i += g1(k) * g2(k) * g_star(k);
     }
     if(delta_i0>1) {
       g3_d = g3;
       for(int d=0; d<delta_i0; d++) {
-	g3_d = g3_d * g3;
+      	g3_d = g3_d * g3;
       }
       g_star = g3_d * g1_star;
       ll_i = arma::dot(g2, g_star);

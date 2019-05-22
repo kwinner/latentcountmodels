@@ -97,7 +97,7 @@ experiment <- function(trial.fun,
 		data <- data.generation.fun(params)
 
 		if (params$verbose %% 1 >= 0.1)
-			cat(sprintf("y = %s\n", mat2str(data)))
+			cat(sprintf("y = %s\n", mat2str(data$y)))
 	}
 
 	# for approximating remaining runtime
@@ -125,7 +125,7 @@ experiment <- function(trial.fun,
 		if (params$shared.data == 'replications') {
 			data <- data.generation.fun(params.trial)
 			if (params$verbose %% 1 >= 0.1)
-				cat(sprintf("y = %s\n", mat2str(data)))
+				cat(sprintf("y = %s\n", mat2str(data$y)))
 		}
 
 		# each trial will be independently repeated n.replications times
@@ -137,7 +137,7 @@ experiment <- function(trial.fun,
 			if (params$shared.data == 'none') {
 				data <- data.generation.fun(params.trial)
 				if (params$verbose %% 1 >= 0.1)
-					cat(sprintf("\n    y = %s\n   ", mat2str(data)))
+					cat(sprintf("\n    y = %s\n   ", mat2str(data$y)))
 			}
 
 			# in case computation crashes, we have the option to re-attempt a failed trial

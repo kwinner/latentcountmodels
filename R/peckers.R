@@ -70,3 +70,6 @@ sitecovs<- data.frame( cbind(elev = as.numeric(scale(data$elev)),
 obscovs<- list(date=date, dur = dur, int=int)
 
 umf <- unmarkedFramePCO(y = Cwide, numPrimary=12, siteCovs=sitecovs, obsCovs = obscovs)
+
+Kmax<- 150
+dm7  <- pcountOpen(lam = ~elev + I(elev^2) + forest + ilength, gam = ~1, omega = ~1, p= ~date +I(date^2) + int, data=umf, dynamics="autoreg",  K = Kmax )  

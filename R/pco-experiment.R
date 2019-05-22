@@ -171,6 +171,8 @@ extend.parameter <- function(param, shape) {
 
 trial.pco.fit <- function(data, params = params.pco.default()) {
   # build an unmarkedframe
+  # siteCovs <- data.frame(rand = runif(params$M, min=0, max=1))
+  # umf <- unmarkedFramePCO(y = data$y, numPrimary = params$T, siteCovs = siteCovs)
   umf <- unmarkedFramePCO(y = data$y, numPrimary = params$T)
   
   # prepare results
@@ -264,7 +266,7 @@ evaluate.result.nll <- function(result, params, method=NULL) {
   # select the cols containing the final parameter values from fitting
   eval.at <- as.numeric(result[grep('x', names(result))])
   
-  umf <- unmarkedFramePCO(y = str2mat(result['y']), numPrimary = params$T)
+  umf <- unmarkedFramePCO(y = str2mat(result[['y']]), numPrimary = params$T)
   
   nll <- pcountOpen_rgdual(~1, ~1, ~1, ~1,
                            umf,
@@ -276,4 +278,13 @@ evaluate.result.nll <- function(result, params, method=NULL) {
   return(nll)
 }
 
-result.dir <- experiment(trial.pco.fit, generate_data.pco, params.pco.default())
+params <- params.pco.default()
+params$dynamics <- "autoreg"
+params$experiment.var <- 'iota'
+params$experiment.values <- c(10, 50, 100, 200)
+# params$experiment.var <- 'M'
+# params$experiment.values <- c(2,4,6,8,10)
+params$M <- 2
+params$T <- 2
+params$n.replications <- 10
+result.dir <- experiment(trial.pco.fit, generate_data.pco, params)

@@ -1,5 +1,4 @@
 import numpy as np
-import gdual as gd
 import logsign as ls
 import copy
 import cygdual
@@ -300,7 +299,59 @@ def inv(F):
     return
 
 
-def compose_brent_kung(G, F):
+# compute A: a matrix containing the powers of F
+# Since A depends only on F, it can be cached if composing the same F many times
+def _compose_brent_kung_A(F, k = None):
+    q = F.shape[0]
+    if k is None:
+        k = int(np.ceil(np.sqrt(q)))
+    # k = q
+
+    # cache first term of F and then clear
+    F_0 = copy.deepcopy(F[0])
+    F[0] = ls.real2ls(0.0)
+
+    # Fill rows of A with powers of F
+    A = ls.zeros((k, q))
+    A[0, 0] = ls.real2ls(1.0)
+    for i in np.arange(1, k):
+        A[i, :] = cygdual.mul(A[i - 1], F)
+
+    # restore F_0
+    F[0] = F_0
+
+    return A
+
+
+# compute B: a matrix containing chunks of G
+# Since B depends only on G, it can be cached if composing the same G many times
+def _compose_brent_kung_B(G, k = None):
+    q = G.shape[0]
+
+    if k is None:
+        k = int(np.ceil(np.sqrt(q)))
+    n_chunks = int(np.ceil(q / k))
+
+    # cache first term of G and then clear
+    G_0 = copy.deepcopy(G[0])
+    G[0] = ls.real2ls(0.0)
+
+    # Fill rows of B with chunks of G
+    B = ls.zeros((n_chunks, k)) # holds chunks of G of len k
+    n_full_chunks, rem = int(q / k), q % k
+    for i in range(n_full_chunks):
+        B[i, :] = G[i * k:(i + 1) * k]
+    # There may be a final partial row
+    if rem > 0:
+        start = (n_chunks - 1) * k
+        B[-1, :rem] = G[start:(start + rem)]
+
+    # restore G_0
+    G[0] = G_0
+
+    return B
+
+def compose_brent_kung(G, F, A = None, B = None, k = None):
     q = G.shape[0]
     
     # cache first terms of F, G and then clear
@@ -310,25 +361,29 @@ def compose_brent_kung(G, F):
     G[0] = ls.real2ls(0.0)
     F[0] = ls.real2ls(0.0)
 
-    k         = int(np.ceil(np.sqrt(q)))
+    # k = q
+    # k = int(np.ceil(q/4))
+    if k is None:
+        k = int(np.ceil(np.sqrt(q)))
     n_chunks  = int(np.ceil(q / k))
 
-    B = ls.zeros((n_chunks, k)) # holds chunks of G of len k
-    A = ls.zeros((k, q))        # holds powers of F
+    if A is None:
+        # Fill rows of A with powers of F
+        A = ls.zeros((k, q))        # holds powers of F
+        A[0,0] = ls.real2ls(1.0)
+        for i in np.arange(1,k):
+            A[i,:] = cygdual.mul(A[i-1], F)
 
-    # Fill rows of B with chunks of G
-    n_full_chunks, rem = int(q / k), q % k
-    for i in range(n_full_chunks):
-        B[i,:] = G[i*k:(i+1)*k]
-    # There may be a final partial row
-    if rem > 0:
-        start = (n_chunks-1)*k
-        B[-1,:rem] = G[start:(start+rem)]
-
-    # Fill rows of A with powers of F
-    A[0,0] = ls.real2ls(1.0)
-    for i in np.arange(1,k):
-        A[i,:] = cygdual.mul(A[i-1], F)
+    if B is None:
+        # Fill rows of B with chunks of G
+        B = ls.zeros((n_chunks, k)) # holds chunks of G of len k
+        n_full_chunks, rem = int(q / k), q % k
+        for i in range(n_full_chunks):
+            B[i,:] = G[i*k:(i+1)*k]
+        # There may be a final partial row
+        if rem > 0:
+            start = (n_chunks-1)*k
+            B[-1,:rem] = G[start:(start+rem)]
 
     # Multiplication: the ith row of C now contains
     # the coefficients of G_i(F(t)) where G_i is the
@@ -400,6 +455,8 @@ def compose_affine(G, F):
 #mul_logscalar (mul by a scalar as log(C))
 
 if __name__ == "__main__":
+    import gdual as gd
+
     F = lsgdual_xdx(4, 7)
     F = log(F)
 

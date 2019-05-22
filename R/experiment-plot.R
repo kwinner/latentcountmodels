@@ -38,11 +38,29 @@ plot.params.default <- function() {
   return(params)
 }
 
+extend.results <- function(results) {
+  results$Y <- sapply(results$y, function(y) sum(str2mat(y)))
+  
+  return(results)
+}
+
+merge.results <- function(results) {
+  # split data by method
+  results.rgd   <- results[which(results$method == 'pco_rgd'),]
+  results.trunc <- results[which(results$method == 'pco_trunc:default'),]
+  
+  merged <- merge(results.rgd, results.trunc,
+                  by = c('iota', 'y'),
+                  suffixes = c('.rgd', '.trunc'))
+  
+  return(merged)
+}
+
 plot.trunc <- function(results) {
   params <- plot.params.default()
   
   params$x.var <- 'rho.gen'
-  params$y.var <- 'improvement'
+  params$y.var <- 'nll'
   
   # params$y.lim <- c(0, 750)
   
@@ -58,7 +76,8 @@ plot.experiment <- function(results,
   #                                 y = params$y.var))
   g <- ggplot(results)
   
-  g <- g + geom_boxplot(aes_string(x=factor(params$x.var), y=params$y.var, fill=params$group.by), position=position_dodge(1))
+  g <- g + geom_line(aes_string(x=factor(params$x.var), y=params$y.var, color=params$group.by), position=position_dodge(1))
+  # g <- g + geom_boxplot(aes_string(x=factor(params$x.var), y=params$y.var, fill=params$group.by), position=position_dodge(1))
   
   if (!is.null(params$x.lim) && !is.null(params$y.lim))
     g <- g + coord_cartesian(xlim=params$x.lim, ylim=params$y.lim)
@@ -76,6 +95,57 @@ plot.experiment <- function(results,
     g <- g + scale_colour_discrete(name   = params$legend.title,
                                    labels = params$group.labels)
   }
+  
+  plot(g)
+}
+
+plot.nll <- function(results) {
+  results.merged <- merge.results(results)
+  # results.merged <- results
+  results.merged <- extend.results(results.merged)
+
+  results.merged$improvement <- results.merged$nll.trunc - results.merged$nll.rgd
+  
+  results.merged$improvement[which(results.merged$improvement > 20000)] <- NaN  
+  
+  g <- ggplot(results.merged, aes(x=Y, y=improvement)) + 
+       # geom_line() +
+       geom_point() + coord_cartesian(ylim=c(-10,5))
+  
+  plot(g)
+}
+
+plot.rt <- function(results) {
+  results.merged <- merge.results(results)
+  results.merged <- extend.results(results.merged)
+  
+  g <- ggplot(results.merged, aes(x=rt.trunc, y=rt.rgd)) +
+    # geom_line() +
+    geom_point()
+
+  plot(g)
+}
+
+plot.niter <- function(results) {
+  results.merged <- merge.results(results)
+  results.merged <- extend.results(results.merged)
+  
+  g <- ggplot(results.merged, aes(x=n.iters.trunc, y=n.iters.rgd)) +
+    # geom_line() +
+    geom_point()
+  
+  plot(g)
+}
+
+plot.rt.iter <- function(results) {
+  results$rt.iter <- results$rt / results$n.iters
+  
+  results.merged <- merge.results(results)
+  results.merged <- extend.results(results.merged)
+  
+  g <- ggplot(results.merged, aes(x=rt.iter.trunc, y=rt.iter.rgd)) +
+    # geom_line() +
+    geom_point()
   
   plot(g)
 }

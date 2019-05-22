@@ -14,7 +14,7 @@ def bernoulli_pgf(s, theta):
 
 def binomial_pgf(s, theta):
     n, p = theta[:]
-    return (((1 - theta[1]) + (p * s)) ** n)
+    return (((1 - p) + (p * s)) ** n)
 
 def negbin_pgf(s, theta):
     r, p = theta[:]
@@ -85,26 +85,33 @@ def forward(y,
 if __name__ == "__main__":
     import time
 
-    y     = 10*np.array([2, 5])
-    lmbda = 5000*np.array([ 20 ,  10.]).reshape(-1,1)
-    delta = np.array([ 0.3]).reshape(-1,1)
-    rho   = np.array([ 0.25,  0.25])
+    # y     = 10*np.array([2, 5])
+    # lmbda = 5000*np.array([ 20 ,  10.]).reshape(-1,1)
+    # delta = np.array([ 0.3]).reshape(-1,1)
+    # rho   = np.array([ 0.25,  0.25])
+
+    y = 300*np.array([1,2,3,1,3])
+    lmbda = 300*np.array([2.5, 6, 6, 6, 6]).reshape(-1,1)
+    delta = np.array([0.5, 0.5, 0.5, 0.5]).reshape(-1,1)
+    rho = np.array([0.2, 0.2, 0.2, 0.2, 0.2])
 
     # y = np.array([2])
     # lmbda = np.array([5.]).reshape(-1, 1)
     # delta = np.array([0.3]).reshape(-1, 1)
     # rho = np.array([0.25])
 
-    start = time.process_time()
-    logZ, alpha, marginals = forward(y,
-                                     poisson_pgf,
-                                     lmbda,
-                                     poisson_pgf,
-                                     delta,
-                                     rho,
-                                     GDualType=gd.LSGDual,
-                                     d = 0)
-    rt = time.process_time() - start
+    rt = 0
+    for i in range(0,10):
+        start = time.process_time()
+        logZ, alpha, marginals = forward(y,
+                                         poisson_pgf,
+                                         lmbda,
+                                         poisson_pgf,
+                                         delta,
+                                         rho,
+                                         GDualType=gd.LSGDual,
+                                         d = 0)
+        rt = rt + time.process_time() - start
     
     print(logZ)
     print(alpha)
