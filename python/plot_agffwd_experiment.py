@@ -1,0 +1,30 @@
+import matplotlib.pyplot as plt
+
+def plot_apgffwd_experiment():
+    plt.plot(LAMBDAS, nll_fwd, LAMBDAS, nll_apgffwdsymb)
+    plt.legend((['fwd', 'apgffwd_symb']))
+    plt.xlabel('Lambda')
+    plt.ylabel('nll')
+    plt.title('NLL vs pop scale, pattern = {},{}'.format(pattern, distn_name))
+    plt.show()
+    plt.savefig('{}_{}_{}.nll.png'.format(filename_prefix, pattern, distn_name))
+
+    plt.plot(LAMBDAS, np.abs(nll_fwd - nll_apgffwdsymb) / np.abs(nll_fwd))
+    # plt.legend((['fwd', 'apgffwd', 'apgffwd_symb']))
+    plt.xlabel('Lambda')
+    plt.ylabel('nll relative error')
+    plt.title('NLL Relative Error, pattern = {},{}'.format(pattern, distn_name))
+    plt.show()
+    plt.savefig('{}_{}_{}.relerr.png'.format(filename_prefix, pattern, distn_name))
+
+    # plt.plot(Ys, rt_fwd, Ys, rt_apgffwd)
+    # plt.plot(LAMBDAS, rt_fwd, LAMBDAS, rt_apgffwd, LAMBDAS, rt_apgffwdsymb)
+    # plt.legend((['fwd', 'apgffwd', 'apgffwd_symb']))
+    plt.plot(LAMBDAS, rt_fwd, LAMBDAS, rt_apgffwdsymb)
+    plt.legend((['fwd', 'apgffwd_symb']))
+    # plt.xlabel('Y')
+    plt.xlabel('Lambda')
+    plt.ylabel('rt')
+    plt.title('RT vs pop scale, pattern = {},{}'.format(pattern, distn_name))
+    plt.show()
+    plt.savefig('{}_{}_{}.rt.png'.format(filename_prefix, pattern, distn_name))

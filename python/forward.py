@@ -75,6 +75,13 @@ def forward(y,
     
     logZ = alpha.get(0, as_log=True)
 
+    # temporary code for plotting marginals vs apgffwd
+    # A_final = lambda s: Gamma(s, K - 1)
+    # print('ERROR: BAD CODE DETECTED')
+    # g = A_final(GDualType(0.0, 1000))
+    # g /= GDualType.const(logZ, as_log=True)
+    # return g
+
     def marginals(k):
         a  = A_final( GDualType(0.0, k) )
         a /= GDualType.const(logZ, as_log=True)

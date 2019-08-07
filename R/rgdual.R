@@ -140,9 +140,16 @@ print.ls <- function (x, ..., digits = NULL, quote = FALSE, right = TRUE)
 }
 
 '^.ls' <- function(a, r) {
+  # print(paste('hello ', class(r)))
   if(!is.ls(a)) { a <- as.ls(a) }
   return(.Call("ls_pow_R", a, r, PACKAGE=LIB_GDUAL))
 }
+
+# '[.ls' <- function(x, i, j, drop = FALSE) {
+#   print(1)
+
+#   NextMethod()
+# }
 
 # todo: needs dispatcher (`neg(obj)` doesn't work)
 neg.ls <- function(a) {
@@ -209,6 +216,12 @@ lsgd.xdx <- function(x, q) {
   }
   class(obj) <- c('lsgd', 'ls', 'data.frame')
   return(obj)
+}
+
+# strip lsgd from an object to stop treating it as a gdual and instead as plain ls
+as.ls.lsgd <- function(x) { 
+  class(x) <- c('ls', 'data.frame')
+  return(x)
 }
 
 # test if an object conforms to the lsgd format
@@ -281,6 +294,8 @@ div.lsgd <- function(a, b) {
 }
 
 '^.lsgd' <- function(a, r) {
+  if (is.integer(r)) ( r <- as.double(r) )
+  # print(paste('world ', class(r)))
   return(.Call("lsgd_pow_R", a, r, PACKAGE=LIB_GDUAL))
 }
 
@@ -336,6 +351,12 @@ diff.lsgd <- function(f, x, k) {
     return(deriv(f(lsgd.xdx(x, 1 + k)), 
                  k))
   }
+}
+
+'[.lsgd' <- function(x, i, j, drop = FALSE) {
+  x <- NextMethod()
+  class(x) <- c('ls', 'data.frame')
+  return(x)
 }
 
 ##################################################################

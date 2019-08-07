@@ -1,5 +1,7 @@
 library(unmarked)
-source("pcountOpen_ngdual.R")
+# source("pcountOpen_ngdual.R")
+source("pcountOpen_rgdual.R")
+# source("pcountOpen_apgffwd.R")
 
 logit <- function(p) {
   return(log(p) - log(1 - p))
@@ -13,7 +15,7 @@ logistic <- function(x) {
 test_vals <- 50
 # test_vals <- seq(0.05, 0.95, 0.1)
 n.experiments <- length(test_vals)
-n.reps <- 10
+n.reps <- 1
 
 runtime_unmarked <- matrix(NA, n.experiments, n.reps)
 runtime_ngdualf  <- matrix(NA, n.experiments, n.reps)
@@ -84,7 +86,7 @@ for(i.experiment in 1:n.experiments) {
     time.start <- proc.time()[3]
 
     # Fit model and backtransform
-    (m1 <- pcountOpen_ngdual(~1, ~1, ~1, ~1, umf, K=K, immigration = TRUE, dynamics = "trend", starts = c(log(lambda), logit(omega), logit(p), log(gamma)))) # Typically, K should be higher
+    (m1 <- pcountOpen_rgdual(~1, ~1, ~1, ~1, umf, K=K, immigration = TRUE, dynamics = "trend", starts = c(log(lambda), logit(omega), logit(p), log(gamma)))) # Typically, K should be higher
     
     # (lam <- coef(backTransform(m1, "lambda"))) # or
     # lam <- exp(coef(m1, type="lambda"))
