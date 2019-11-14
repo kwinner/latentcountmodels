@@ -466,13 +466,13 @@ void gdual_pow_int_deprecated( ls* v, ls* u, int r, size_t n ) {
 }
 
 void gdual_pow_fractional( ls* v, ls* u, double r, size_t n ) {
-    //gdual_print(u, n);
-    /*if ( ls_is_zero(u[0]) ) {
+    gdual_print(u, n);
+    if ( ls_is_zero(u[0]) ) {
         ERR("Leading coefficient is zero. Cannot raise to a fractional power using this method");
     }
     if ( u[0].sign < 0 ) {
         ERR("Cannot raise negative number to fractional power");
-    }*/
+    }
     
     /* Reference: Chapter 13 p. 305 from 
        Griewank, A. and Walther, A. Evaluating derivatives: principles and 

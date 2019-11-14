@@ -35,6 +35,11 @@ def geometric2_pgf(s, theta):
     p = theta[0]
     return (p * s) / (1 - ((1 - p) * s))
 
+def mixed_offspring_pgf(s, theta):
+    lmbda, p = theta[:]
+
+    return poisson_pgf(s, [lmbda]) * bernoulli_pgf(s, [p])
+
 def forward(y,
             immigration_pgf,
             theta_immigration,

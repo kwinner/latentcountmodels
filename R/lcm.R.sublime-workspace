@@ -4,6 +4,14 @@
 		"selected_items":
 		[
 			[
+				"lsgd.",
+				"lsgd.cdx"
+			],
+			[
+				"hat.Ga",
+				"hat.Gamma.param.list"
+			],
+			[
 				"ngdual",
 				"ngdualforward"
 			]
@@ -57,10 +65,13 @@
 	},
 	"expanded_folders":
 	[
-		"/Users/kwinner/Work/latentcountmodels/R"
+		"/Users/kwinner/Work/latentcountmodels/R",
+		"/Users/kwinner/Work/latentcountmodels/R/tests"
 	],
 	"file_history":
 	[
+		"/Users/kwinner/Work/latentcountmodels/R/tests/test_unmarked.R",
+		"/Users/kwinner/Work/latentcountmodels/R/apgffwd.R",
 		"/Users/kwinner/Work/latentcountmodels/R/pcountOpen_ngdual.R",
 		"/Users/kwinner/Work/latentcountmodels/R/ngdual.R",
 		"/Users/kwinner/Work/latentcountmodels/R/test_pcountOpen_ngdual.R",

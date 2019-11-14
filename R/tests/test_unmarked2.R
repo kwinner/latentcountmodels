@@ -7,8 +7,8 @@ do.experiment = TRUE
 
 if(do.experiment) {
 
-do.pco     <- FALSE
-do.rgdfwd  <- FALSE
+do.pco     <- TRUE
+do.rgdfwd  <- TRUE
 do.apgffwd <- TRUE
 
 pco_method     <- 'Nelder-Mead'
@@ -17,24 +17,24 @@ apgffwd.method <- 'L-BFGS-B'
 fix.lambda = FALSE
 fix.gamma  = FALSE
 fix.omega  = FALSE
-fix.rho    = FALSE
+fix.rho    = TRUE
 fix.iota   = FALSE
 
-dynamics    <- "autoreg"
+dynamics    <- "trend"
 immigration <- TRUE
 M <- 4
 T <- 8
 lambda <- 20
-iota <- 3
-gamma <- 0.7
+iota <- 4
+gamma <- 0.95
 omega <- 0.25
 p <- 0.5
 
 # rho.prior.strength <- 100
 # test_vals <- seq(15, 75, 30)
 # test_vals <- c(15)
-# test_vals <- seq(0.05, 0.95, 0.15)
-test_vals <- c(0, 0.0001, 0.001, 0.01, 0.1, 1.0, 10)
+test_vals <- seq(0.05, 0.95, 0.1)
+# test_vals <- c(0, 0.0001, 0.001, 0.01, 0.1, 1.0, 10)
 # test_vals <- 0.5
 n.experiments <- length(test_vals)
 n.reps <- 10
@@ -88,8 +88,8 @@ for(i.experiment in 1:n.experiments) {
   # overwrite parameters
   # lambda <- test_vals[i.experiment]
   # omega <- test_vals[i.experiment]
-  # p <- test_vals[i.experiment]
-  rho.prior.strength <- test_vals[i.experiment]
+  p <- test_vals[i.experiment]
+  # rho.prior.strength <- test_vals[i.experiment]
   
   lambda_record_gen[i.experiment] <- lambda
   iota_record_gen  [i.experiment] <- iota
@@ -127,7 +127,8 @@ for(i.experiment in 1:n.experiments) {
     I <- matrix(NA, M, T-1)
     N[,1] <- rpois(M, lambda)
     for(t in 1:(T-1)) {
-      S[,t] <- rbinom(M, N[,t], omega)
+      # S[,t] <- rbinom(M, N[,t], omega)
+      S[,t] <- 0
       O[,t] <- rpois(M, N[,t] * gamma)
       I[,t] <- rpois(M, iota)
       N[,t+1] <- S[,t] + O[,t] + I[,t]
@@ -137,10 +138,10 @@ for(i.experiment in 1:n.experiments) {
     y_record[[(i.experiment - 1) * n.reps + i.rep]] <- y
     
     # set K
-    ratio <- 0.386
+    # ratio <- 0.386
     # ratio <- 0.2
     # ratio <- 1
-    K <- ceiling((ratio * Y + 10) / p)
+    K <- K.default(y, p)
     K_record[i.experiment, i.rep] <- K
     
     # Prepare data
@@ -157,7 +158,7 @@ for(i.experiment in 1:n.experiments) {
         # Fit model and backtransform
         # (m1 <- pcountOpen(~1, ~1, ~1, ~1, umf, K=K, immigration = immigration, dynamics = dynamics, se = FALSE)) # Typically, K should be higher
         (m1 <- pcountOpen_apgffwd(~1, ~1, ~1, ~1, umf, K = K, nll.fun = 'trunc', immigration = immigration, dynamics = dynamics, se = FALSE, method = pco_method, 
-                                  rho.prior.strength = rho.prior.strength,
+                                  # rho.prior.strength = rho.prior.strength,
                                   fix.rho = fix.rho.val, fix.iota = fix.iota.val, fix.gamma = fix.gamma.val, fix.omega = fix.omega.val, fix.lambda = fix.lambda.val))
     
         nll_record_pco[i.experiment, i.rep] <- m1@opt$value
@@ -243,7 +244,7 @@ for(i.experiment in 1:n.experiments) {
         
         # Fit model and backtransform
         (m3 <- pcountOpen_apgffwd(~1, ~1, ~1, ~1, umf, K=K, immigration = immigration, dynamics = dynamics, se= FALSE, method = apgffwd.method, 
-                                  rho.prior.strength = rho.prior.strength, 
+                                  # rho.prior.strength = rho.prior.strength, 
                                   fix.rho = fix.rho.val, fix.iota = fix.iota.val, fix.gamma = fix.gamma.val, fix.omega = fix.omega.val, fix.lambda = fix.lambda.val)) # Typically, K should be higher
         
         nll_record_apgffwd[i.experiment, i.rep] <- m3@opt$value

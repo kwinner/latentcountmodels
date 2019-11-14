@@ -119,6 +119,11 @@ print.ls <- function (x, ..., digits = NULL, quote = FALSE, right = TRUE)
 }
 
 '-.ls' <- function(a, b) {
+  #unary negation
+  if(missing(b)) {
+    if(is.lsgd(a)) { return(neg.lsgd(a)) }
+    else           { return(neg.ls(a)) }
+  }
   if(is.lsgd(a) || is.lsgd(b)) { return(sub.lsgd(a,b)) }
   if(!is.ls(a)) { a <- as.ls(a) }
   if(!is.ls(b)) { b <- as.ls(b) }
@@ -143,6 +148,127 @@ print.ls <- function (x, ..., digits = NULL, quote = FALSE, right = TRUE)
   # print(paste('hello ', class(r)))
   if(!is.ls(a)) { a <- as.ls(a) }
   return(.Call("ls_pow_R", a, r, PACKAGE=LIB_GDUAL))
+}
+
+'>.ls' <- function(a, b) {
+  if(!is.ls(b) && is.na(b)) { return(NA) }
+  if(!is.ls(b)) { b <- as.ls(b) }
+  
+  if(!is.finite(b)) {
+    if(b$sign < 0 && !(a$mag == Inf && a$sign < 0))
+      return(TRUE)
+    else if(b$sign > 0 && !(a$mag == Inf && a$sign > 0))
+      return(FALSE)
+    else # other degenerate cases of b (NaN or comparing Inf w/ Inf or -Inf w/ -Inf)
+      return(NA)
+  }
+  
+  if(a$sign == b$sign) {
+    if(a$sign == 0)
+      return(FALSE)
+    else if(a$sign > 0)
+      return(a$mag > b$mag)
+    else if(a$sign < 0)
+      return(a$mag < b$mag)
+  } else
+    return(a$sign > b$sign)
+}
+
+'>=.ls' <- function(a, b) {
+  if(!is.ls(b) && (is.na(b) || is.nan(b))) { return(NA) }
+  if(!is.ls(b)) { b <- as.ls(b) }
+  
+  if(!is.finite(b)) {
+    if(b$sign < 0 && !(a$mag == Inf && a$sign < 0))
+      return(TRUE)
+    else if(b$sign > 0 && !(a$mag == Inf && a$sign > 0))
+      return(FALSE)
+    else # other degenerate cases of b (NaN or comparing Inf w/ Inf or -Inf w/ -Inf)
+      return(NA)
+  }
+  
+  if(a$sign == b$sign) {
+    if(a$sign == 0)
+      return(TRUE)
+    else if(a$sign > 0)
+      return(a$mag >= b$mag)
+    else if(a$sign < 0)
+      return(a$mag <= b$mag)
+  } else
+    return(a$sign > b$sign)
+}
+
+'<.ls' <- function(a, b) {
+  if(!is.ls(b) && is.na(b)) { return(NA) }
+  if(!is.ls(b)) { b <- as.ls(b) }
+  
+  if(!is.finite(b)) {
+    if(b$sign < 0 && !(a$mag == Inf && a$sign < 0))
+      return(FALSE)
+    else if(b$sign > 0 && !(a$mag == Inf && a$sign > 0))
+      return(TRUE)
+    else # other degenerate cases of b (NaN or comparing Inf w/ Inf or -Inf w/ -Inf)
+      return(NA)
+  }
+  
+  if(a$sign == b$sign) {
+    if(a$sign == 0)
+      return(FALSE)
+    else if(a$sign > 0)
+      return(a$mag < b$mag)
+    else if(a$sign < 0)
+      return(a$mag > b$mag)
+  } else
+    return(a$sign < b$sign)
+}
+
+'<=.ls' <- function(a, b) {
+  if(!is.ls(b) && is.na(b)) { return(NA) }
+  if(!is.ls(b)) { b <- as.ls(b) }
+  
+  if(!is.finite(b)) {
+    if(b$sign < 0 && !(a$mag == Inf && a$sign < 0))
+      return(FALSE)
+    else if(b$sign > 0 && !(a$mag == Inf && a$sign > 0))
+      return(TRUE)
+    else # other degenerate cases of b (NaN or comparing Inf w/ Inf or -Inf w/ -Inf)
+      return(NA)
+  }
+  
+  if(a$sign == b$sign) {
+    if(a$sign == 0)
+      return(FALSE)
+    else if(a$sign > 0)
+      return(a$mag <= b$mag)
+    else if(a$sign < 0)
+      return(a$mag >= b$mag)
+  } else
+    return(a$sign < b$sign)
+}
+
+'==.ls' <- function(a, b) {
+  if(!is.ls(b)) { b <- as.ls(b) }
+  
+  return(a$mag == b$mag && a$sign == b$sign)
+}
+
+'abs.ls' <- function(a) {
+  if(a$sign < 0) {
+    a$sign <- 1L
+  }
+  return(a)
+}
+
+'is.finite.ls' <- function(a) {
+  return(is.finite(a$mag))
+}
+
+'is.infinite.ls' <- function(a) {
+  return(is.infinite(a$mag))
+}
+
+'is.nan.ls' <- function(a) {
+  return(is.nan(a$mag) || is.nan(a$sign))
 }
 
 # '[.ls' <- function(x, i, j, drop = FALSE) {

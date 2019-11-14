@@ -1,4 +1,4 @@
-clean <- FALSE
+clean <- TRUE
 
 if(clean) {
   vars <- ls(all.names = TRUE)
@@ -10,6 +10,7 @@ if(clean) {
   vars <- vars[vars != "rt.apgf"]
   vars <- vars[vars != "rt.fwd"]
   vars <- vars[vars != "rt.truncpco"]
+  vars <- vars[vars != "y_record"]
 }
 
 source("pcountOpen_rgdual.R")
@@ -21,7 +22,7 @@ library(ggplot2)
 inv.logit <- function(x) { exp(x) / (exp(x) + 1) }
 logit <- function(x) { log(x) - log(1 - x) }
 
-experiment.name <- "fixed_y_eval"
+experiment.name <- "gen_y_eval3"
 
 # M <- 2
 # T <- 5
@@ -54,13 +55,13 @@ T <- 6
 # omega  <- 0.6567346
 # p      <- 0.9518883
 # iota   <- 1.0208007
-lambda <- 60
+lambda <- 80
 gamma <- 0.95
 omega <- 0.65
 p <- 0.5
-iota <- 4
+iota <- 8
 
-n.reps <- 1
+n.reps <- 30
 
 # y <- matrix(NA, M, T)
 # N <- matrix(NA, M, T)
@@ -69,8 +70,7 @@ n.reps <- 1
 # I <- matrix(NA, M, T-1)
 # N[,1] <- rpois(M, lambda)
 # for(t in 1:(T-1)) {
-#   S[,t] <- 0
-#   # S[,t] <- rbinom(M, N[,t], omega)
+#   S[,t] <- rbinom(M, N[,t], omega)
 #   O[,t] <- rpois(M, N[,t] * gamma)
 #   I[,t] <- rpois(M, iota)
 #   N[,t+1] <- S[,t] + O[,t] + I[,t]
@@ -80,10 +80,7 @@ n.reps <- 1
 # y_record[[(i.experiment - 1) * n.reps + i.rep]] <- y
 
 # y <- matrix(c(13,12,11,19,17,16,19,16,17,17,18,21,10,16,17,12,20,18), nrow = 3, ncol = 6)
-# y <- matrix(c(35,31,27,24,39,34,32,31,33,28,32,30,25,36,25,23,43,32), nrow = 3, ncol = 6)
-
-# y(trend), l=60, g=0.95, p=0.5, i=4
-y <- matrix(c(24,28,31,32,29,25,40,25,20,30,24,22,38,22,28,56,13,21), nrow = 3, ncol = 6)
+y <- matrix(c(35,31,27,24,39,34,32,31,33,28,32,30,25,36,25,23,43,32), nrow = 3, ncol = 6)
 
 # Y = sum(y)
 
@@ -97,7 +94,6 @@ arrival.pgf <- pgf.poisson
 offspring.pgf <- pgf.poisson
 
 theta.gen <- c(lambda, gamma, omega, p, iota)
-umf <- unmarkedFramePCO(y = y, numPrimary=T)
 
 # titles <- c("NLL vs lambda",
 #             "NLL vs gamma",
@@ -116,22 +112,20 @@ umf <- unmarkedFramePCO(y = y, numPrimary=T)
 #             "NLL vs Random direction 9",
 #             "NLL vs Random direction 10")
 titles <- c(
-            "NLL vs rho",
-            "NLL vs lambda",
-            "NLL vs gamma",
-            # "NLL vs delta",
-            "NLL vs iota"
-            )
+  "NLL vs rho",
+  "NLL vs lambda",
+  "NLL vs gamma",
+  # "NLL vs delta",
+  "NLL vs iota"
+)
 titles.rt <- c("Runtime vs rho",
                "Runtime vs lambda",
-            "Runtime vs gamma",
-            # "Runtime vs delta",
-            "Runtime vs iota")
+               "Runtime vs gamma",
+               # "Runtime vs delta",
+               "Runtime vs iota")
 
-# x_labs <- c("rho", "lambda", "gamma", "iota")
-# x_labs <- c("lambda", "gamma", "delta", "rho", "iota")
-# x_labs <- c("lambda", "gamma", "delta", "iota")
 x_labs <- c(expression(rho), expression(lambda), expression(gamma), expression(iota))
+# x_labs <- c("lambda", "gamma", "delta", "iota")
 
 # titles <- c("NLL vs lambda")
 # titles.rt <- c("Runtime vs lambda")
@@ -147,6 +141,7 @@ if(clean) {
   rt.apgf <- vector(n.experiments, mode = "list")
   rt.fwd <- vector(n.experiments, mode = "list")
   rt.truncpco <- vector(n.experiments, mode = "list")
+  y_record <- vector(n.experiments, mode = "list")
 }
 
 # x_labs <- c("lambda", "gamma", "delta", "rho", "iota")
@@ -165,7 +160,7 @@ for(i.experiment in 1:n.experiments) {
     theta.0   <- theta.gen
     theta.0[2] <- 0
     # eval.mags[[i.experiment]] <- seq(0, 1, 0.05)
-    eval.mags[[i.experiment]] <- seq(-0.5, 0.5, 0.05) * gamma + gamma
+    eval.mags[[i.experiment]] <- seq(-0.5, 0.25, 0.05) * gamma + gamma
   } else if(identical(title, "NLL vs delta")) {
     eval.dir  <- c(0,0,1,0,0)
     theta.0   <- theta.gen
@@ -175,12 +170,12 @@ for(i.experiment in 1:n.experiments) {
     eval.dir  <- c(0,0,0,1,0)
     theta.0   <- theta.gen
     theta.0[4] <- 0
-    eval.mags[[i.experiment]] <- seq(0.15, 0.85, 0.05)
+    eval.mags[[i.experiment]] <- seq(0.25, 0.75, 0.05)
   } else if(identical(title, "NLL vs iota")) {
     eval.dir  <- c(0,0,0,0,1)
     theta.0   <- theta.gen
     theta.0[5] <- 0
-    eval.mags[[i.experiment]] <- seq(-0.5, 0.5, 0.05) * iota + iota
+    eval.mags[[i.experiment]] <- seq(-0.75, 0.75, 0.1) * iota + iota
   } else if(identical(title, "NLL vs lambda and iota")) {
     eval.dir  <- c(1,0,0,0,1)
     theta.0   <- theta.gen
@@ -206,17 +201,19 @@ for(i.experiment in 1:n.experiments) {
   
   # eval.params <- c(1, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 20, 30, 50, 100)
   # eval.params <- 0.5
-  nll.apgf[[i.experiment]] <- rep(0, length(eval.mags[[i.experiment]]))
-  nll.fwd[[i.experiment]]  <- rep(0, length(eval.mags[[i.experiment]]))
+  n.params <- length(eval.mags[[i.experiment]])
+  nll.apgf[[i.experiment]] <- rep(0, n.params)
+  nll.fwd[[i.experiment]]  <- rep(0, n.params)
   # nll.apgfpco <- rep(0, length(eval.mags))
-  nll.truncpco[[i.experiment]] <- rep(0, length(eval.mags[[i.experiment]]))
-  rt.apgf[[i.experiment]] <- rep(0, length(eval.mags[[i.experiment]]))
-  rt.fwd[[i.experiment]]  <- rep(0, length(eval.mags[[i.experiment]]))
-  rt.truncpco[[i.experiment]] <- rep(0, length(eval.mags[[i.experiment]]))
+  nll.truncpco[[i.experiment]] <- rep(0, n.params)
+  rt.apgf[[i.experiment]] <- rep(0, n.params)
+  rt.fwd[[i.experiment]]  <- rep(0, n.params)
+  rt.truncpco[[i.experiment]] <- rep(0, n.params)
+  y_record[[i.experiment]] <- vector(n.params * n.reps, mode="list")
   
-  for(iter in 1:length(eval.mags[[i.experiment]])) {
+  for(iter in 1:n.params) {
     mag.iter <- eval.mags[[i.experiment]][iter]
-    print(paste0(iter,"/",length(eval.mags[[i.experiment]])))
+    print(paste0(iter,"/",n.params))
     
     theta.iter <- theta.0 + (mag.iter * eval.dir)
     
@@ -227,41 +224,65 @@ for(i.experiment in 1:n.experiments) {
     det.eval    <- min(max(theta.iter[4], 1e-6), 1 - 1e-6)
     iota.eval   <-     max(theta.iter[5], 1e-6)
     
-    if(identical(dynamics, 'trend'))
-      eval.at <- c(lambda.eval, gamma.eval, det.eval, iota.eval)
-    else
-      eval.at <- c(lambda.eval, gamma.eval, omega.eval, det.eval, iota.eval)
-    
-    print('  apgffwd')
-    time.start <- proc.time()[3]
     for(i.rep in 1:n.reps) {
-      nll.apgf[[i.experiment]][iter] <- pcountOpen_apgffwd(~1, ~1, ~1, ~1, umf, immigration = immigration, dynamics = dynamics, eval.at = eval.at, nll.fun = "apgffwd", transform = FALSE)
+      print(paste0('  rep ', i.rep, '/', n.reps))
+      y <- matrix(NA, M, T)
+      N <- matrix(NA, M, T)
+      S <- matrix(NA, M, T-1)
+      O <- matrix(NA, M, T-1)
+      I <- matrix(NA, M, T-1)
+      N[,1] <- rpois(M, lambda.eval)
+      for(t in 1:(T-1)) {
+        # S[,t] <- rbinom(M, N[,t], omega.eval)
+        S[,t] <- 0
+        O[,t] <- rpois(M, N[,t] * gamma.eval)
+        I[,t] <- rpois(M, iota.eval)
+        N[,t+1] <- S[,t] + O[,t] + I[,t]
+      }
+      y[] <- rbinom(M*T, N, det.eval)
+      Y = sum(y)
+      y_record[[i.experiment]][[(iter - 1) * n.reps + i.rep]] <- y
+      
+      umf <- unmarkedFramePCO(y = y, numPrimary=T)
+      
+      # restore original params for evaluation
+      lamda.eval <- theta.gen[1]
+      gamma.eval <- theta.gen[2]
+      omega.eval <- theta.gen[3]
+      det.eval   <- theta.gen[4]
+      iota.eval  <- theta.gen[5]
+      
+      if(identical(dynamics, 'trend'))
+        eval.at <- c(lambda.eval, gamma.eval, det.eval, iota.eval)
+      else
+        eval.at <- c(lambda.eval, gamma.eval, omega.eval, det.eval, iota.eval)
+      
+      print('    apgffwd')
+      time.start <- proc.time()[3]
+      nll.apgf[[i.experiment]][iter] <- nll.apgf[[i.experiment]][iter] + pcountOpen_apgffwd(~1, ~1, ~1, ~1, umf, immigration = immigration, dynamics = dynamics, eval.at = eval.at, nll.fun = "apgffwd", transform = FALSE) / n.reps
+      rt.apgf[[i.experiment]][iter] <- rt.apgf[[i.experiment]][iter] + (proc.time()[3] - time.start) / n.reps
+      print(paste0('    rt: ',(proc.time()[3] - time.start)))
+      
+      if(identical(dynamics, 'trend'))
+        eval.at.trunc <- c(log(lambda.eval), log(gamma.eval), logit(det.eval), log(iota.eval))
+      else
+        eval.at.trunc <- c(log(lambda.eval), log(gamma.eval), logit(omega.eval), logit(det.eval), log(iota.eval))
+      
+      K <- K.default(y, det.eval)
+      # K <- K.default(y, NULL)
+      # K <- 100
+      print(paste0('    trunc (K=', K, ')'))
+      time.start <- proc.time()[3]
+      nll.truncpco[[i.experiment]][iter] <- nll.truncpco[[i.experiment]][iter] + pcountOpen_apgffwd(~1, ~1, ~1, ~1, umf, immigration = immigration, dynamics = dynamics, eval.at = eval.at.trunc, nll.fun = "trunc", K = K, transform=TRUE) / n.reps
+      rt.truncpco[[i.experiment]][iter] <- rt.truncpco[[i.experiment]][iter] + (proc.time()[3] - time.start) / n.reps
+      print(paste0('    rt: ',(proc.time()[3] - time.start)))
+      
+      print('    gdfwd')
+      time.start <- proc.time()[3]
+      nll.fwd[[i.experiment]][iter] <- nll.fwd[[i.experiment]][iter] + pcountOpen_rgdual(~1, ~1, ~1, ~1, umf, immigration = immigration, dynamics = dynamics, eval.at = eval.at.trunc, nll.fun = "rgd") / n.reps
+      rt.fwd[[i.experiment]][iter] <- rt.fwd[[i.experiment]][iter] + (proc.time()[3] - time.start) / n.reps
+      print(paste0('    rt: ',(proc.time()[3] - time.start)))
     }
-    rt.apgf[[i.experiment]][iter] <- (proc.time()[3] - time.start) / n.reps
-    print(paste0('  rt: ',rt.apgf[[i.experiment]][iter]))
-    
-    if(identical(dynamics, 'trend'))
-      eval.at.trunc <- c(log(lambda.eval), log(gamma.eval), logit(det.eval), log(iota.eval))
-    else
-      eval.at.trunc <- c(log(lambda.eval), log(gamma.eval), logit(omega.eval), logit(det.eval), log(iota.eval))
-    
-    # K <- K.default(y, det.eval)
-    # K <- K.default(y, det.eval)
-    K <- 100
-    print(paste0('  trunc (K=', K, ')'))
-    time.start <- proc.time()[3]
-    for(i.rep in 1:n.reps)
-      nll.truncpco[[i.experiment]][iter] <- pcountOpen_apgffwd(~1, ~1, ~1, ~1, umf, immigration = immigration, dynamics = dynamics, eval.at = eval.at.trunc, nll.fun = "trunc", K = K, transform=TRUE)
-    rt.truncpco[[i.experiment]][iter] <- (proc.time()[3] - time.start) / n.reps
-    print(paste0('  rt: ',rt.truncpco[[i.experiment]][iter]))
-    
-    print('  gdfwd')
-    time.start <- proc.time()[3]
-    for(i.rep in 1:n.reps)
-      nll.fwd[[i.experiment]][iter] <- pcountOpen_rgdual(~1, ~1, ~1, ~1, umf, immigration = immigration, dynamics = dynamics, eval.at = eval.at.trunc, nll.fun = "rgd")
-    rt.fwd[[i.experiment]][iter] <- (proc.time()[3] - time.start) / n.reps
-    print(paste0('  rt: ',rt.fwd[[i.experiment]][iter]))
-    
     # theta.arrival <- data.frame(lambda = c(lambda.eval, rep(iota.eval, T - 1)))
     # # theta.offspring <- data.frame(lambda = rep(gamma.eval, T - 1))
     # theta.offspring <- data.frame(p      = array(omega.eval, T - 1),
@@ -307,7 +328,7 @@ for(i.experiment in 1:n.experiments) {
   # # plot(g)
   # print(g)
   # dev.off()
-  # # plot(eval.params, do.call(rbind, lapply(nll.apgf, as.numeric)), ylab = "nll", xlab = "eval.param")
+  # plot(eval.params, do.call(rbind, lapply(nll.apgf, as.numeric)), ylab = "nll", xlab = "eval.param")
 }
 
 save.image(file=paste0(experiment.name, ".RData"))
